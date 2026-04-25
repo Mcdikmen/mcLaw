@@ -1,0 +1,9 @@
+#specify files and folders to ignore in gitignore
+.local
+
+#package files
+*.jar
+*.zip
+*.rar
+*.tar.gz
+*.7z
