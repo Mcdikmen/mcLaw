@@ -5,7 +5,12 @@ author 'Mcdikmen'
 description 'mcLaw - A simple law system for FiveM'
 version '1.0.0'
 
+dependencies {
+    'ox_lib'
+}
+
 client_scripts {
+    '@ox_lib/init.lua',
     'client/*.lua'
 }
 

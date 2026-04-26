@@ -7,6 +7,27 @@ CreateThread(function ()
     TriggerServerEvent('mclaw:server:test:hello', "Merhaba sunucu!")    
 end)
 
+AddEventHandler('mclaw:client:merhabaDe', function()
+    print("Merhaba De tetiklendi!")
+    lib.notify({
+        title = 'Test',
+        description = 'Merhaba!',
+        type = 'success'
+    })
+end)
+
+AddEventHandler('mclaw:client:onayla', function()
+    print("Onayla tetiklendi!")
+    lib.alertDialog({
+        header = 'Onay',
+        content = 'Devam Et?',
+        labels = {
+            confirm = 'Evet',
+            cancel = 'Hayır'
+        }
+    })
+end)
+
 RegisterCommand("mclawmenu", function()
     lib.registerContext({
         id = 'mclaw_test',
@@ -14,28 +35,11 @@ RegisterCommand("mclawmenu", function()
         options = {
             {
                 title = 'Merhaba De',
-                onselect = function()
-                    lib.notify({
-                        title = 'Test',
-                        description = 'Merhaba!',
-                        type = 'success'
-                    })
-                end,
-                event = 'mclaw:client:option1'
+                event = 'mclaw:client:merhabaDe',
             },
             {
                 title = 'Onayla',
-                onselect = function()
-                    local result = lib.alertDialog({
-                        header = 'Onay',
-                        content = 'Devam Et?',
-                        labels = {
-                            confirm = 'Evet',
-                            cancel = 'Hayır'
-                        }
-                    })
-                    print("Cevap:", result)
-                end,                
+                event = 'mclaw:client:onayla',
             },
         },
     })
