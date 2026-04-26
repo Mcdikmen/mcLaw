@@ -1,6 +1,7 @@
 #specify files and folders to ignore in gitignore
-.local
+local
 .vscode
+.obsidian
 #package files
 *.jar
 *.zip

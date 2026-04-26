@@ -1,4 +1,4 @@
-# mcLaw
+# mcLaw - Judicial Management System (DOJ) for FiveM
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
 ![Framework](https://img.shields.io/badge/framework-Qbox-green.svg)
