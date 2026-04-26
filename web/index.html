@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mcLaw</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="app" class="hidden">
+
+        <div id="sidebar">
+            <div id="logo">
+                <span>&#9878;</span>
+                <h1>mcLaw</h1>
+            </div>
+
+            <nav>
+                <button class="nav-btn active" data-page="dashboard">Dashboard</button>
+                <button class="nav-btn" data-page="cases">Cases</button>
+                <button class="nav-btn" data-page="warrants">Warrants</button>
+                <button class="nav-btn" data-page="subpoenas">Subpoenas</button>
+                <button class="nav-btn" data-page="hearings">Hearings</button>
+            </nav>
+        </div>
+
+        <div id="content">
+
+            <div id="page-dashboard" class="page active">
+                <h2>Dashboard</h2>
+                <p>Welcome to mcLaw Judicial Management System.</p>
+            </div>
+
+            <div id="page-cases" class="page">
+                <h2>Cases</h2>
+            </div>
+
+            <div id="page-warrants" class="page">
+                <h2>Warrants</h2>
+            </div>
+
+            <div id="page-subpoenas" class="page">
+                <h2>Subpoenas</h2>
+            </div>
+
+            <div id="page-hearings" class="page">
+                <h2>Hearings</h2>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
