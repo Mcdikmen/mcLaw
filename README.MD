@@ -39,6 +39,12 @@ Ensure you have the following resources installed:
 
 ## Support
 
-- Discord: [Your Discord Link]
+- Discord: *mcdikmen*
 
 - Issues: Create a ticket on the GitHub Issues page.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+© 2026 Mcdikmen. All rights reserved.
