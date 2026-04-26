@@ -14,7 +14,7 @@ end)
 
 
 RegisterCommand("mclawtest", function(source)
-    local player = exports['qbx-core']:GetPlayer(source)
+    local player = exports['qbx_core']:GetPlayer(source)
     if not player then return end
 
     local job = player.PlayerData.job.name
