@@ -4,7 +4,7 @@
 ![Framework](https://img.shields.io/badge/framework-Qbox-green.svg)
 ![Dependency](https://img.shields.io/badge/dependency-ox__lib-red.svg)
 ![Completed](https://img.shields.io/badge/Completed-5%25-orange)
-![Repo](https://img.shields.io/badge/github-repo-blue?logo=github)
+![Repo](https://img.shields.io/badge/github-mcLaw-blue?logo=github)
 
 This is an end-to-end judicial management system designed for Qbox. It provides a complete legal infrastructure for your server, allowing legal professionals to manage the entire litigation process—from opening investigation files and sending official subpoenas to conducting court hearings and managing prison sentencing.
 
