@@ -85,9 +85,9 @@ local function openReferralForm()
 
     if not input then return end
 
-    local suspectSource = tonumber(input.suspectSource)
-    local selectedCodes = input.charges   -- array of code strings (multi-select)
-    local narrative     = input.narrative
+    local suspectSource = tonumber(input[1])
+    local selectedCodes = input[2]   -- array of code strings (multi-select)
+    local narrative     = input[3]
 
     if not selectedCodes or #selectedCodes == 0 then
         lib.notify({ type = 'error', description = 'Select at least one charge.' })
