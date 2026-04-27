@@ -66,22 +66,79 @@ Config.Compensation = {
 -- DISCORD WEBHOOKS
 -- Sends notifications to Discord for offline staff (prosecutors, judges).
 -- url: your Discord webhook URL
--- events: toggle each event type individually
 -- serverName: displayed in webhook messages
+-- roleMentions: Discord role IDs used as fallback when a staff member's personal
+--   Discord ID cannot be resolved — leave empty to disable role pings
+-- events: toggle each event type on or off individually
+-- messages: embed template per event — edit title/body/color freely.
+--   Supported placeholders: {serverName} {fileNumber} {suspectName}
+--   {prosecutorMention} {judgeMention} {verdictResult} {jailTime} {fine}
+--   {hearingDate} {chargeList}
+--   color: decimal embed color (convert hex at spycolor.com)
 -- ─────────────────────────────────────────────
 Config.Webhook = {
     enabled    = true,
     url        = '',
-    events     = {
+    serverName = 'mcLaw Server',
+
+    roleMentions = {
+        prosecutor = '',   -- Discord role ID, e.g. '123456789012345678'
+        judge      = '',
+    },
+
+    events = {
         fileOpened         = true,   -- new file opened, prosecutor needed
         prosecutorAssigned = true,   -- prosecutor assigned to a file
         verdictIssued      = true,   -- judge issued a verdict
+        fileClosed         = true,   -- file closed
         warrantCreated     = true,   -- arrest warrant created
         hearingScheduled   = true,   -- hearing scheduled
         compensationPaid   = false,  -- compensation paid to acquitted player
         auctionOpened      = false,  -- asset listed for state auction
     },
-    serverName = 'mcLaw Server',
+
+    messages = {
+        fileOpened = {
+            color = 3447003,
+            title = '📁 New File Opened',
+            body  = '**{serverName}** — `{fileNumber}`\nSuspect: **{suspectName}**\n\n{prosecutorMention} awaiting assignment.',
+        },
+        prosecutorAssigned = {
+            color = 5763719,
+            title = '⚖️ Prosecutor Assigned',
+            body  = '**{serverName}** — `{fileNumber}`\n{prosecutorMention} has been assigned to this file.',
+        },
+        verdictIssued = {
+            color = 15548997,
+            title = '🔨 Verdict Issued',
+            body  = '**{serverName}** — `{fileNumber}`\nVerdict: **{verdictResult}**\nJail: {jailTime} min | Fine: ${fine}',
+        },
+        fileClosed = {
+            color = 9807270,
+            title = '🗂️ File Closed',
+            body  = '**{serverName}** — `{fileNumber}`\nThis file has been closed.',
+        },
+        warrantCreated = {
+            color = 15105570,
+            title = '🚨 Arrest Warrant Issued',
+            body  = '**{serverName}** — `{fileNumber}`\nAn arrest warrant has been issued for **{suspectName}**.',
+        },
+        hearingScheduled = {
+            color = 10181046,
+            title = '📅 Hearing Scheduled',
+            body  = '**{serverName}** — `{fileNumber}`\nHearing Date: **{hearingDate}**\n{judgeMention} {prosecutorMention}',
+        },
+        compensationPaid = {
+            color = 5763719,
+            title = '💰 Compensation Paid',
+            body  = '**{serverName}** — `{fileNumber}`\n**{suspectName}** received compensation: ${fine}',
+        },
+        auctionOpened = {
+            color = 16776960,
+            title = '🏷️ State Auction Opened',
+            body  = '**{serverName}** — A new state auction has been listed.',
+        },
+    },
 }
 
 -- ─────────────────────────────────────────────
