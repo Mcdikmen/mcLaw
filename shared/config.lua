@@ -151,8 +151,8 @@ Config.Webhook = {
 Config.Attorney = {
     defaultDuration = 604800,
     grantDistance   = 3.0,
-    grantCommand    = 'vekaletver',
-    revokeCommand   = 'vekaletiptal',
+    grantCommand    = 'mclaw_grant',
+    revokeCommand   = 'mclaw_revoke',
 }
 
 -- ─────────────────────────────────────────────
