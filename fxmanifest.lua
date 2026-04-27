@@ -21,7 +21,6 @@ server_scripts {
 }
 
 shared_scripts {
-    'modules/utils_lib.js',
     'shared/*.lua'
 }
 
