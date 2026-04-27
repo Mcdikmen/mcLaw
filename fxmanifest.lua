@@ -6,7 +6,8 @@ description 'mcLaw - A simple law system for FiveM'
 version '1.0.0'
 
 dependencies {
-    'ox_lib'
+    'ox_lib',
+    'oxmysql',
 }
 
 client_scripts {
