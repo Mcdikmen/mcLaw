@@ -89,7 +89,10 @@ local function openReferralForm()
     local selectedCodes = input[2]   -- array of code strings (multi-select)
     local narrative     = input[3]
 
-    print('[mcLaw DEBUG] input[2] type:', type(selectedCodes), 'value:', json.encode(selectedCodes))
+    -- ox_lib returns a string for single selection, table for multiple
+    if type(selectedCodes) == 'string' then
+        selectedCodes = { selectedCodes }
+    end
 
     if not selectedCodes or #selectedCodes == 0 then
         lib.notify({ type = 'error', description = 'Select at least one charge.' })
