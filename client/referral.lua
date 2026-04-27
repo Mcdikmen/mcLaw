@@ -89,6 +89,8 @@ local function openReferralForm()
     local selectedCodes = input[2]   -- array of code strings (multi-select)
     local narrative     = input[3]
 
+    print('[mcLaw DEBUG] input[2] type:', type(selectedCodes), 'value:', json.encode(selectedCodes))
+
     if not selectedCodes or #selectedCodes == 0 then
         lib.notify({ type = 'error', description = 'Select at least one charge.' })
         return
