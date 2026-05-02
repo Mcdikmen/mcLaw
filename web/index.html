@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,40 +16,146 @@
                 <h1>mcLaw</h1>
             </div>
 
-            <nav>
-                <button class="nav-btn active" data-page="dashboard">Dashboard</button>
-                <button class="nav-btn" data-page="cases">Cases</button>
-                <button class="nav-btn" data-page="warrants">Warrants</button>
-                <button class="nav-btn" data-page="subpoenas">Subpoenas</button>
-                <button class="nav-btn" data-page="hearings">Hearings</button>
+            <nav id="nav">
+                <button class="nav-btn active" data-page="dashboard" data-jobs="all">
+                    &#128196; Dashboard
+                </button>
+                <button class="nav-btn" data-page="referral" data-jobs="police">
+                    &#128221; Sevk Raporu
+                </button>
+                <button class="nav-btn" data-page="warrants" data-jobs="police">
+                    &#128680; Yakalama Kararları
+                </button>
+                <button class="nav-btn" data-page="files" data-jobs="prosecutor,judge">
+                    &#128193; Dosyalar
+                </button>
+                <button class="nav-btn" data-page="indictment" data-jobs="prosecutor">
+                    &#9998; İddianame
+                </button>
+                <button class="nav-btn" data-page="hearings" data-jobs="judge,lawyer">
+                    &#9878; Duruşmalar
+                </button>
+                <button class="nav-btn" data-page="verdict" data-jobs="judge">
+                    &#9878; Karar Ver
+                </button>
+                <button class="nav-btn" data-page="clients" data-jobs="lawyer">
+                    &#128100; Müvekkiller
+                </button>
+                <button class="nav-btn" data-page="attorney" data-jobs="lawyer">
+                    &#128196; Vekaletler
+                </button>
             </nav>
+
+            <div id="user-info">
+                <span id="user-job"></span>
+            </div>
         </div>
 
         <div id="content">
 
+            <!-- DASHBOARD -->
             <div id="page-dashboard" class="page active">
                 <h2>Dashboard</h2>
-                <p>Welcome to mcLaw Judicial Management System.</p>
+                <p class="subtitle">mcLaw Yargı Yönetim Sistemi</p>
+                <div id="dashboard-stats" class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Aktif Dosyalar</div>
+                        <div class="stat-value" id="stat-active-files">—</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Bekleyen Kararlar</div>
+                        <div class="stat-value" id="stat-pending">—</div>
+                    </div>
+                </div>
             </div>
 
-            <div id="page-cases" class="page">
-                <h2>Cases</h2>
+            <!-- REFERRAL (police) -->
+            <div id="page-referral" class="page">
+                <h2>Sevk Raporu</h2>
+                <p class="subtitle">Şüpheli hakkında sevk raporu oluştur.</p>
+
+                <form id="referral-form" class="form">
+                    <div class="form-group">
+                        <label for="referral-suspect">Şüpheli</label>
+                        <select id="referral-suspect" required>
+                            <option value="">— Yakındaki oyuncu seçin —</option>
+                        </select>
+                        <p class="form-hint" id="referral-no-nearby" style="display:none; color:#e05c5c;">
+                            10 metre içinde başka oyuncu yok.
+                        </p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Suç(lar) <span class="label-hint">(en az bir tane seçin)</span></label>
+                        <div id="referral-charges" class="charge-list"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="referral-narrative">Olay Anlatısı</label>
+                        <textarea id="referral-narrative" rows="6" minlength="10" maxlength="1000"
+                            placeholder="Olayı kısaca açıklayın…" required></textarea>
+                        <p class="char-counter"><span id="narrative-count">0</span>/1000</p>
+                    </div>
+
+                    <div id="referral-error" class="form-error hidden"></div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Raporu Gönder</button>
+                        <button type="button" class="btn-secondary" id="referral-reset">Temizle</button>
+                    </div>
+                </form>
             </div>
 
+            <!-- WARRANTS (police) -->
             <div id="page-warrants" class="page">
-                <h2>Warrants</h2>
+                <h2>Yakalama Kararları</h2>
+                <p class="subtitle">Aktif yakalama kararları burada listelenecek.</p>
+                <div class="placeholder-box">Bu sekme yakında aktif olacak.</div>
             </div>
 
-            <div id="page-subpoenas" class="page">
-                <h2>Subpoenas</h2>
+            <!-- FILES (prosecutor, judge) -->
+            <div id="page-files" class="page">
+                <h2>Dosyalar</h2>
+                <p class="subtitle">Atanmış dosyalar burada listelenecek.</p>
+                <div class="placeholder-box">Bu sekme yakında aktif olacak.</div>
             </div>
 
+            <!-- INDICTMENT (prosecutor) -->
+            <div id="page-indictment" class="page">
+                <h2>İddianame</h2>
+                <p class="subtitle">İddianame hazırlama burada yapılacak.</p>
+                <div class="placeholder-box">Bu sekme yakında aktif olacak.</div>
+            </div>
+
+            <!-- HEARINGS (judge, lawyer) -->
             <div id="page-hearings" class="page">
-                <h2>Hearings</h2>
+                <h2>Duruşmalar</h2>
+                <p class="subtitle">Duruşma listesi ve yönetimi burada olacak.</p>
+                <div class="placeholder-box">Bu sekme yakında aktif olacak.</div>
+            </div>
+
+            <!-- VERDICT (judge) -->
+            <div id="page-verdict" class="page">
+                <h2>Karar Ver</h2>
+                <p class="subtitle">Hakim kararları burada verilecek.</p>
+                <div class="placeholder-box">Bu sekme yakında aktif olacak.</div>
+            </div>
+
+            <!-- CLIENTS (lawyer) -->
+            <div id="page-clients" class="page">
+                <h2>Müvekkiller</h2>
+                <p class="subtitle">Müvekkil listesi burada olacak.</p>
+                <div class="placeholder-box">Bu sekme yakında aktif olacak.</div>
+            </div>
+
+            <!-- ATTORNEY (lawyer) -->
+            <div id="page-attorney" class="page">
+                <h2>Vekaletler</h2>
+                <p class="subtitle">Vekalet yönetimi burada olacak.</p>
+                <div class="placeholder-box">Bu sekme yakında aktif olacak.</div>
             </div>
 
         </div>
-
     </div>
 
     <script src="script.js"></script>
