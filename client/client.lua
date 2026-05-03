@@ -45,6 +45,18 @@ local function openPanel(activeTab)
         payload.prosecutorFiles = lib.callback.await('mclaw:cb:prosecutor:getFiles', false) or {}
     end
 
+    local fileOpenJobs = {
+        [Config.Jobs.prosecutor] = true,
+        [Config.Jobs.judge]      = true,
+        [Config.Jobs.lawyer]     = true,
+    }
+    if fileOpenJobs[job] then
+        payload.fileOpenChargeList = lib.callback.await('mclaw:cb:referral:getChargeList', false) or {}
+    end
+    if job == Config.Jobs.judge then
+        payload.pendingApprovals = lib.callback.await('mclaw:cb:judge:getPendingApprovals', false) or {}
+    end
+
     SetNuiFocus(true, true)
     SendNUIMessage(payload)
 end
@@ -95,5 +107,43 @@ RegisterNUICallback('prosecutor:submitIndictment', function(data, cb)
         notes       = data.notes or '',
     })
 
+    cb({ ok = true })
+end)
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Manual file opening: prosecutor / judge / lawyer
+-- ─────────────────────────────────────────────────────────────────────────────
+RegisterNUICallback('fileopening:openFile', function(data, cb)
+    if not data.suspectCid or not data.charges or not data.narrative then
+        cb({ ok = false, error = 'Eksik veri.' })
+        return
+    end
+    TriggerServerEvent('mclaw:server:fileopening:openFile', {
+        suspectCid = data.suspectCid,
+        charges    = data.charges,
+        narrative  = data.narrative,
+        notes      = data.notes or '',
+    })
+    cb({ ok = true })
+end)
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Judge: approve / reject pending file
+-- ─────────────────────────────────────────────────────────────────────────────
+RegisterNUICallback('judge:approveFile', function(data, cb)
+    if not data.fileId then cb({ ok = false, error = 'Eksik veri.' }); return end
+    TriggerServerEvent('mclaw:server:judge:approveFile', {
+        fileId = data.fileId,
+        notes  = data.notes or '',
+    })
+    cb({ ok = true })
+end)
+
+RegisterNUICallback('judge:rejectFile', function(data, cb)
+    if not data.fileId then cb({ ok = false, error = 'Eksik veri.' }); return end
+    TriggerServerEvent('mclaw:server:judge:rejectFile', {
+        fileId = data.fileId,
+        reason = data.reason or '',
+    })
     cb({ ok = true })
 end)

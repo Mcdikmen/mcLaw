@@ -466,6 +466,55 @@ nav {
     color: #5a6480;
 }
 
+/* ── Approval actions ── */
+
+.approval-actions {
+    display: flex;
+    gap: 8px;
+    padding: 10px 16px 14px;
+}
+
+.btn-danger {
+    background: rgba(234,67,53,0.15);
+    color: #ea4335;
+    border: 1px solid rgba(234,67,53,0.35);
+    border-radius: 4px;
+    padding: 8px 18px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.btn-danger:hover {
+    background: rgba(234,67,53,0.28);
+}
+
+.btn-danger:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.approval-reject-panel {
+    padding: 0 16px 14px;
+}
+
+.reject-reason-input {
+    width: 100%;
+    background: #141824;
+    border: 1px solid #2e3650;
+    border-radius: 4px;
+    color: #e0e4ef;
+    font-size: 13px;
+    padding: 8px 10px;
+    outline: none;
+    resize: vertical;
+}
+
+.reject-reason-input:focus {
+    border-color: #ea4335;
+}
+
 /* ── Placeholder ── */
 
 .placeholder-box {

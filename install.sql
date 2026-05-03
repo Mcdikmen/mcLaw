@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS `mclaw_files` (
     `suspect_citizenid`     VARCHAR(64) NOT NULL,
     `prosecutor_citizenid`  VARCHAR(64),
     `judge_citizenid`       VARCHAR(64),
+    `opened_by_citizenid`   VARCHAR(64),
+    `opened_by_job`         VARCHAR(50),
     `referral_report_id`    INT,
     `jail_decision_id`      INT,
     `type`                  ENUM('investigation','case','written_trial') DEFAULT 'investigation',
@@ -32,7 +34,8 @@ CREATE TABLE IF NOT EXISTS `mclaw_files` (
                                 'verdict_issued',
                                 'enforcement_active',
                                 'closed',
-                                'archived'
+                                'archived',
+                                'pending_approval'
                             ) DEFAULT 'opened',
     `notes`                 TEXT,
     `created_at`            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -234,4 +237,15 @@ CREATE TABLE IF NOT EXISTS `mclaw_webhook_log` (
     `success`           TINYINT DEFAULT 0,
     `response_code`     SMALLINT,
     `sent_at`           TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS `mclaw_file_open_logs` (
+    `id`                        INT AUTO_INCREMENT PRIMARY KEY,
+    `file_id`                   INT NOT NULL,
+    `action`                    ENUM('opened','approved','rejected') NOT NULL,
+    `actioned_by_citizenid`     VARCHAR(64) NOT NULL,
+    `actioned_by_job`           VARCHAR(50) NOT NULL,
+    `notes`                     TEXT NULL,
+    `created_at`                TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`file_id`) REFERENCES `mclaw_files`(`id`)
 );

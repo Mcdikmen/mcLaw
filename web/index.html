@@ -32,6 +32,12 @@
                 <button class="nav-btn" data-page="indictment" data-jobs="prosecutor">
                     &#9998; İddianame
                 </button>
+                <button class="nav-btn" data-page="fileopening" data-jobs="prosecutor,judge,lawyer">
+                    &#43; Dosya Aç
+                </button>
+                <button class="nav-btn" data-page="approvals" data-jobs="judge">
+                    &#9745; Onay Bekleyenler
+                </button>
                 <button class="nav-btn" data-page="hearings" data-jobs="judge,lawyer">
                     &#9878; Duruşmalar
                 </button>
@@ -170,6 +176,59 @@
                         <button type="button" class="btn-secondary" id="indictment-reset">Temizle</button>
                     </div>
                 </form>
+            </div>
+
+            <!-- FILE OPENING (prosecutor, judge, lawyer) -->
+            <div id="page-fileopening" class="page">
+                <h2>Dosya Aç</h2>
+                <p class="subtitle">Şüpheli hakkında manuel dosya oluştur.</p>
+
+                <form id="fileopening-form" class="form">
+                    <div class="form-group">
+                        <label for="fileopening-suspect">Şüpheli Kimlik No</label>
+                        <input type="text" id="fileopening-suspect" maxlength="64"
+                            placeholder="Örn: ABC12345" required>
+                        <p class="form-hint">Şüphelinin citizenid'ini girin.</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Suç(lar) <span class="label-hint">(en az bir tane seçin)</span></label>
+                        <div id="fileopening-charges" class="charge-list"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fileopening-narrative">Gerekçe / Olay Anlatısı</label>
+                        <textarea id="fileopening-narrative" rows="5" minlength="10" maxlength="1000"
+                            placeholder="Dosyanın açılış gerekçesini açıklayın…" required></textarea>
+                        <p class="char-counter"><span id="fileopening-narrative-count">0</span>/1000</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fileopening-notes">
+                            Dahili Not <span class="label-hint">(isteğe bağlı)</span>
+                        </label>
+                        <textarea id="fileopening-notes" rows="3" maxlength="500"
+                            placeholder="Diğer yetkililere iç not…"></textarea>
+                    </div>
+
+                    <div id="fileopening-error" class="form-error hidden"></div>
+                    <p id="fileopening-pending-note" class="form-hint" style="color:#c9a84c; display:none;">
+                        &#9432; Dosya hakim onayına gönderilecek.
+                    </p>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary" id="fileopening-submit">Dosyayı Oluştur</button>
+                        <button type="button" class="btn-secondary" id="fileopening-reset">Temizle</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- PENDING APPROVALS (judge) -->
+            <div id="page-approvals" class="page">
+                <h2>Onay Bekleyenler</h2>
+                <p class="subtitle">Savcı ve avukat tarafından açılmış, onay bekleyen dosyalar.</p>
+                <div id="approvals-empty" class="placeholder-box">Onay bekleyen dosya yok.</div>
+                <div id="approvals-list" class="file-list"></div>
             </div>
 
             <!-- HEARINGS (judge, lawyer) -->
