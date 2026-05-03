@@ -38,10 +38,11 @@ local function openPanel(activeTab)
         activeTab = activeTab or 'dashboard',
     }
 
-    -- Police: yakındaki oyuncular + suç listesi gerekli
     if job == Config.Jobs.police then
         payload.nearbyPlayers = getNearbyPlayerOptions()
         payload.chargeList    = lib.callback.await('mclaw:cb:referral:getChargeList', false) or {}
+    elseif job == Config.Jobs.prosecutor or job == Config.Jobs.judge then
+        payload.prosecutorFiles = lib.callback.await('mclaw:cb:prosecutor:getFiles', false) or {}
     end
 
     SetNuiFocus(true, true)
@@ -74,6 +75,24 @@ RegisterNUICallback('referral:submit', function(data, cb)
         suspectSource = data.suspectSource,
         charges       = data.charges,
         narrative     = data.narrative,
+    })
+
+    cb({ ok = true })
+end)
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Prosecutor: indictment submit (NUI → client → server)
+-- ─────────────────────────────────────────────────────────────────────────────
+RegisterNUICallback('prosecutor:submitIndictment', function(data, cb)
+    if not data.fileId or not data.hearingType then
+        cb({ ok = false, error = 'Eksik veri.' })
+        return
+    end
+
+    TriggerServerEvent('mclaw:server:prosecutor:submitIndictment', {
+        fileId      = data.fileId,
+        hearingType = data.hearingType,
+        notes       = data.notes or '',
     })
 
     cb({ ok = true })

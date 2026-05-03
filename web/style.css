@@ -337,6 +337,135 @@ nav {
     margin-top: 4px;
 }
 
+/* ── File list ── */
+
+.file-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.file-card {
+    background: #141824;
+    border: 1px solid #2e3650;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.file-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid #2e3650;
+}
+
+.file-number {
+    font-size: 14px;
+    font-weight: 700;
+    color: #c9a84c;
+    letter-spacing: 0.5px;
+}
+
+.file-status {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.status-blue   { background: rgba(66,133,244,0.15); color: #4285f4; }
+.status-yellow { background: rgba(251,188,4,0.15);  color: #fbbc04; }
+.status-green  { background: rgba(52,168,83,0.15);  color: #34a853; }
+.status-red    { background: rgba(234,67,53,0.15);  color: #ea4335; }
+.status-gray   { background: rgba(100,110,130,0.15);color: #6a7488; }
+
+.file-card-body {
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.file-meta {
+    display: flex;
+    gap: 8px;
+    font-size: 13px;
+    color: #c0c8de;
+}
+
+.file-meta-key {
+    min-width: 70px;
+    font-size: 11px;
+    color: #5a6480;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding-top: 1px;
+}
+
+.file-charges-text {
+    color: #8a93a8;
+}
+
+.file-indictment-btn {
+    margin: 10px 16px 14px;
+    font-size: 12px;
+    padding: 7px 16px;
+}
+
+/* ── Radio group ── */
+
+.radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.radio-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    background: #141824;
+    border: 1px solid #2e3650;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+
+.radio-item:hover {
+    border-color: #4a5470;
+}
+
+.radio-item input[type="radio"] {
+    accent-color: #c9a84c;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.radio-item input[type="radio"]:checked + .radio-label strong {
+    color: #c9a84c;
+}
+
+.radio-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.radio-label strong {
+    font-size: 13px;
+    color: #e0e4ef;
+}
+
+.radio-label small {
+    font-size: 12px;
+    color: #5a6480;
+}
+
 /* ── Placeholder ── */
 
 .placeholder-box {

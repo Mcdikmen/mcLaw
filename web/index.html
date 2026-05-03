@@ -116,15 +116,60 @@
             <!-- FILES (prosecutor, judge) -->
             <div id="page-files" class="page">
                 <h2>Dosyalar</h2>
-                <p class="subtitle">Atanmış dosyalar burada listelenecek.</p>
-                <div class="placeholder-box">Bu sekme yakında aktif olacak.</div>
+                <p class="subtitle">Atanmış dosyalar aşağıda listelenmektedir.</p>
+                <div id="files-empty" class="placeholder-box" style="display:none;">Atanmış dosya yok.</div>
+                <div id="files-list" class="file-list"></div>
             </div>
 
             <!-- INDICTMENT (prosecutor) -->
             <div id="page-indictment" class="page">
-                <h2>İddianame</h2>
-                <p class="subtitle">İddianame hazırlama burada yapılacak.</p>
-                <div class="placeholder-box">Bu sekme yakında aktif olacak.</div>
+                <h2>İddianame Hazırla</h2>
+                <p class="subtitle">Dosyayı duruşmaya taşı ve yargılama türünü belirle.</p>
+
+                <form id="indictment-form" class="form">
+                    <div class="form-group">
+                        <label for="indictment-file">Dosya</label>
+                        <select id="indictment-file" required>
+                            <option value="">— Dosya seçin —</option>
+                        </select>
+                        <p class="form-hint">Yalnızca iddianame için uygun dosyalar listelenir.</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Yargılama Türü</label>
+                        <div class="radio-group">
+                            <label class="radio-item">
+                                <input type="radio" name="hearing-type" value="physical" checked>
+                                <span class="radio-label">
+                                    <strong>Fiziksel Duruşma</strong>
+                                    <small>Taraflar mahkemede fiziksel olarak hazır bulunur.</small>
+                                </span>
+                            </label>
+                            <label class="radio-item">
+                                <input type="radio" name="hearing-type" value="written">
+                                <span class="radio-label">
+                                    <strong>Yazılı Yargılama</strong>
+                                    <small>Taraflar argümanlarını sistem üzerinden sunar.</small>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="indictment-notes">
+                            Savcı Notu <span class="label-hint">(isteğe bağlı)</span>
+                        </label>
+                        <textarea id="indictment-notes" rows="4" maxlength="500"
+                            placeholder="Dosyaya eklemek istediğiniz notlar…"></textarea>
+                    </div>
+
+                    <div id="indictment-error" class="form-error hidden"></div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">İddianameyi Gönder</button>
+                        <button type="button" class="btn-secondary" id="indictment-reset">Temizle</button>
+                    </div>
+                </form>
             </div>
 
             <!-- HEARINGS (judge, lawyer) -->
