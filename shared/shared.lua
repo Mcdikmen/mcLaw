@@ -248,6 +248,16 @@
   --   -- sentence.jailTime -> 70  (60 + 10)
   --   -- sentence.fine     -> 6000 (5000 + 1000)
   -- =============================================================================
+  -- FormatTimestamp(ts)
+  -- Converts an oxmysql TIMESTAMP (returned as milliseconds) to a readable date string.
+  function Mclaw.FormatTimestamp(ts)
+      if not ts then return '-' end
+      local n = tonumber(ts)
+      if not n then return tostring(ts) end
+      if n > 1e10 then n = math.floor(n / 1000) end
+      return os.date('%d.%m.%Y %H:%M', n)
+  end
+
   function Mclaw.CalculateSentence(charges)
       local totalJail = 0
       local totalFine = 0

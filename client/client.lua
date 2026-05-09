@@ -147,3 +147,15 @@ RegisterNUICallback('judge:rejectFile', function(data, cb)
     })
     cb({ ok = true })
 end)
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Judge: accept indictment_ready file → hearing_scheduled (dava aç)
+-- ─────────────────────────────────────────────────────────────────────────────
+RegisterNUICallback('judge:acceptCase', function(data, cb)
+    if not data.fileId then cb({ ok = false, error = 'Eksik veri.' }); return end
+    TriggerServerEvent('mclaw:server:judge:acceptCase', {
+        fileId = data.fileId,
+        notes  = data.notes or '',
+    })
+    cb({ ok = true })
+end)

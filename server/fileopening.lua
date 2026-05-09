@@ -157,7 +157,7 @@ lib.callback.register('mclaw:cb:judge:getPendingApprovals', function(source)
             openedBy    = row.opened_by_citizenid,
             openedByJob = row.opened_by_job,
             notes       = row.notes,
-            createdAt   = tostring(row.created_at),
+            createdAt   = Mclaw.FormatTimestamp(row.created_at),
             charges     = chargeList,
         })
     end

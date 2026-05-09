@@ -14,12 +14,12 @@ lib.callback.register('mclaw:cb:prosecutor:getFiles', function(source)
     local rows
     if job == Config.Jobs.prosecutor then
         rows = MySQL.query.await(
-            'SELECT id, file_number, suspect_citizenid, status, type, created_at FROM mclaw_files WHERE prosecutor_citizenid = ? AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 50',
+            'SELECT id, file_number, suspect_citizenid, status, type, notes, created_at FROM mclaw_files WHERE prosecutor_citizenid = ? AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 50',
             { cid }
         )
     elseif job == Config.Jobs.judge then
         rows = MySQL.query.await(
-            "SELECT id, file_number, suspect_citizenid, status, type, created_at FROM mclaw_files WHERE judge_citizenid = ? AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 50",
+            "SELECT id, file_number, suspect_citizenid, status, type, notes, prosecutor_citizenid, created_at FROM mclaw_files WHERE deleted_at IS NULL AND (judge_citizenid = ? OR (status IN ('indictment_ready','written_trial_active') AND judge_citizenid IS NULL)) ORDER BY created_at DESC LIMIT 50",
             { cid }
         )
     else
@@ -43,13 +43,15 @@ lib.callback.register('mclaw:cb:prosecutor:getFiles', function(source)
             })
         end
         table.insert(files, {
-            id         = row.id,
-            fileNumber = row.file_number,
-            suspectCid = row.suspect_citizenid,
-            status     = row.status,
-            type       = row.type,
-            createdAt  = tostring(row.created_at),
-            charges    = chargeList,
+            id             = row.id,
+            fileNumber     = row.file_number,
+            suspectCid     = row.suspect_citizenid,
+            status         = row.status,
+            type           = row.type,
+            notes          = row.notes,
+            prosecutorCid  = row.prosecutor_citizenid,
+            createdAt      = Mclaw.FormatTimestamp(row.created_at),
+            charges        = chargeList,
         })
     end
     return files
@@ -109,7 +111,7 @@ RegisterNetEvent('mclaw:server:prosecutor:submitIndictment', function(data)
         description = 'Dosya ' .. file.file_number .. ' iddianame aşamasına geçti.',
     })
 
-    -- Notify assigned judge if any
+    -- Notify assigned judge if online
     if file.judge_citizenid then
         MySQL.insert(
             'INSERT INTO mclaw_notifications (citizenid, type, title, message, ref_type, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
@@ -122,6 +124,59 @@ RegisterNetEvent('mclaw:server:prosecutor:submitIndictment', function(data)
                     type        = 'inform',
                     title       = 'İddianame Hazır',
                     description = 'Dosya ' .. file.file_number .. ' duruşmaya hazır.',
+                })
+                break
+            end
+        end
+    end
+end)
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- mclaw:server:judge:acceptCase
+-- Judge accepts an indictment_ready file → hearing_scheduled.
+-- Assigns judge_citizenid and notifies the prosecutor.
+--
+-- data.fileId  (number)   id of the file
+-- data.notes   (string?)  optional judge note
+-- ─────────────────────────────────────────────────────────────────────────────
+RegisterNetEvent('mclaw:server:judge:acceptCase', function(data)
+    local src = source
+    local P   = exports.qbx_core:GetPlayer(src)
+    if not P or P.PlayerData.job.name ~= Config.Jobs.judge then return end
+
+    local cid  = P.PlayerData.citizenid
+    local file = MySQL.single.await(
+        "SELECT id, file_number, prosecutor_citizenid FROM mclaw_files WHERE id = ? AND status = 'indictment_ready' AND deleted_at IS NULL",
+        { data.fileId }
+    )
+    if not file then
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Dosya bulunamadı veya iddianame aşamasında değil.' })
+        return
+    end
+
+    MySQL.update(
+        "UPDATE mclaw_files SET status = 'hearing_scheduled', judge_citizenid = ?, notes = COALESCE(?, notes), updated_at = NOW() WHERE id = ?",
+        { cid, (data.notes ~= '' and data.notes or nil), data.fileId }
+    )
+
+    TriggerClientEvent('ox_lib:notify', src, {
+        type        = 'success',
+        title       = 'Dava Açıldı',
+        description = file.file_number .. ' numaralı dosyada duruşma süreci başlatıldı.',
+    })
+
+    if file.prosecutor_citizenid then
+        MySQL.insert(
+            'INSERT INTO mclaw_notifications (citizenid, type, title, message, ref_type, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
+            { file.prosecutor_citizenid, 'hearing', 'Dava Açıldı', file.file_number .. ' numaralı davayı hakim devraldı, duruşma planlanıyor.', 'file', data.fileId }
+        )
+        for _, pid in ipairs(GetPlayers()) do
+            local PP = exports.qbx_core:GetPlayer(tonumber(pid))
+            if PP and PP.PlayerData.citizenid == file.prosecutor_citizenid then
+                TriggerClientEvent('mclaw:client:notification:push', tonumber(pid), {
+                    type        = 'success',
+                    title       = 'Dava Açıldı',
+                    description = file.file_number .. ' numaralı davayı hakim devraldı.',
                 })
                 break
             end

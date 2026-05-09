@@ -152,8 +152,9 @@ var STATUS_LABELS = {
     'written_trial_active': 'Yazili Yargilama',
     'verdict_issued':       'Karar Verildi',
     'enforcement_active':   'Icra Aktif',
-    'closed':               'Kapatildi',
-    'archived':             'Arsivlendi',
+    'closed':               'Kapatıldı',
+    'archived':             'Arşivlendi',
+    'pending_approval':     'Onay Bekliyor',
 };
 
 var STATUS_COLORS = {
@@ -167,6 +168,7 @@ var STATUS_COLORS = {
     'enforcement_active':   'status-red',
     'closed':               'status-gray',
     'archived':             'status-gray',
+    'pending_approval':     'status-yellow',
 };
 
 function renderFilesList() {
@@ -181,22 +183,24 @@ function renderFilesList() {
         var statusClass = STATUS_COLORS[file.status] || 'status-gray';
         var statusLabel = STATUS_LABELS[file.status] || file.status;
         var chargeNames = (file.charges || []).map(function(c) { return c.label; }).join(', ') || '-';
+        var notesRow = file.notes ? '<div class="file-meta"><span class="file-meta-key">Not</span><span class="file-charges-text">' + file.notes + '</span></div>' : '';
         card.innerHTML =
             '<div class="file-card-header">' +
                 '<span class="file-number">' + file.fileNumber + '</span>' +
                 '<span class="file-status ' + statusClass + '">' + statusLabel + '</span>' +
             '</div>' +
             '<div class="file-card-body">' +
-                '<div class="file-meta"><span class="file-meta-key">Supheli</span><span>' + file.suspectCid + '</span></div>' +
-                '<div class="file-meta"><span class="file-meta-key">Suclar</span><span class="file-charges-text">' + chargeNames + '</span></div>' +
-                '<div class="file-meta"><span class="file-meta-key">Acilis</span><span>' + (file.createdAt || '-') + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">Şüpheli</span><span>' + file.suspectCid + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">Suçlar</span><span class="file-charges-text">' + chargeNames + '</span></div>' +
+                notesRow +
+                '<div class="file-meta"><span class="file-meta-key">Açılış</span><span>' + (file.createdAt || '-') + '</span></div>' +
             '</div>';
-        var eligible = ['opened', 'awaiting_prosecutor', 'prosecutor_review'];
-        if (currentJob === 'prosecutor' && eligible.indexOf(file.status) !== -1) {
+        var eligibleIndictment = ['opened', 'awaiting_prosecutor', 'prosecutor_review'];
+        if (currentJob === 'prosecutor' && eligibleIndictment.indexOf(file.status) !== -1) {
             var btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'btn-secondary file-indictment-btn';
-            btn.textContent = 'Iddianame Hazirla ->';
+            btn.textContent = 'İddianame Hazırla →';
             (function(fid) {
                 btn.addEventListener('click', function() {
                     prefillIndictmentForm(fid);
@@ -204,6 +208,39 @@ function renderFilesList() {
                 });
             }(file.id));
             card.appendChild(btn);
+        }
+        if (currentJob === 'judge' && file.status === 'indictment_ready') {
+            var acceptBtn = document.createElement('button');
+            acceptBtn.type = 'button';
+            acceptBtn.className = 'btn-primary file-indictment-btn';
+            acceptBtn.textContent = 'Davayı Aç →';
+            (function(fid, cardEl, btn) {
+                btn.addEventListener('click', function() {
+                    btn.disabled = true;
+                    btn.textContent = 'İşleniyor...';
+                    fetch('https://mclaw/judge:acceptCase', {
+                        method: 'POST',
+                        body: JSON.stringify({ fileId: fid, notes: '' }),
+                    }).then(function(res) { return res.json(); }).then(function(result) {
+                        if (result && result.ok) {
+                            // Update card status badge in-place
+                            var badge = cardEl.querySelector('.file-status');
+                            if (badge) {
+                                badge.className = 'file-status status-green';
+                                badge.textContent = 'Duruşma Planlandı';
+                            }
+                            btn.remove();
+                        } else {
+                            btn.disabled = false;
+                            btn.textContent = 'Davayı Aç →';
+                        }
+                    }).catch(function() {
+                        btn.disabled = false;
+                        btn.textContent = 'Davayı Aç →';
+                    });
+                });
+            }(file.id, card, acceptBtn));
+            card.appendChild(acceptBtn);
         }
         listEl.appendChild(card);
     });
