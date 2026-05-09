@@ -13,8 +13,9 @@ lib.callback.register('mclaw:cb:prosecutor:getFiles', function(source)
 
     local rows
     if job == Config.Jobs.prosecutor then
+        -- Sadece dava dosyaları (iddianame aşamasına geçmiş)
         rows = MySQL.query.await(
-            'SELECT id, file_number, suspect_citizenid, status, type, notes, created_at FROM mclaw_files WHERE prosecutor_citizenid = ? AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 50',
+            "SELECT id, file_number, suspect_citizenid, status, type, notes, created_at FROM mclaw_files WHERE prosecutor_citizenid = ? AND type != 'investigation' AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 50",
             { cid }
         )
     elseif job == Config.Jobs.judge then
@@ -56,6 +57,105 @@ lib.callback.register('mclaw:cb:prosecutor:getFiles', function(source)
         })
     end
     return files
+end)
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- mclaw:server:prosecutor:openInvestigation
+-- Savcı re'sen soruşturma açar (SRS numaralı, type=investigation).
+-- ─────────────────────────────────────────────────────────────────────────────
+RegisterNetEvent('mclaw:server:prosecutor:openInvestigation', function(data)
+    local src = source
+    local P   = exports.qbx_core:GetPlayer(src)
+    if not P or P.PlayerData.job.name ~= Config.Jobs.prosecutor then return end
+
+    if not data.suspectCid or not data.charges or #data.charges == 0 or not data.narrative or #data.narrative < 10 then
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Eksik veya hatalı veri.' })
+        return
+    end
+
+    local suspectExists = MySQL.scalar.await('SELECT COUNT(*) FROM players WHERE citizenid = ?', { data.suspectCid })
+    if not suspectExists or suspectExists == 0 then
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Geçersiz şüpheli kimlik numarası.' })
+        return
+    end
+
+    for _, c in ipairs(data.charges) do
+        if not Mclaw.GetChargeByCode(c.code) then
+            TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Geçersiz suç kodu: ' .. tostring(c.code) })
+            return
+        end
+    end
+
+    local cid  = P.PlayerData.citizenid
+    local year = tonumber(os.date('%Y'))
+    local invCount = MySQL.scalar.await(
+        "SELECT COUNT(*) FROM mclaw_files WHERE type = 'investigation' AND YEAR(created_at) = ?", { year }
+    ) or 0
+    local fileNumber = Mclaw.FormatInvestigationNumber(year, invCount + 1)
+
+    local fileId = MySQL.insert.await(
+        "INSERT INTO mclaw_files (file_number, suspect_citizenid, prosecutor_citizenid, opened_by_citizenid, opened_by_job, status, type, notes) VALUES (?, ?, ?, ?, ?, 'opened', 'investigation', ?)",
+        { fileNumber, data.suspectCid, cid, cid, Config.Jobs.prosecutor, (data.notes ~= '' and data.notes or nil) }
+    )
+
+    for _, c in ipairs(data.charges) do
+        MySQL.insert('INSERT INTO mclaw_file_charges (file_id, charge_code) VALUES (?, ?)', { fileId, c.code })
+    end
+
+    MySQL.insert(
+        "INSERT INTO mclaw_file_open_logs (file_id, action, actioned_by_citizenid, actioned_by_job, notes) VALUES (?, 'opened', ?, ?, ?)",
+        { fileId, cid, Config.Jobs.prosecutor, data.narrative }
+    )
+
+    TriggerClientEvent('ox_lib:notify', src, {
+        type        = 'success',
+        title       = 'Soruşturma Açıldı',
+        description = fileNumber .. ' numaralı soruşturma başlatıldı.',
+    })
+end)
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- mclaw:cb:prosecutor:getInvestigations
+-- Savcının kendi soruşturmalarını listeler (type = 'investigation').
+-- ─────────────────────────────────────────────────────────────────────────────
+lib.callback.register('mclaw:cb:prosecutor:getInvestigations', function(source)
+    local P = exports.qbx_core:GetPlayer(source)
+    if not P or P.PlayerData.job.name ~= Config.Jobs.prosecutor then return {} end
+
+    local cid  = P.PlayerData.citizenid
+    local rows = MySQL.query.await(
+        "SELECT id, file_number, suspect_citizenid, status, notes, created_at FROM mclaw_files WHERE prosecutor_citizenid = ? AND type = 'investigation' AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 50",
+        { cid }
+    )
+
+    local list = {}
+    for _, row in ipairs(rows or {}) do
+        local charges = MySQL.query.await(
+            'SELECT fc.charge_code, fc.jail_override, fc.fine_override FROM mclaw_file_charges fc WHERE fc.file_id = ?',
+            { row.id }
+        )
+        local chargeList = {}
+        for _, c in ipairs(charges or {}) do
+            local def = Mclaw.GetChargeByCode(c.charge_code)
+            table.insert(chargeList, {
+                code     = c.charge_code,
+                label    = def and def.label or c.charge_code,
+                jailTime = c.jail_override or (def and def.jailTime or 0),
+                fine     = c.fine_override  or (def and def.fine     or 0),
+            })
+        end
+        table.insert(list, {
+            id           = row.id,
+            fileNumber   = row.file_number,
+            suspectCid   = row.suspect_citizenid,
+            suspectName  = Mclaw.GetCharName(row.suspect_citizenid),
+            status       = row.status,
+            notes        = row.notes,
+            createdAt    = Mclaw.FormatTimestamp(row.created_at),
+            charges      = chargeList,
+        })
+    end
+    return list
 end)
 
 -- ─────────────────────────────────────────────────────────────────────────────

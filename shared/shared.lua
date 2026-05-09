@@ -219,6 +219,11 @@
   -- Usage:
   --   local num = Mclaw.FormatFileNumber(2026, 42)  --> "MCL-2026-00042"
   -- =============================================================================
+  function Mclaw.FormatInvestigationNumber(year, sequence)
+      local padded = string.format('%0' .. Config.InvestigationNumber.padWidth .. 'd', sequence)
+      return Config.InvestigationNumber.prefix .. '-' .. year .. '-' .. padded
+  end
+
   function Mclaw.FormatFileNumber(year, sequence)
       local padded = string.format('%0' .. Config.FileNumber.padWidth .. 'd', sequence)
       return Config.FileNumber.prefix .. '-' .. year .. '-' .. padded

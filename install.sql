@@ -41,6 +41,8 @@ CREATE TABLE IF NOT EXISTS `mclaw_files` (
     `created_at`            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `updated_at`            TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `closed_at`             TIMESTAMP NULL DEFAULT NULL,
+    `source_investigation_id` INT NULL COMMENT 'Kaynak soruşturma dosyası ID',
+    `petition_id`           INT NULL COMMENT 'Kaynak avukat dilekçesi ID',
     `deleted_at`            TIMESTAMP NULL DEFAULT NULL
 );
 

@@ -97,6 +97,24 @@ nav {
     letter-spacing: 0.5px;
 }
 
+#btn-exit-app {
+    margin: 0 12px 14px;
+    padding: 9px 0;
+    background: #1e2435;
+    border: 1px solid #3a2020;
+    color: #c0504d;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    width: calc(100% - 24px);
+}
+
+#btn-exit-app:hover {
+    background: #3a2020;
+    color: #ff7b78;
+}
+
 /* ── Content area ── */
 
 #content {

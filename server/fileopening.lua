@@ -36,11 +36,7 @@ RegisterNetEvent('mclaw:server:fileopening:openFile', function(data)
     if not P then return end
 
     local job = P.PlayerData.job.name
-    local allowedJobs = {
-        [Config.Jobs.prosecutor] = true,
-        [Config.Jobs.judge]      = true,
-    }
-    if not allowedJobs[job] then return end
+    if job ~= Config.Jobs.judge then return end
 
     local cid = P.PlayerData.citizenid
 
@@ -71,14 +67,9 @@ RegisterNetEvent('mclaw:server:fileopening:openFile', function(data)
     end
 
     -- Determine status and pre-assigned roles
-    local fileStatus, prosecutorCid, judgeCid
-    if job == Config.Jobs.judge then
-        fileStatus    = 'opened'
-        judgeCid      = cid
-    else -- prosecutor
-        fileStatus    = 'pending_approval'
-        prosecutorCid = cid
-    end
+    local fileStatus = 'opened'
+    local judgeCid   = cid
+    local prosecutorCid = nil
 
     local year = tonumber(os.date('%Y'))
     local seq  = getNextFileSequence(year)

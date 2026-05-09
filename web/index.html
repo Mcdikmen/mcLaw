@@ -26,14 +26,20 @@
                 <button class="nav-btn" data-page="warrants" data-jobs="police">
                     &#128680; Yakalama Kararları
                 </button>
+                <button class="nav-btn" data-page="investigations" data-jobs="prosecutor">
+                    &#128269; Soruşturmalar
+                </button>
                 <button class="nav-btn" data-page="files" data-jobs="prosecutor,judge">
-                    &#128193; Dosyalar
+                    &#128193; Dava Dosyaları
                 </button>
                 <button class="nav-btn" data-page="indictment" data-jobs="prosecutor">
                     &#9998; İddianame
                 </button>
-                <button class="nav-btn" data-page="fileopening" data-jobs="prosecutor,judge">
-                    &#43; Dosya Aç
+                <button class="nav-btn" data-page="fileopening" data-jobs="judge">
+                    &#43; Dava Aç
+                </button>
+                <button class="nav-btn" data-page="invopen" data-jobs="prosecutor">
+                    &#128269; Soruşturma Aç
                 </button>
                 <button class="nav-btn" data-page="petition" data-jobs="lawyer">
                     &#128394; Dilekçe Gönder
@@ -64,6 +70,7 @@
             <div id="user-info">
                 <span id="user-job"></span>
             </div>
+            <button id="btn-exit-app">&#10005; Çıkış</button>
         </div>
 
         <div id="content">
@@ -126,6 +133,46 @@
                 <h2>Yakalama Kararları</h2>
                 <p class="subtitle">Aktif yakalama kararları burada listelenecek.</p>
                 <div class="placeholder-box">Bu sekme yakında aktif olacak.</div>
+            </div>
+
+            <!-- INVESTIGATION OPEN (prosecutor) -->
+            <div id="page-invopen" class="page">
+                <h2>Soruşturma Aç</h2>
+                <p class="subtitle">Şüpheli hakkında re'sen soruşturma başlat.</p>
+                <form id="invopen-form" class="form">
+                    <div class="form-group">
+                        <label for="invopen-suspect">Şüpheli Kimlik No</label>
+                        <input type="text" id="invopen-suspect" maxlength="64" placeholder="Örn: ABC12345" required>
+                        <p class="form-hint">Şüphelinin citizenid'ini girin.</p>
+                    </div>
+                    <div class="form-group">
+                        <label>Suç(lar) <span class="label-hint">(en az bir tane seçin)</span></label>
+                        <div id="invopen-charges" class="charge-list"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="invopen-narrative">Soruşturma Gerekçesi</label>
+                        <textarea id="invopen-narrative" rows="5" minlength="10" maxlength="1000"
+                            placeholder="Soruşturmanın açılış gerekçesini yazın…" required></textarea>
+                        <p class="char-counter"><span id="invopen-narrative-count">0</span>/1000</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="invopen-notes">Dahili Not <span class="label-hint">(isteğe bağlı)</span></label>
+                        <textarea id="invopen-notes" rows="3" maxlength="500" placeholder="İç not…"></textarea>
+                    </div>
+                    <div id="invopen-error" class="form-error hidden"></div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary" id="invopen-submit">Soruşturmayı Başlat</button>
+                        <button type="button" class="btn-secondary" id="invopen-reset">Temizle</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- INVESTIGATIONS (prosecutor) -->
+            <div id="page-investigations" class="page">
+                <h2>Soruşturmalar</h2>
+                <p class="subtitle">Avukat dilekçesinden açılan soruşturma dosyaları.</p>
+                <div id="investigations-empty" class="placeholder-box">Aktif soruşturma yok.</div>
+                <div id="investigations-list" class="file-list"></div>
             </div>
 
             <!-- FILES (prosecutor, judge) -->

@@ -7,6 +7,45 @@ local function getJob()
     return Player and Player.job and Player.job.name or 'civilian'
 end
 
+-- Tablet prop ve animasyon
+local tabletObj = nil
+local TABLET_MODEL = 'prop_cs_tablet'
+local ANIM_DICT    = 'amb@world_human_seat_wall_tablet@female@base'
+local ANIM_CLIP    = 'base'
+
+local function attachTablet()
+    local ped = PlayerPedId()
+
+    RequestModel(GetHashKey(TABLET_MODEL))
+    local t = 0
+    while not HasModelLoaded(GetHashKey(TABLET_MODEL)) and t < 50 do
+        Wait(20); t = t + 1
+    end
+    if not HasModelLoaded(GetHashKey(TABLET_MODEL)) then return end
+
+    RequestAnimDict(ANIM_DICT)
+    t = 0
+    while not HasAnimDictLoaded(ANIM_DICT) and t < 50 do
+        Wait(20); t = t + 1
+    end
+
+    tabletObj = CreateObject(GetHashKey(TABLET_MODEL), 0.0, 0.0, 0.0, true, true, false)
+    AttachEntityToEntity(tabletObj, ped, GetPedBoneIndex(ped, 28422),
+        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, true, true, false, true, 1, true)
+
+    TaskPlayAnim(ped, ANIM_DICT, ANIM_CLIP, 8.0, -8.0, -1, 49, 0, false, false, false)
+    SetModelAsNoLongerNeeded(GetHashKey(TABLET_MODEL))
+end
+
+local function detachTablet()
+    local ped = PlayerPedId()
+    ClearPedTasks(ped)
+    if tabletObj and DoesEntityExist(tabletObj) then
+        DeleteObject(tabletObj)
+    end
+    tabletObj = nil
+end
+
 -- Yakındaki oyuncuları döner (10 m). Police sevk formu için kullanılır.
 local function getNearbyPlayerOptions()
     local options  = {}
@@ -48,6 +87,9 @@ local function openPanel(activeTab)
         payload.chargeList    = lib.callback.await('mclaw:cb:referral:getChargeList', false) or {}
     elseif job == Config.Jobs.prosecutor or job == Config.Jobs.judge then
         payload.prosecutorFiles = lib.callback.await('mclaw:cb:prosecutor:getFiles', false) or {}
+        if job == Config.Jobs.prosecutor then
+            payload.investigationList = lib.callback.await('mclaw:cb:prosecutor:getInvestigations', false) or {}
+        end
     end
 
     local fileOpenJobs = {
@@ -69,6 +111,7 @@ local function openPanel(activeTab)
         payload.incomingPetitions = lib.callback.await('mclaw:cb:prosecutor:getIncomingPetitions', false) or {}
     end
 
+    attachTablet()
     SetNuiFocus(true, true)
     SendNUIMessage(payload)
 end
@@ -83,6 +126,7 @@ end)
 
 RegisterNUICallback('close', function(data, cb)
     SetNuiFocus(false, false)
+    detachTablet()
     cb({})
 end)
 
@@ -217,6 +261,11 @@ RegisterNUICallback('tab:refresh', function(data, cb)
             update.prosecutorFiles = lib.callback.await('mclaw:cb:prosecutor:getFiles', false) or {}
         end
 
+    elseif tab == 'investigations' then
+        if job == Config.Jobs.prosecutor then
+            update.investigationList = lib.callback.await('mclaw:cb:prosecutor:getInvestigations', false) or {}
+        end
+
     elseif tab == 'approvals' then
         if job == Config.Jobs.judge then
             update.pendingApprovals = lib.callback.await('mclaw:cb:judge:getPendingApprovals', false) or {}
@@ -267,6 +316,19 @@ end)
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Dilekçe sistemi NUI callbacks
 -- ─────────────────────────────────────────────────────────────────────────────
+RegisterNUICallback('prosecutor:openInvestigation', function(data, cb)
+    if not data.suspectCid or not data.charges or not data.narrative then
+        cb({ ok = false, error = 'Eksik veri.' }); return
+    end
+    TriggerServerEvent('mclaw:server:prosecutor:openInvestigation', {
+        suspectCid = data.suspectCid,
+        charges    = data.charges,
+        narrative  = data.narrative,
+        notes      = data.notes or '',
+    })
+    cb({ ok = true })
+end)
+
 RegisterNUICallback('lawyer:sendPetition', function(data, cb)
     if not data.petitionType or not data.plaintiffCid or not data.subject or not data.description then
         cb({ ok = false, error = 'Eksik veri.' }); return

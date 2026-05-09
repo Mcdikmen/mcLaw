@@ -21,7 +21,7 @@ lib.callback.register('mclaw:cb:file:getDetail', function(source, fileId)
     local file = MySQL.single.await(
         [[SELECT id, file_number, suspect_citizenid, prosecutor_citizenid, judge_citizenid,
                  opened_by_citizenid, opened_by_job, status, type, notes,
-                 created_at, updated_at, closed_at
+                 petition_id, created_at, updated_at, closed_at
           FROM mclaw_files WHERE id = ? AND deleted_at IS NULL]],
         { fileId }
     )
@@ -128,6 +128,51 @@ lib.callback.register('mclaw:cb:file:getDetail', function(source, fileId)
     table.sort(histItems, function(a, b) return a.ts < b.ts end)
     for _, item in ipairs(histItems) do item.ts = nil end
 
+    -- Kaynak dilekçe (soruşturma avukat dilekçesinden açıldıysa)
+    local sourcePetition = nil
+    if file.petition_id then
+        local pet = MySQL.single.await(
+            'SELECT id, type, attorney_citizenid, plaintiff_citizenid, subject, description, charges, attachments, created_at FROM mclaw_petitions WHERE id = ?',
+            { file.petition_id }
+        )
+        if pet then
+            local petCharges = {}
+            if pet.charges then
+                local ok, decoded = pcall(json.decode, pet.charges)
+                if ok and decoded then
+                    for _, c in ipairs(decoded) do
+                        local def = Mclaw.GetChargeByCode(c.code)
+                        table.insert(petCharges, {
+                            code     = c.code,
+                            label    = def and def.label    or c.code,
+                            category = def and def.category or '?',
+                            jailTime = def and def.jailTime or 0,
+                            fine     = def and def.fine     or 0,
+                        })
+                    end
+                end
+            end
+            local petAtts = {}
+            if pet.attachments then
+                local ok2, decoded2 = pcall(json.decode, pet.attachments)
+                if ok2 and decoded2 then petAtts = decoded2 end
+            end
+            sourcePetition = {
+                id            = pet.id,
+                petitionType  = pet.type,
+                attorneyCid   = pet.attorney_citizenid,
+                attorneyName  = Mclaw.GetCharName(pet.attorney_citizenid),
+                plaintiffCid  = pet.plaintiff_citizenid,
+                plaintiffName = Mclaw.GetCharName(pet.plaintiff_citizenid),
+                subject       = pet.subject,
+                description   = pet.description,
+                charges       = petCharges,
+                attachments   = petAtts,
+                createdAt     = Mclaw.FormatTimestamp(pet.created_at),
+            }
+        end
+    end
+
     return {
         id             = file.id,
         fileNumber     = file.file_number,
@@ -159,7 +204,8 @@ lib.callback.register('mclaw:cb:file:getDetail', function(source, fileId)
         narrativeByName = openLog and Mclaw.GetCharName(openLog.actioned_by_citizenid) or nil,
         narrativeJob    = openLog and openLog.actioned_by_job       or nil,
         narrativeAt     = openLog and Mclaw.FormatTimestamp(openLog.created_at) or nil,
-        history       = histItems,
+        history         = histItems,
+        sourcePetition  = sourcePetition,
     }
 end)
 

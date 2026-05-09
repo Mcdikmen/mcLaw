@@ -249,15 +249,17 @@ RegisterNetEvent('mclaw:server:prosecutor:acceptPetition', function(data)
         return
     end
 
-    -- Dosya numarası üret
+    -- Soruşturma numarası üret (SRS-YYYY-NNNNN)
     local year = tonumber(os.date('%Y'))
-    local count = MySQL.scalar.await('SELECT COUNT(*) FROM mclaw_files WHERE YEAR(created_at) = ?', { year }) or 0
-    local fileNumber = Mclaw.FormatFileNumber(year, count + 1)
+    local invCount = MySQL.scalar.await(
+        "SELECT COUNT(*) FROM mclaw_files WHERE type = 'investigation' AND YEAR(created_at) = ?", { year }
+    ) or 0
+    local fileNumber = Mclaw.FormatInvestigationNumber(year, invCount + 1)
 
     -- Dosyayı oluştur
     local fileId = MySQL.insert.await(
-        "INSERT INTO mclaw_files (file_number, suspect_citizenid, prosecutor_citizenid, opened_by_citizenid, opened_by_job, status, type) VALUES (?, ?, ?, ?, ?, 'opened', 'investigation')",
-        { fileNumber, petition.plaintiff_citizenid, cid, cid, Config.Jobs.prosecutor }
+        "INSERT INTO mclaw_files (file_number, suspect_citizenid, prosecutor_citizenid, opened_by_citizenid, opened_by_job, status, type, petition_id) VALUES (?, ?, ?, ?, ?, 'opened', 'investigation', ?)",
+        { fileNumber, petition.plaintiff_citizenid, cid, cid, Config.Jobs.prosecutor, petition.id }
     )
 
     -- Suçları ekle

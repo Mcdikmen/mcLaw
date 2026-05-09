@@ -178,6 +178,12 @@ Config.FileNumber = {
     padWidth = 5,
 }
 
+-- Soruşturma dosyası numara formatı (savcı soruşturmaları)
+Config.InvestigationNumber = {
+    prefix   = 'SRS',
+    padWidth = 5,
+}
+
 -- ─────────────────────────────────────────────
 -- DOCUMENT TYPES
 -- Defines what document categories exist and which jobs can create them.

@@ -12,6 +12,7 @@ var hearingList         = [];
 var docTypeList         = [];
 var myPetitions         = [];
 var incomingPetitions   = [];
+var investigationList   = [];
 
 // -- Tab navigation
 
@@ -27,7 +28,7 @@ function activateTab(pageName) {
     if (page) { page.classList.add('active'); }
 }
 
-var REFRESHABLE_TABS = { dashboard: 1, files: 1, approvals: 1, hearings: 1, referral: 1, mypetitions: 1, inpetitions: 1 };
+var REFRESHABLE_TABS = { dashboard: 1, files: 1, investigations: 1, approvals: 1, hearings: 1, referral: 1, mypetitions: 1, inpetitions: 1 };
 
 navButtons.forEach(function(btn) {
     btn.addEventListener('click', function() {
@@ -186,6 +187,57 @@ var STATUS_COLORS = {
     'pending_approval':     'status-yellow',
 };
 
+function renderInvestigationList() {
+    var listEl  = document.getElementById('investigations-list');
+    var emptyEl = document.getElementById('investigations-empty');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+    if (investigationList.length === 0) { if (emptyEl) emptyEl.style.display = ''; return; }
+    if (emptyEl) emptyEl.style.display = 'none';
+    investigationList.forEach(function(file) {
+        var card = document.createElement('div');
+        card.className = 'file-card';
+        var statusClass = STATUS_COLORS[file.status] || 'status-gray';
+        var statusLabel = STATUS_LABELS[file.status]  || file.status;
+        var chargeNames = (file.charges || []).map(function(c) { return c.label; }).join(', ') || '-';
+        card.innerHTML =
+            '<div class="file-card-header">' +
+                '<span class="file-number">' + file.fileNumber + '</span>' +
+                '<span class="file-status ' + statusClass + '">' + statusLabel + '</span>' +
+            '</div>' +
+            '<div class="file-card-body">' +
+                '<div class="file-meta"><span class="file-meta-key">Şüpheli</span><span>' + displayName(file.suspectName, file.suspectCid) + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">Suçlar</span><span class="file-charges-text">' + chargeNames + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">Açılış</span><span>' + (file.createdAt || '-') + '</span></div>' +
+            '</div>';
+        var viewBtn = document.createElement('button');
+        viewBtn.type = 'button';
+        viewBtn.className = 'btn-secondary file-indictment-btn';
+        viewBtn.textContent = 'Dosyayı İncele →';
+        (function(fid) {
+            viewBtn.addEventListener('click', function() { openFileDetail(fid, 'investigations'); });
+        }(file.id));
+        card.appendChild(viewBtn);
+
+        // İddianame hazırla butonu — soruşturma iddianameye taşınabilir
+        var eligible = ['opened', 'awaiting_prosecutor', 'prosecutor_review'];
+        if (eligible.indexOf(file.status) !== -1) {
+            var indBtn = document.createElement('button');
+            indBtn.type = 'button';
+            indBtn.className = 'btn-secondary file-indictment-btn';
+            indBtn.textContent = 'İddianame Hazırla →';
+            (function(fid) {
+                indBtn.addEventListener('click', function() {
+                    prefillIndictmentForm(fid);
+                    activateTab('indictment');
+                });
+            }(file.id));
+            card.appendChild(indBtn);
+        }
+        listEl.appendChild(card);
+    });
+}
+
 function renderFilesList() {
     var listEl  = document.getElementById('files-list');
     var emptyEl = document.getElementById('files-empty');
@@ -329,11 +381,13 @@ function populateIndictmentFileSelect() {
     var sel = document.getElementById('indictment-file');
     sel.innerHTML = '<option value="">-- Dosya secin --</option>';
     var eligible = ['opened', 'awaiting_prosecutor', 'prosecutor_review'];
-    prosecutorFiles.forEach(function(file) {
+    // Soruşturmalar + dava dosyaları
+    var allFiles = investigationList.concat(prosecutorFiles);
+    allFiles.forEach(function(file) {
         if (eligible.indexOf(file.status) !== -1) {
             var opt = document.createElement('option');
             opt.value = file.id;
-            opt.textContent = file.fileNumber + ' -- ' + file.suspectCid;
+            opt.textContent = file.fileNumber + ' — ' + (file.suspectName || file.suspectCid);
             sel.appendChild(opt);
         }
     });
@@ -688,6 +742,54 @@ function renderFileDetail(file) {
         }
     });
     body.appendChild(chargesSection);
+
+    // ── Kaynak dilekçe (avukat dilekçesinden açılan soruşturmalarda)
+    if (file.sourcePetition) {
+        var sp = file.sourcePetition;
+        var PETITION_TR = { criminal: 'Ceza Davası', civil: 'Hukuk Davası' };
+        var spSection = mkSection('Kaynak Dilekçe');
+        var spb = spSection.querySelector('.detail-section-body');
+
+        var spChargeRows = (sp.charges || []).map(function(c) {
+            return '<div class="charge-row">' +
+                '<span class="charge-cat">' + (c.category || '?').toUpperCase() + '</span>' +
+                '<span class="charge-name">' + c.label + '</span>' +
+                '<span class="charge-penalty">' + c.jailTime + ' dk / $' + c.fine + '</span>' +
+            '</div>';
+        }).join('');
+
+        spb.innerHTML =
+            mkRow('Tür',     PETITION_TR[sp.petitionType] || sp.petitionType) +
+            mkRow('Avukat',  displayName(sp.attorneyName,  sp.attorneyCid)) +
+            mkRow('Müvekkil',displayName(sp.plaintiffName, sp.plaintiffCid)) +
+            mkRow('Konu',    escHtml(sp.subject)) +
+            mkRow('Tarih',   sp.createdAt || '—');
+
+        if (sp.description) {
+            var descEl = document.createElement('div');
+            descEl.className = 'detail-narrative';
+            descEl.style.margin = '0 0 0 0';
+            descEl.innerHTML = '<div style="padding:8px 16px 2px;font-size:11px;color:#5a6480;text-transform:uppercase;letter-spacing:.4px;">Dilekçe İçeriği</div>' +
+                '<div style="padding:0 16px 12px;font-size:13px;color:#c0c8de;white-space:pre-wrap;">' + escHtml(sp.description) + '</div>';
+            spb.appendChild(descEl);
+        }
+
+        if (spChargeRows) {
+            var chEl = document.createElement('div');
+            chEl.innerHTML = '<div style="padding:8px 16px 4px;font-size:11px;color:#5a6480;text-transform:uppercase;letter-spacing:.4px;">Suçlar</div>' + spChargeRows;
+            spb.appendChild(chEl);
+        }
+
+        if (sp.attachments && sp.attachments.length > 0) {
+            var attEl = document.createElement('div');
+            attEl.innerHTML = '<div style="padding:8px 16px 4px;font-size:11px;color:#5a6480;text-transform:uppercase;letter-spacing:.4px;">Ekler</div>' +
+                buildAttachmentsHtml(sp.attachments).replace('<div class="file-meta"', '<div class="file-meta" style="margin:0;padding:0 16px 10px;border-top:none;"');
+            spb.appendChild(attEl);
+            bindAttachmentCopyBtns(spb);
+        }
+
+        body.appendChild(spSection);
+    }
 
     // ── Açılış gerekçesi
     if (file.narrative) {
@@ -1059,6 +1161,71 @@ document.getElementById('filedetail-close-confirm').addEventListener('click', fu
     }).catch(function() { btn.disabled = false; btn.textContent = 'Dosyayı Kapat'; });
 });
 
+// -- Investigation open (prosecutor)
+
+function populateInvOpenCharges() {
+    var container = document.getElementById('invopen-charges');
+    if (!container) return;
+    container.innerHTML = '';
+    fileOpenChargeList.forEach(function(charge) {
+        var item = document.createElement('label');
+        item.className = 'charge-item';
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.value = charge.code;
+        cb.addEventListener('change', function() { item.classList.toggle('checked', cb.checked); });
+        var lbl = document.createElement('span'); lbl.className = 'charge-label';
+        lbl.textContent = '[' + (charge.category || '?') + '] ' + charge.label;
+        var meta = document.createElement('span'); meta.className = 'charge-meta';
+        meta.textContent = (charge.jailTime || 0) + ' dk / $' + (charge.fine || 0);
+        item.appendChild(cb); item.appendChild(lbl); item.appendChild(meta);
+        container.appendChild(item);
+    });
+}
+
+document.getElementById('invopen-narrative').addEventListener('input', function() {
+    document.getElementById('invopen-narrative-count').textContent = this.value.length;
+});
+
+document.getElementById('invopen-reset').addEventListener('click', function() {
+    document.getElementById('invopen-form').reset();
+    document.getElementById('invopen-narrative-count').textContent = '0';
+    document.querySelectorAll('#invopen-charges .charge-item').forEach(function(i) { i.classList.remove('checked'); });
+    document.getElementById('invopen-error').classList.add('hidden');
+});
+
+document.getElementById('invopen-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    var errEl = document.getElementById('invopen-error');
+    errEl.classList.add('hidden');
+    var suspectCid = document.getElementById('invopen-suspect').value.trim();
+    if (!suspectCid) { errEl.textContent = 'Şüpheli kimlik numarası girilmedi.'; errEl.classList.remove('hidden'); return; }
+    var charges = [];
+    document.querySelectorAll('#invopen-charges input[type="checkbox"]:checked').forEach(function(cb) {
+        charges.push({ code: cb.value });
+    });
+    if (charges.length === 0) { errEl.textContent = 'En az bir suç seçin.'; errEl.classList.remove('hidden'); return; }
+    var narrative = document.getElementById('invopen-narrative').value.trim();
+    if (narrative.length < 10) { errEl.textContent = 'Gerekçe en az 10 karakter olmalıdır.'; errEl.classList.remove('hidden'); return; }
+    var notes = document.getElementById('invopen-notes').value.trim();
+    var submitBtn = document.getElementById('invopen-submit');
+    submitBtn.disabled = true; submitBtn.textContent = 'Açılıyor...';
+    fetch('https://mclaw/prosecutor:openInvestigation', {
+        method: 'POST',
+        body: JSON.stringify({ suspectCid: suspectCid, charges: charges, narrative: narrative, notes: notes }),
+    }).then(function(r) { return r.json(); }).then(function(result) {
+        submitBtn.disabled = false; submitBtn.textContent = 'Soruşturmayı Başlat';
+        if (result && result.ok) {
+            document.getElementById('invopen-form').reset();
+            document.getElementById('invopen-narrative-count').textContent = '0';
+            document.querySelectorAll('#invopen-charges .charge-item').forEach(function(i) { i.classList.remove('checked'); });
+        } else {
+            errEl.textContent = result && result.error ? result.error : 'Açma başarısız.';
+            errEl.classList.remove('hidden');
+        }
+    }).catch(function() { submitBtn.disabled = false; submitBtn.textContent = 'Soruşturmayı Başlat'; });
+});
+
 // -- Petition system
 
 var PETITION_TYPE_LABELS   = { criminal: 'Ceza Davası', civil: 'Hukuk Davası' };
@@ -1420,6 +1587,7 @@ window.addEventListener('message', function(event) {
         docTypeList         = data.docTypeList         || [];
         myPetitions         = data.myPetitions         || [];
         incomingPetitions   = data.incomingPetitions   || [];
+        investigationList   = data.investigationList   || [];
         filterTabsForJob(currentJob);
         document.getElementById('user-job').textContent = currentJob;
         if (data.dashStats) {
@@ -1430,12 +1598,14 @@ window.addEventListener('message', function(event) {
         }
         if (currentJob === 'police') { populateReferralForm(); }
         if (currentJob === 'prosecutor' || currentJob === 'judge') { renderFilesList(); }
+        if (currentJob === 'prosecutor') { populateInvOpenCharges(); }
         if (currentJob === 'prosecutor') { populateIndictmentFileSelect(); }
-        if (fileOpenChargeList.length > 0) { populateFileOpenCharges(); showFileOpeningNote(currentJob); }
+        if (fileOpenChargeList.length > 0) { populateFileOpenCharges(); showFileOpeningNote(currentJob); populateInvOpenCharges(); }
         if (currentJob === 'judge') { renderPendingApprovals(); }
         if (currentJob === 'judge' || currentJob === 'lawyer') { renderHearingList(); }
         if (currentJob === 'lawyer') { populatePetitionCharges(); renderMyPetitions(); }
         if (currentJob === 'prosecutor' || currentJob === 'judge') { renderIncomingPetitions(); }
+        if (currentJob === 'prosecutor') { renderInvestigationList(); }
         activateTab(data.activeTab || 'dashboard');
         document.getElementById('app').classList.remove('hidden');
     }
@@ -1458,6 +1628,10 @@ window.addEventListener('message', function(event) {
         if (data.hearingList !== undefined) {
             hearingList = data.hearingList;
             renderHearingList();
+        }
+        if (data.investigationList !== undefined) {
+            investigationList = data.investigationList;
+            renderInvestigationList();
         }
         if (data.myPetitions !== undefined) {
             myPetitions = data.myPetitions;
@@ -1490,4 +1664,9 @@ document.addEventListener('keydown', function(event) {
         document.getElementById('app').classList.add('hidden');
         fetch('https://mclaw/close', { method: 'POST', body: JSON.stringify({}) });
     }
+});
+
+document.getElementById('btn-exit-app').addEventListener('click', function() {
+    document.getElementById('app').classList.add('hidden');
+    fetch('https://mclaw/close', { method: 'POST', body: JSON.stringify({}) });
 });
