@@ -179,6 +179,27 @@ Config.FileNumber = {
 }
 
 -- ─────────────────────────────────────────────
+-- DOCUMENT TYPES
+-- Defines what document categories exist and which jobs can create them.
+-- value: stored in DB (VARCHAR, can be any unique string)
+-- label: displayed in the UI
+-- jobs:  list of job names that can create this document type
+-- Add as many entries as you need — no code changes required.
+-- ─────────────────────────────────────────────
+Config.DocTypes = {
+    { value = 'petition',          label = 'Dilekçe',              jobs = { 'lawyer' } },
+    { value = 'motion',            label = 'Talep',                jobs = { 'lawyer' } },
+    { value = 'defense_brief',     label = 'Savunma Layihası',     jobs = { 'lawyer' } },
+    { value = 'prosecution_note',  label = 'Savcı Yazısı',         jobs = { 'prosecutor' } },
+    { value = 'indictment_detail', label = 'İddianame Eki',        jobs = { 'prosecutor' } },
+    { value = 'evidence_summary',  label = 'Delil Özeti',          jobs = { 'prosecutor' } },
+    { value = 'judge_order',       label = 'Hakim Kararı',         jobs = { 'judge' } },
+    { value = 'court_note',        label = 'Mahkeme Notu',         jobs = { 'judge' } },
+    { value = 'interim_ruling',    label = 'Ara Karar',            jobs = { 'judge' } },
+    { value = 'police_report',     label = 'Polis Raporu',         jobs = { 'police' } },
+}
+
+-- ─────────────────────────────────────────────
 -- CHARGES (CRIME LIST)
 -- useDatabase: if true, charges are loaded from mclaw_charges_config table instead
 --              the list below acts as a fallback when useDatabase is false

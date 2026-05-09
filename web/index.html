@@ -32,8 +32,17 @@
                 <button class="nav-btn" data-page="indictment" data-jobs="prosecutor">
                     &#9998; İddianame
                 </button>
-                <button class="nav-btn" data-page="fileopening" data-jobs="prosecutor,judge,lawyer">
+                <button class="nav-btn" data-page="fileopening" data-jobs="prosecutor,judge">
                     &#43; Dosya Aç
+                </button>
+                <button class="nav-btn" data-page="petition" data-jobs="lawyer">
+                    &#128394; Dilekçe Gönder
+                </button>
+                <button class="nav-btn" data-page="mypetitions" data-jobs="lawyer">
+                    &#128196; Dilekçelerim
+                </button>
+                <button class="nav-btn" data-page="inpetitions" data-jobs="prosecutor,judge">
+                    &#128229; Gelen Dilekçeler
                 </button>
                 <button class="nav-btn" data-page="approvals" data-jobs="judge">
                     &#9745; Onay Bekleyenler
@@ -239,6 +248,97 @@
                 <div id="hearings-list" class="file-list"></div>
             </div>
 
+            <!-- FILE DETAIL (all legal jobs) -->
+            <div id="page-filedetail" class="page">
+                <div id="filedetail-topbar">
+                    <button class="btn-secondary" id="filedetail-back">&#8592; Geri</button>
+                    <span id="filedetail-number"></span>
+                    <span id="filedetail-status" class="file-status"></span>
+                    <div style="flex:1;"></div>
+                    <button id="filedetail-close-btn" class="btn-danger hidden">Dosyayı Kapat</button>
+                </div>
+                <div id="filedetail-close-panel" class="hidden" style="margin-bottom:16px;">
+                    <textarea id="filedetail-close-reason" class="reject-reason-input" rows="2" maxlength="300" placeholder="Kapanış gerekçesi (isteğe bağlı)…"></textarea>
+                    <div class="form-actions" style="margin-top:8px;">
+                        <button id="filedetail-close-confirm" class="btn-danger">Dosyayı Kapat</button>
+                        <button id="filedetail-close-cancel" class="btn-secondary">İptal</button>
+                    </div>
+                </div>
+                <div id="filedetail-body"></div>
+            </div>
+
+            <!-- PETITION (lawyer) -->
+            <div id="page-petition" class="page">
+                <h2>Dilekçe Gönder</h2>
+                <p class="subtitle">Müvekkiliniz adına savcılığa veya hakime dilekçe gönderin.</p>
+                <form id="petition-form" class="form">
+                    <div class="form-group">
+                        <label>Dava Türü</label>
+                        <div class="radio-group">
+                            <label class="radio-item">
+                                <input type="radio" name="petition-type" value="criminal" checked>
+                                <span class="radio-label">
+                                    <strong>Ceza Davası</strong>
+                                    <small>Dilekçe Savcılığa iletilir. Savcı soruşturma açar.</small>
+                                </span>
+                            </label>
+                            <label class="radio-item">
+                                <input type="radio" name="petition-type" value="civil">
+                                <span class="radio-label">
+                                    <strong>Hukuk Davası</strong>
+                                    <small>Dilekçe doğrudan Hakime iletilir.</small>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="petition-plaintiff">Müvekkil Kimlik No</label>
+                        <input type="text" id="petition-plaintiff" maxlength="64" placeholder="Örn: ABC12345" required>
+                        <p class="form-hint">Davacı/müvekkilin citizenid'ini girin.</p>
+                    </div>
+                    <div class="form-group" id="petition-charges-group">
+                        <label>Suç(lar) <span class="label-hint">(ceza davası için)</span></label>
+                        <div id="petition-charges" class="charge-list"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="petition-subject">Konu</label>
+                        <input type="text" id="petition-subject" maxlength="256" placeholder="Dilekçe konusu…" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="petition-description">Dilekçe İçeriği</label>
+                        <textarea id="petition-description" rows="8" minlength="10" maxlength="2000"
+                            placeholder="Dilekçenizi buraya yazın…" required></textarea>
+                        <p class="char-counter"><span id="petition-desc-count">0</span>/2000</p>
+                    </div>
+                    <div class="form-group">
+                        <label>Ekler <span class="label-hint">(isteğe bağlı — URL ile)</span></label>
+                        <div id="petition-attachments"></div>
+                        <button type="button" class="btn-secondary" id="petition-add-attachment" style="margin-top:8px;font-size:12px;padding:6px 14px;">+ Ek Ekle</button>
+                    </div>
+                    <div id="petition-error" class="form-error hidden"></div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary" id="petition-submit">Dilekçeyi Gönder</button>
+                        <button type="button" class="btn-secondary" id="petition-reset">Temizle</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- MY PETITIONS (lawyer) -->
+            <div id="page-mypetitions" class="page">
+                <h2>Dilekçelerim</h2>
+                <p class="subtitle">Gönderdiğiniz dilekçeler ve durumları.</p>
+                <div id="mypetitions-empty" class="placeholder-box">Henüz dilekçe gönderilmemiş.</div>
+                <div id="mypetitions-list" class="file-list"></div>
+            </div>
+
+            <!-- INCOMING PETITIONS (prosecutor, judge) -->
+            <div id="page-inpetitions" class="page">
+                <h2>Gelen Dilekçeler</h2>
+                <p class="subtitle">Avukatlardan gelen ve işlem bekleyen dilekçeler.</p>
+                <div id="inpetitions-empty" class="placeholder-box">Bekleyen dilekçe yok.</div>
+                <div id="inpetitions-list" class="file-list"></div>
+            </div>
+
             <!-- VERDICT (judge) -->
             <div id="page-verdict" class="page">
                 <h2>Karar Ver</h2>
@@ -262,6 +362,34 @@
 
         </div>
     </div>
+
+    <!-- DOCUMENT VIEW MODAL -->
+    <div id="doc-view-modal" class="hidden">
+        <div id="doc-modal-overlay"></div>
+        <div id="doc-modal-wrapper">
+            <div id="doc-modal-paper">
+                <div id="doc-modal-letterhead">
+                    <div id="doc-modal-court">T.C. mcLaw Yargı Sistemi</div>
+                    <div id="doc-modal-fileno-row">Dosya No: <span id="doc-modal-fileno"></span></div>
+                </div>
+                <div id="doc-modal-meta-block">
+                    <div class="doc-modal-meta-row"><span class="doc-modal-meta-key">Belge Türü</span><span id="doc-modal-type"></span></div>
+                    <div class="doc-modal-meta-row"><span class="doc-modal-meta-key">Başlık</span><strong id="doc-modal-title"></strong></div>
+                    <div class="doc-modal-meta-row"><span class="doc-modal-meta-key">Tarih</span><span id="doc-modal-date"></span></div>
+                    <div class="doc-modal-meta-row"><span class="doc-modal-meta-key">Yazar</span><span id="doc-modal-author"></span></div>
+                </div>
+                <hr id="doc-modal-divider">
+                <div id="doc-modal-content"></div>
+            </div>
+            <div id="doc-modal-actions">
+                <button id="doc-modal-print" class="btn-primary">&#128438; PDF / Yazdır</button>
+                <button id="doc-modal-close" class="btn-secondary">Kapat</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PRINT AREA (only visible during window.print()) -->
+    <div id="doc-print-area"></div>
 
     <script src="script.js"></script>
 </body>

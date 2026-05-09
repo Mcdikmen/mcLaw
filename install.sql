@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS `mclaw_files` (
     `opened_by_job`         VARCHAR(50),
     `referral_report_id`    INT,
     `jail_decision_id`      INT,
-    `type`                  ENUM('investigation','case','written_trial') DEFAULT 'investigation',
+    `type`                  ENUM('investigation','case','written_trial','civil') DEFAULT 'investigation',
     `status`                ENUM(
                                 'opened',
                                 'awaiting_prosecutor',
@@ -237,6 +237,35 @@ CREATE TABLE IF NOT EXISTS `mclaw_webhook_log` (
     `success`           TINYINT DEFAULT 0,
     `response_code`     SMALLINT,
     `sent_at`           TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS `mclaw_documents` (
+    `id`                    INT AUTO_INCREMENT PRIMARY KEY,
+    `file_id`               INT NOT NULL,
+    `author_citizenid`      VARCHAR(64) NOT NULL,
+    `author_job`            VARCHAR(50) NOT NULL,
+    `doc_type`              VARCHAR(64) NOT NULL,
+    `title`                 VARCHAR(128) NOT NULL,
+    `content`               TEXT NOT NULL,
+    `created_at`            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`file_id`) REFERENCES `mclaw_files`(`id`)
+);
+
+CREATE TABLE IF NOT EXISTS `mclaw_petitions` (
+    `id`                    INT AUTO_INCREMENT PRIMARY KEY,
+    `type`                  ENUM('criminal','civil') NOT NULL,
+    `attorney_citizenid`    VARCHAR(64) NOT NULL,
+    `plaintiff_citizenid`   VARCHAR(64) NOT NULL COMMENT 'Müvekkil / davacı taraf',
+    `recipient_job`         ENUM('prosecutor','judge') NOT NULL,
+    `charges`               JSON NULL COMMENT 'Ceza davası suç kodları',
+    `subject`               VARCHAR(256) NOT NULL,
+    `description`           TEXT NOT NULL,
+    `status`                ENUM('pending','accepted','rejected') DEFAULT 'pending',
+    `file_id`               INT NULL,
+    `reject_reason`         VARCHAR(512) NULL,
+    `attachments`           JSON NULL COMMENT 'Ek listesi: [{label, url}]',
+    `created_at`            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`            TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS `mclaw_file_open_logs` (

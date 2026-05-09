@@ -46,6 +46,7 @@ lib.callback.register('mclaw:cb:prosecutor:getFiles', function(source)
             id             = row.id,
             fileNumber     = row.file_number,
             suspectCid     = row.suspect_citizenid,
+            suspectName    = Mclaw.GetCharName(row.suspect_citizenid),
             status         = row.status,
             type           = row.type,
             notes          = row.notes,

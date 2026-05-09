@@ -39,7 +39,6 @@ RegisterNetEvent('mclaw:server:fileopening:openFile', function(data)
     local allowedJobs = {
         [Config.Jobs.prosecutor] = true,
         [Config.Jobs.judge]      = true,
-        [Config.Jobs.lawyer]     = true,
     }
     if not allowedJobs[job] then return end
 
@@ -74,13 +73,11 @@ RegisterNetEvent('mclaw:server:fileopening:openFile', function(data)
     -- Determine status and pre-assigned roles
     local fileStatus, prosecutorCid, judgeCid
     if job == Config.Jobs.judge then
-        fileStatus   = 'opened'
-        judgeCid     = cid
-    elseif job == Config.Jobs.prosecutor then
-        fileStatus   = 'pending_approval'
+        fileStatus    = 'opened'
+        judgeCid      = cid
+    else -- prosecutor
+        fileStatus    = 'pending_approval'
         prosecutorCid = cid
-    else -- lawyer
-        fileStatus = 'pending_approval'
     end
 
     local year = tonumber(os.date('%Y'))
@@ -143,22 +140,36 @@ lib.callback.register('mclaw:cb:judge:getPendingApprovals', function(source)
     local files = {}
     for _, row in ipairs(rows or {}) do
         local charges = MySQL.query.await(
-            'SELECT charge_code FROM mclaw_file_charges WHERE file_id = ?', { row.id }
+            'SELECT charge_code, jail_override, fine_override FROM mclaw_file_charges WHERE file_id = ?', { row.id }
         )
         local chargeList = {}
         for _, c in ipairs(charges or {}) do
             local def = Mclaw.GetChargeByCode(c.charge_code)
-            table.insert(chargeList, { code = c.charge_code, label = def and def.label or c.charge_code })
+            table.insert(chargeList, {
+                code     = c.charge_code,
+                label    = def and def.label or c.charge_code,
+                category = def and def.category or '?',
+                jailTime = c.jail_override or (def and def.jailTime or 0),
+                fine     = c.fine_override  or (def and def.fine     or 0),
+            })
         end
+        -- Fetch opening narrative from log
+        local openLog = MySQL.single.await(
+            "SELECT notes FROM mclaw_file_open_logs WHERE file_id = ? AND action = 'opened' ORDER BY created_at ASC LIMIT 1",
+            { row.id }
+        )
         table.insert(files, {
-            id          = row.id,
-            fileNumber  = row.file_number,
-            suspectCid  = row.suspect_citizenid,
-            openedBy    = row.opened_by_citizenid,
-            openedByJob = row.opened_by_job,
-            notes       = row.notes,
-            createdAt   = Mclaw.FormatTimestamp(row.created_at),
-            charges     = chargeList,
+            id           = row.id,
+            fileNumber   = row.file_number,
+            suspectCid   = row.suspect_citizenid,
+            suspectName  = Mclaw.GetCharName(row.suspect_citizenid),
+            openedBy     = row.opened_by_citizenid,
+            openedByName = Mclaw.GetCharName(row.opened_by_citizenid),
+            openedByJob  = row.opened_by_job,
+            notes        = row.notes,
+            narrative    = openLog and openLog.notes or nil,
+            createdAt    = Mclaw.FormatTimestamp(row.created_at),
+            charges      = chargeList,
         })
     end
     return files

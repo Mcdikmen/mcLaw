@@ -44,15 +44,17 @@ lib.callback.register('mclaw:cb:hearings:getList', function(source)
     local list = {}
     for _, row in ipairs(rows or {}) do
         table.insert(list, {
-            id              = row.id,
-            fileId          = row.file_id,
-            fileNumber      = row.file_number,
-            suspectCid      = row.suspect_citizenid,
-            prosecutorCid   = row.prosecutor_citizenid,
-            hearingType     = row.type,
-            scheduledAt     = Mclaw.FormatTimestamp(row.scheduled_at),
-            status          = row.status,
-            notes           = row.notes,
+            id             = row.id,
+            fileId         = row.file_id,
+            fileNumber     = row.file_number,
+            suspectCid     = row.suspect_citizenid,
+            suspectName    = Mclaw.GetCharName(row.suspect_citizenid),
+            prosecutorCid  = row.prosecutor_citizenid,
+            prosecutorName = Mclaw.GetCharName(row.prosecutor_citizenid),
+            hearingType    = row.type,
+            scheduledAt    = Mclaw.FormatTimestamp(row.scheduled_at),
+            status         = row.status,
+            notes          = row.notes,
         })
     end
     return list

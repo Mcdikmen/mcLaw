@@ -258,6 +258,22 @@
       return os.date('%d.%m.%Y %H:%M', n)
   end
 
+  -- GetCharName(citizenid) — Server-side only.
+  -- players tablosundaki charinfo JSON'undan "Ad Soyad" döner.
+  if IsDuplicityVersion() then
+      function Mclaw.GetCharName(citizenid)
+          if not citizenid then return nil end
+          local row = MySQL.single.await('SELECT charinfo FROM players WHERE citizenid = ?', { citizenid })
+          if not row or not row.charinfo then return nil end
+          local ok, info = pcall(json.decode, row.charinfo)
+          if not ok or not info then return nil end
+          local first = info.firstname or ''
+          local last  = info.lastname  or ''
+          local name  = (first .. ' ' .. last):match('^%s*(.-)%s*$')
+          return name ~= '' and name or nil
+      end
+  end
+
   function Mclaw.CalculateSentence(charges)
       local totalJail = 0
       local totalFine = 0
