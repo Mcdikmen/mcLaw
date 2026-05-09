@@ -55,6 +55,9 @@ local function openPanel(activeTab)
     end
     if job == Config.Jobs.judge then
         payload.pendingApprovals = lib.callback.await('mclaw:cb:judge:getPendingApprovals', false) or {}
+        payload.hearingList      = lib.callback.await('mclaw:cb:hearings:getList', false) or {}
+    elseif job == Config.Jobs.lawyer then
+        payload.hearingList = lib.callback.await('mclaw:cb:hearings:getList', false) or {}
     end
 
     SetNuiFocus(true, true)
@@ -152,10 +155,12 @@ end)
 -- Judge: accept indictment_ready file → hearing_scheduled (dava aç)
 -- ─────────────────────────────────────────────────────────────────────────────
 RegisterNUICallback('judge:acceptCase', function(data, cb)
-    if not data.fileId then cb({ ok = false, error = 'Eksik veri.' }); return end
+    if not data.fileId or not data.scheduledAt then cb({ ok = false, error = 'Eksik veri.' }); return end
     TriggerServerEvent('mclaw:server:judge:acceptCase', {
-        fileId = data.fileId,
-        notes  = data.notes or '',
+        fileId      = data.fileId,
+        scheduledAt = data.scheduledAt,
+        hearingType = data.hearingType or 'physical',
+        notes       = data.notes or '',
     })
     cb({ ok = true })
 end)

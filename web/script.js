@@ -8,6 +8,7 @@ var nearbyPlayers       = [];
 var prosecutorFiles     = [];
 var fileOpenChargeList  = [];
 var pendingApprovals    = [];
+var hearingList         = [];
 
 // -- Tab navigation
 
@@ -210,39 +211,84 @@ function renderFilesList() {
             card.appendChild(btn);
         }
         if (currentJob === 'judge' && file.status === 'indictment_ready') {
-            var acceptBtn = document.createElement('button');
-            acceptBtn.type = 'button';
-            acceptBtn.className = 'btn-primary file-indictment-btn';
-            acceptBtn.textContent = 'Davayı Aç →';
-            (function(fid, cardEl, btn) {
-                btn.addEventListener('click', function() {
-                    btn.disabled = true;
-                    btn.textContent = 'İşleniyor...';
-                    fetch('https://mclaw/judge:acceptCase', {
-                        method: 'POST',
-                        body: JSON.stringify({ fileId: fid, notes: '' }),
-                    }).then(function(res) { return res.json(); }).then(function(result) {
-                        if (result && result.ok) {
-                            // Update card status badge in-place
-                            var badge = cardEl.querySelector('.file-status');
-                            if (badge) {
-                                badge.className = 'file-status status-green';
-                                badge.textContent = 'Duruşma Planlandı';
-                            }
-                            btn.remove();
-                        } else {
-                            btn.disabled = false;
-                            btn.textContent = 'Davayı Aç →';
-                        }
-                    }).catch(function() {
-                        btn.disabled = false;
-                        btn.textContent = 'Davayı Aç →';
-                    });
-                });
-            }(file.id, card, acceptBtn));
-            card.appendChild(acceptBtn);
+            // Trigger button
+            var acceptTrigger = document.createElement('div');
+            acceptTrigger.className = 'approval-actions';
+            acceptTrigger.id = 'accept-trigger-' + file.id;
+            acceptTrigger.innerHTML = '<button class="btn-primary accept-case-open-btn" data-id="' + file.id + '">Duruşma Planla →</button>';
+            card.appendChild(acceptTrigger);
+            // Inline scheduling form (hidden)
+            var acceptPanel = document.createElement('div');
+            acceptPanel.className = 'approval-reject-panel hidden';
+            acceptPanel.id = 'accept-panel-' + file.id;
+            acceptPanel.innerHTML =
+                '<div class="form-group" style="margin-bottom:10px;">' +
+                    '<label style="font-size:12px;color:#a8b0c8;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:6px;">Duruşma Tarihi & Saati</label>' +
+                    '<input type="datetime-local" class="reject-reason-input accept-datetime" id="accept-dt-' + file.id + '" style="width:100%;padding:8px 10px;">' +
+                '</div>' +
+                '<div class="form-group" style="margin-bottom:10px;">' +
+                    '<label style="font-size:12px;color:#a8b0c8;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:6px;">Tür</label>' +
+                    '<select class="reject-reason-input accept-type" id="accept-type-' + file.id + '" style="width:100%;padding:8px 10px;">' +
+                        '<option value="physical">Fiziksel Duruşma</option>' +
+                        '<option value="written">Yazılı Yargılama</option>' +
+                    '</select>' +
+                '</div>' +
+                '<div class="form-group" style="margin-bottom:10px;">' +
+                    '<textarea class="reject-reason-input accept-notes" id="accept-notes-' + file.id + '" rows="2" maxlength="300" placeholder="Hakim notu (isteğe bağlı)…"></textarea>' +
+                '</div>' +
+                '<div class="form-actions" style="margin-top:8px;">' +
+                    '<button class="btn-primary accept-case-confirm-btn" data-id="' + file.id + '">Duruşmayı Kaydet</button>' +
+                    '<button class="btn-secondary accept-case-cancel-btn" data-id="' + file.id + '">İptal</button>' +
+                '</div>';
+            card.appendChild(acceptPanel);
         }
         listEl.appendChild(card);
+    });
+
+    // Judge: open scheduling form
+    listEl.querySelectorAll('.accept-case-open-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var fid = btn.getAttribute('data-id');
+            document.getElementById('accept-trigger-' + fid).classList.add('hidden');
+            document.getElementById('accept-panel-' + fid).classList.remove('hidden');
+        });
+    });
+
+    // Judge: cancel scheduling
+    listEl.querySelectorAll('.accept-case-cancel-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var fid = btn.getAttribute('data-id');
+            document.getElementById('accept-panel-' + fid).classList.add('hidden');
+            document.getElementById('accept-trigger-' + fid).classList.remove('hidden');
+        });
+    });
+
+    // Judge: confirm scheduling
+    listEl.querySelectorAll('.accept-case-confirm-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var fid = parseInt(btn.getAttribute('data-id'), 10);
+            var dtVal   = document.getElementById('accept-dt-' + fid).value;
+            var typeVal = document.getElementById('accept-type-' + fid).value;
+            var notes   = document.getElementById('accept-notes-' + fid).value.trim();
+            if (!dtVal) { alert('Lütfen duruşma tarihini seçin.'); return; }
+            btn.disabled = true; btn.textContent = 'Kaydediliyor...';
+            fetch('https://mclaw/judge:acceptCase', {
+                method: 'POST',
+                body: JSON.stringify({ fileId: fid, scheduledAt: dtVal, hearingType: typeVal, notes: notes }),
+            }).then(function(res) { return res.json(); }).then(function(result) {
+                if (result && result.ok) {
+                    var card = btn.closest('.file-card');
+                    var badge = card && card.querySelector('.file-status');
+                    if (badge) { badge.className = 'file-status status-green'; badge.textContent = 'Duruşma Planlandı'; }
+                    var panel = document.getElementById('accept-panel-' + fid);
+                    if (panel) { panel.remove(); }
+                    var trigger = document.getElementById('accept-trigger-' + fid);
+                    if (trigger) { trigger.remove(); }
+                } else {
+                    btn.disabled = false; btn.textContent = 'Duruşmayı Kaydet';
+                }
+            }).catch(function() { btn.disabled = false; btn.textContent = 'Duruşmayı Kaydet'; });
+        });
     });
 }
 
@@ -486,6 +532,42 @@ function renderPendingApprovals() {
     });
 }
 
+// -- Hearings tab
+
+var HEARING_TYPE_LABELS = { 'physical': 'Fiziksel Duruşma', 'written': 'Yazılı Yargılama' };
+var HEARING_STATUS_LABELS = { 'scheduled': 'Planlandı', 'active': 'Aktif', 'completed': 'Tamamlandı', 'cancelled': 'İptal' };
+var HEARING_STATUS_COLORS = { 'scheduled': 'status-blue', 'active': 'status-green', 'completed': 'status-gray', 'cancelled': 'status-red' };
+
+function renderHearingList() {
+    var listEl  = document.getElementById('hearings-list');
+    var emptyEl = document.getElementById('hearings-empty');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+    if (hearingList.length === 0) { if (emptyEl) emptyEl.style.display = ''; return; }
+    if (emptyEl) emptyEl.style.display = 'none';
+    hearingList.forEach(function(h) {
+        var card = document.createElement('div');
+        card.className = 'file-card';
+        var typeLabel   = HEARING_TYPE_LABELS[h.hearingType]   || h.hearingType;
+        var statusLabel = HEARING_STATUS_LABELS[h.status]      || h.status;
+        var statusClass = HEARING_STATUS_COLORS[h.status]      || 'status-gray';
+        var notesRow = h.notes ? '<div class="file-meta"><span class="file-meta-key">Not</span><span class="file-charges-text">' + h.notes + '</span></div>' : '';
+        card.innerHTML =
+            '<div class="file-card-header">' +
+                '<span class="file-number">' + h.fileNumber + '</span>' +
+                '<span class="file-status ' + statusClass + '">' + statusLabel + '</span>' +
+            '</div>' +
+            '<div class="file-card-body">' +
+                '<div class="file-meta"><span class="file-meta-key">Şüpheli</span><span>' + h.suspectCid + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">Savcı</span><span>' + (h.prosecutorCid || '—') + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">Tür</span><span>' + typeLabel + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">Tarih</span><span style="color:#c9a84c;font-weight:600;">' + (h.scheduledAt || '—') + '</span></div>' +
+                notesRow +
+            '</div>';
+        listEl.appendChild(card);
+    });
+}
+
 // -- NUI message handler
 
 window.addEventListener('message', function(event) {
@@ -497,6 +579,7 @@ window.addEventListener('message', function(event) {
         prosecutorFiles     = data.prosecutorFiles     || [];
         fileOpenChargeList  = data.fileOpenChargeList  || [];
         pendingApprovals    = data.pendingApprovals    || [];
+        hearingList         = data.hearingList         || [];
         filterTabsForJob(currentJob);
         document.getElementById('user-job').textContent = currentJob;
         if (currentJob === 'police') { populateReferralForm(); }
@@ -504,6 +587,7 @@ window.addEventListener('message', function(event) {
         if (currentJob === 'prosecutor') { populateIndictmentFileSelect(); }
         if (fileOpenChargeList.length > 0) { populateFileOpenCharges(); showFileOpeningNote(currentJob); }
         if (currentJob === 'judge') { renderPendingApprovals(); }
+        if (currentJob === 'judge' || currentJob === 'lawyer') { renderHearingList(); }
         activateTab(data.activeTab || 'dashboard');
         document.getElementById('app').classList.remove('hidden');
     }

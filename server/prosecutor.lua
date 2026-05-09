@@ -134,15 +134,24 @@ end)
 -- ─────────────────────────────────────────────────────────────────────────────
 -- mclaw:server:judge:acceptCase
 -- Judge accepts an indictment_ready file → hearing_scheduled.
--- Assigns judge_citizenid and notifies the prosecutor.
+-- Creates a mclaw_hearings record with scheduled_at and type.
 --
--- data.fileId  (number)   id of the file
--- data.notes   (string?)  optional judge note
+-- data.fileId       (number)   id of the file
+-- data.scheduledAt  (string)   datetime-local value, e.g. "2026-05-10T14:30"
+-- data.hearingType  (string)   'physical' | 'written'
+-- data.notes        (string?)  optional judge note
 -- ─────────────────────────────────────────────────────────────────────────────
 RegisterNetEvent('mclaw:server:judge:acceptCase', function(data)
     local src = source
     local P   = exports.qbx_core:GetPlayer(src)
     if not P or P.PlayerData.job.name ~= Config.Jobs.judge then return end
+
+    if not data.scheduledAt or data.scheduledAt == '' then
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Duruşma tarihi belirtilmelidir.' })
+        return
+    end
+
+    local hearingType = (data.hearingType == 'written') and 'written' or 'physical'
 
     local cid  = P.PlayerData.citizenid
     local file = MySQL.single.await(
@@ -154,29 +163,40 @@ RegisterNetEvent('mclaw:server:judge:acceptCase', function(data)
         return
     end
 
-    MySQL.update(
-        "UPDATE mclaw_files SET status = 'hearing_scheduled', judge_citizenid = ?, notes = COALESCE(?, notes), updated_at = NOW() WHERE id = ?",
-        { cid, (data.notes ~= '' and data.notes or nil), data.fileId }
+    -- Normalize datetime: "2026-05-10T14:30" → "2026-05-10 14:30:00"
+    local scheduledAt = string.gsub(data.scheduledAt, 'T', ' ')
+    if #scheduledAt == 16 then scheduledAt = scheduledAt .. ':00' end
+
+    MySQL.insert(
+        'INSERT INTO mclaw_hearings (file_id, judge_citizenid, type, scheduled_at, notes) VALUES (?, ?, ?, ?, ?)',
+        { data.fileId, cid, hearingType, scheduledAt, (data.notes ~= '' and data.notes or nil) }
     )
 
+    MySQL.update(
+        "UPDATE mclaw_files SET status = 'hearing_scheduled', judge_citizenid = ?, updated_at = NOW() WHERE id = ?",
+        { cid, data.fileId }
+    )
+
+    local typeLabel = hearingType == 'written' and 'Yazılı Yargılama' or 'Fiziksel Duruşma'
     TriggerClientEvent('ox_lib:notify', src, {
         type        = 'success',
-        title       = 'Dava Açıldı',
-        description = file.file_number .. ' numaralı dosyada duruşma süreci başlatıldı.',
+        title       = 'Duruşma Planlandı',
+        description = file.file_number .. ' — ' .. typeLabel .. ' — ' .. scheduledAt,
     })
 
     if file.prosecutor_citizenid then
+        local msg = file.file_number .. ' numaralı davada ' .. typeLabel .. ' ' .. scheduledAt .. ' tarihine planlandı.'
         MySQL.insert(
             'INSERT INTO mclaw_notifications (citizenid, type, title, message, ref_type, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
-            { file.prosecutor_citizenid, 'hearing', 'Dava Açıldı', file.file_number .. ' numaralı davayı hakim devraldı, duruşma planlanıyor.', 'file', data.fileId }
+            { file.prosecutor_citizenid, 'hearing', 'Duruşma Planlandı', msg, 'file', data.fileId }
         )
         for _, pid in ipairs(GetPlayers()) do
             local PP = exports.qbx_core:GetPlayer(tonumber(pid))
             if PP and PP.PlayerData.citizenid == file.prosecutor_citizenid then
                 TriggerClientEvent('mclaw:client:notification:push', tonumber(pid), {
                     type        = 'success',
-                    title       = 'Dava Açıldı',
-                    description = file.file_number .. ' numaralı davayı hakim devraldı.',
+                    title       = 'Duruşma Planlandı',
+                    description = file.file_number .. ' — ' .. typeLabel .. ' — ' .. scheduledAt,
                 })
                 break
             end
