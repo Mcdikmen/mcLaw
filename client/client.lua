@@ -366,10 +366,16 @@ RegisterNUICallback('judge:acceptCivilPetition', function(data, cb)
 end)
 
 RegisterNUICallback('judge:rejectCivilPetition', function(data, cb)
-    if not data.petitionId then cb({ ok = false, error = 'Eksik veri.' }); return end
+    if not data.petitionId then cb({ ok = false, error = 'Missing data.' }); return end
     TriggerServerEvent('mclaw:server:judge:rejectCivilPetition', {
         petitionId = data.petitionId,
         reason     = data.reason or '',
     })
     cb({ ok = true })
+end)
+
+RegisterNUICallback('citizens:search', function(data, cb)
+    if not data.query or #data.query < 2 then cb({}); return end
+    local results = lib.callback.await('mclaw:cb:citizens:search', false, data.query)
+    cb(results or {})
 end)

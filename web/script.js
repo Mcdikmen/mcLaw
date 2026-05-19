@@ -1652,6 +1652,72 @@ window.addEventListener('message', function(event) {
     }
 });
 
+// -- Citizens search
+
+function renderCitizensResults(results) {
+    var listEl  = document.getElementById('citizens-results');
+    var statusEl = document.getElementById('citizens-status');
+    listEl.innerHTML = '';
+    if (!results || results.length === 0) {
+        statusEl.textContent = 'No results found.';
+        return;
+    }
+    statusEl.textContent = results.length + ' result(s) found.';
+    results.forEach(function(r) {
+        var card = document.createElement('div');
+        card.className = 'file-card';
+        card.style.cursor = 'default';
+        card.innerHTML =
+            '<div class="file-card-body" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">' +
+                '<div>' +
+                    '<div style="font-size:14px;font-weight:600;color:#c0c8de;">' + escHtml(r.name || '—') + '</div>' +
+                    '<div style="font-size:12px;color:#5a6480;margin-top:2px;">Citizen ID: <span style="font-family:monospace;color:#a8b0c8;">' + escHtml(r.citizenid) + '</span></div>' +
+                '</div>' +
+                '<button class="btn-secondary citizens-copy-btn" data-cid="' + escHtml(r.citizenid) + '" style="font-size:11px;padding:5px 12px;flex-shrink:0;">Copy ID</button>' +
+            '</div>';
+        card.querySelector('.citizens-copy-btn').addEventListener('click', function() {
+            var btn = card.querySelector('.citizens-copy-btn');
+            var cid = btn.getAttribute('data-cid');
+            var ta  = document.createElement('textarea');
+            ta.value = cid;
+            ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none;';
+            document.body.appendChild(ta);
+            ta.focus(); ta.select();
+            try {
+                document.execCommand('copy');
+                btn.textContent = '✓ Copied';
+                setTimeout(function() { btn.textContent = 'Copy ID'; }, 2000);
+            } catch(e) {}
+            document.body.removeChild(ta);
+        });
+        listEl.appendChild(card);
+    });
+}
+
+function doSearchCitizens() {
+    var query    = document.getElementById('citizens-query').value.trim();
+    var statusEl = document.getElementById('citizens-status');
+    var btn      = document.getElementById('citizens-search-btn');
+    if (query.length < 2) { statusEl.textContent = 'Enter at least 2 characters.'; return; }
+    btn.disabled = true;
+    statusEl.textContent = 'Searching…';
+    fetch('https://mclaw/citizens:search', {
+        method: 'POST',
+        body: JSON.stringify({ query: query }),
+    }).then(function(r) { return r.json(); }).then(function(results) {
+        btn.disabled = false;
+        renderCitizensResults(results);
+    }).catch(function() {
+        btn.disabled = false;
+        statusEl.textContent = 'Search failed.';
+    });
+}
+
+document.getElementById('citizens-search-btn').addEventListener('click', doSearchCitizens);
+document.getElementById('citizens-query').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); doSearchCitizens(); }
+});
+
 // -- Close on ESC
 
 document.addEventListener('keydown', function(event) {

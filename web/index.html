@@ -59,6 +59,9 @@
                 <button class="nav-btn" data-page="verdict" data-jobs="judge">
                     &#9878; Karar Ver
                 </button>
+                <button class="nav-btn" data-page="citizens" data-jobs="all">
+                    &#128100; Citizens
+                </button>
                 <button class="nav-btn" data-page="clients" data-jobs="lawyer">
                     &#128100; Müvekkiller
                 </button>
@@ -391,6 +394,23 @@
                 <h2>Karar Ver</h2>
                 <p class="subtitle">Hakim kararları burada verilecek.</p>
                 <div class="placeholder-box">Bu sekme yakında aktif olacak.</div>
+            </div>
+
+            <!-- CITIZENS (all legal jobs) -->
+            <div id="page-citizens" class="page">
+                <h2>Citizens</h2>
+                <p class="subtitle">Search for a citizen by name to retrieve their Citizen ID.</p>
+                <div class="form" style="max-width:480px;">
+                    <div class="form-group" style="display:flex;gap:8px;align-items:flex-end;">
+                        <div style="flex:1;">
+                            <label for="citizens-query">Name or Surname</label>
+                            <input type="text" id="citizens-query" maxlength="64" placeholder="e.g. John or Smith" autocomplete="off">
+                        </div>
+                        <button type="button" class="btn-primary" id="citizens-search-btn" style="height:40px;padding:0 18px;">Search</button>
+                    </div>
+                    <div id="citizens-status" style="font-size:12px;color:#a8b0c8;margin-top:6px;min-height:16px;"></div>
+                </div>
+                <div id="citizens-results" class="file-list" style="margin-top:16px;"></div>
             </div>
 
             <!-- CLIENTS (lawyer) -->
