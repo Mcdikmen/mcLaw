@@ -69,19 +69,19 @@ RegisterNetEvent('mclaw:server:prosecutor:openInvestigation', function(data)
     if not P or P.PlayerData.job.name ~= Config.Jobs.prosecutor then return end
 
     if not data.suspectCid or not data.charges or #data.charges == 0 or not data.narrative or #data.narrative < 10 then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Missing or invalid data.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_missing_data') })
         return
     end
 
     local suspectExists = MySQL.scalar.await('SELECT COUNT(*) FROM players WHERE citizenid = ?', { data.suspectCid })
     if not suspectExists or suspectExists == 0 then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Invalid suspect citizen ID.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_invalid_suspect_cid') })
         return
     end
 
     for _, c in ipairs(data.charges) do
         if not Mclaw.GetChargeByCode(c.code) then
-            TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Invalid charge code: ' .. tostring(c.code) })
+            TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_invalid_charge_code', tostring(c.code)) })
             return
         end
     end
@@ -109,8 +109,8 @@ RegisterNetEvent('mclaw:server:prosecutor:openInvestigation', function(data)
 
     TriggerClientEvent('ox_lib:notify', src, {
         type        = 'success',
-        title       = 'Investigation Opened',
-        description = fileNumber .. ' investigation has been started.',
+        title       = Mclaw.T('notify_investigation_opened_title'),
+        description = Mclaw.T('notify_investigation_opened_desc', fileNumber),
     })
 end)
 
@@ -179,7 +179,7 @@ RegisterNetEvent('mclaw:server:prosecutor:submitIndictment', function(data)
     )
 
     if not file then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'File not found or unauthorized.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_file_not_found_auth') })
         return
     end
 
@@ -189,12 +189,12 @@ RegisterNetEvent('mclaw:server:prosecutor:submitIndictment', function(data)
         prosecutor_review    = true,
     }
     if not eligible[file.status] then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'This file is not eligible for indictment.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_file_not_eligible') })
         return
     end
 
     if data.hearingType ~= 'physical' and data.hearingType ~= 'written' then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Invalid hearing type.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_invalid_hearing_type') })
         return
     end
 
@@ -208,22 +208,22 @@ RegisterNetEvent('mclaw:server:prosecutor:submitIndictment', function(data)
 
     TriggerClientEvent('ox_lib:notify', src, {
         type        = 'success',
-        title       = 'Indictment Prepared',
-        description = 'File ' .. file.file_number .. ' has moved to indictment stage.',
+        title       = Mclaw.T('notify_indictment_prepared_title'),
+        description = Mclaw.T('notify_indictment_prepared_desc', file.file_number),
     })
 
     if file.judge_citizenid then
         MySQL.insert(
             'INSERT INTO mclaw_notifications (citizenid, type, title, message, ref_type, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
-            { file.judge_citizenid, 'hearing', 'Indictment Ready', 'File ' .. file.file_number .. ' has moved to indictment stage.', 'file', data.fileId }
+            { file.judge_citizenid, 'hearing', Mclaw.T('notify_indictment_ready_title'), Mclaw.T('notify_indictment_prepared_desc', file.file_number), 'file', data.fileId }
         )
         for _, pid in ipairs(GetPlayers()) do
             local JP = exports.qbx_core:GetPlayer(tonumber(pid))
             if JP and JP.PlayerData.citizenid == file.judge_citizenid then
                 TriggerClientEvent('mclaw:client:notification:push', tonumber(pid), {
                     type        = 'inform',
-                    title       = 'Indictment Ready',
-                    description = 'File ' .. file.file_number .. ' is ready for hearing.',
+                    title       = Mclaw.T('notify_indictment_ready_title'),
+                    description = Mclaw.T('notify_indictment_ready_desc', file.file_number),
                 })
                 break
             end
@@ -247,7 +247,7 @@ RegisterNetEvent('mclaw:server:judge:acceptCase', function(data)
     if not P or P.PlayerData.job.name ~= Config.Jobs.judge then return end
 
     if not data.scheduledAt or data.scheduledAt == '' then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Hearing date must be specified.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_hearing_date_required') })
         return
     end
 
@@ -259,7 +259,7 @@ RegisterNetEvent('mclaw:server:judge:acceptCase', function(data)
         { data.fileId }
     )
     if not file then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'File not found or not at indictment stage.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_file_not_indictment') })
         return
     end
 
@@ -277,26 +277,26 @@ RegisterNetEvent('mclaw:server:judge:acceptCase', function(data)
         { cid, data.fileId }
     )
 
-    local typeLabel = hearingType == 'written' and 'Written Trial' or 'Physical Hearing'
+    local typeLabel = hearingType == 'written' and Mclaw.T('hearing_type_written') or Mclaw.T('hearing_type_physical')
     TriggerClientEvent('ox_lib:notify', src, {
         type        = 'success',
-        title       = 'Hearing Scheduled',
-        description = file.file_number .. ' — ' .. typeLabel .. ' — ' .. scheduledAt,
+        title       = Mclaw.T('notify_hearing_scheduled_title'),
+        description = Mclaw.T('notify_hearing_scheduled_desc', file.file_number, typeLabel, scheduledAt),
     })
 
     if file.prosecutor_citizenid then
-        local msg = 'Hearing in case ' .. file.file_number .. ' (' .. typeLabel .. ') scheduled for ' .. scheduledAt .. '.'
+        local msg = Mclaw.T('notify_hearing_scheduled_msg', file.file_number, typeLabel, scheduledAt)
         MySQL.insert(
             'INSERT INTO mclaw_notifications (citizenid, type, title, message, ref_type, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
-            { file.prosecutor_citizenid, 'hearing', 'Hearing Scheduled', msg, 'file', data.fileId }
+            { file.prosecutor_citizenid, 'hearing', Mclaw.T('notify_hearing_scheduled_title'), msg, 'file', data.fileId }
         )
         for _, pid in ipairs(GetPlayers()) do
             local PP = exports.qbx_core:GetPlayer(tonumber(pid))
             if PP and PP.PlayerData.citizenid == file.prosecutor_citizenid then
                 TriggerClientEvent('mclaw:client:notification:push', tonumber(pid), {
                     type        = 'success',
-                    title       = 'Hearing Scheduled',
-                    description = file.file_number .. ' — ' .. typeLabel .. ' — ' .. scheduledAt,
+                    title       = Mclaw.T('notify_hearing_scheduled_title'),
+                    description = Mclaw.T('notify_hearing_scheduled_desc', file.file_number, typeLabel, scheduledAt),
                 })
                 break
             end

@@ -45,24 +45,24 @@ RegisterNetEvent('mclaw:server:fileopening:openFile', function(data)
         'SELECT COUNT(*) FROM players WHERE citizenid = ?', { data.suspectCid }
     )
     if not suspectExists or suspectExists == 0 then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Invalid suspect citizen ID.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_invalid_suspect_cid') })
         return
     end
 
     if not data.charges or #data.charges == 0 then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'At least one charge must be selected.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_no_charges_selected') })
         return
     end
 
     for _, c in ipairs(data.charges) do
         if not Mclaw.GetChargeByCode(c.code) then
-            TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Invalid charge code: ' .. tostring(c.code) })
+            TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_invalid_charge_code', tostring(c.code)) })
             return
         end
     end
 
     if not data.narrative or #data.narrative < 10 then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Narrative must be at least 10 characters.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_narrative_too_short') })
         return
     end
 
@@ -89,26 +89,25 @@ RegisterNetEvent('mclaw:server:fileopening:openFile', function(data)
         { fileId, 'opened', cid, job, data.narrative }
     )
 
-    local statusNote = fileStatus == 'pending_approval' and ' — Pending judge approval.' or ' — File opened.'
+    local statusNote = fileStatus == 'pending_approval' and (' — ' .. Mclaw.T('notify_file_pending_note')) or (' — ' .. Mclaw.T('notify_file_opened_note'))
     TriggerClientEvent('ox_lib:notify', src, {
         type        = 'success',
-        title       = 'File Created',
+        title       = Mclaw.T('notify_file_created_title'),
         description = fileNumber .. statusNote,
     })
 
-    -- Notify online judges when pending
     if fileStatus == 'pending_approval' then
         for _, pid in ipairs(GetPlayers()) do
             local JP = exports.qbx_core:GetPlayer(tonumber(pid))
             if JP and JP.PlayerData.job.name == Config.Jobs.judge then
                 TriggerClientEvent('mclaw:client:notification:push', tonumber(pid), {
                     type        = 'inform',
-                    title       = 'File Pending Approval',
-                    description = fileNumber .. ' is pending your approval.',
+                    title       = Mclaw.T('notify_file_pending_approval_title'),
+                    description = Mclaw.T('notify_file_pending_approval_desc', fileNumber),
                 })
                 MySQL.insert(
                     'INSERT INTO mclaw_notifications (citizenid, type, title, message, ref_type, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
-                    { JP.PlayerData.citizenid, 'hearing', 'File Pending Approval', fileNumber .. ' is pending your approval.', 'file', fileId }
+                    { JP.PlayerData.citizenid, 'hearing', Mclaw.T('notify_file_pending_approval_title'), Mclaw.T('notify_file_pending_approval_desc', fileNumber), 'file', fileId }
                 )
             end
         end
@@ -183,7 +182,7 @@ RegisterNetEvent('mclaw:server:judge:approveFile', function(data)
         { data.fileId }
     )
     if not file then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'File not found or not eligible for approval.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_file_not_found_approval') })
         return
     end
 
@@ -198,23 +197,22 @@ RegisterNetEvent('mclaw:server:judge:approveFile', function(data)
 
     TriggerClientEvent('ox_lib:notify', src, {
         type        = 'success',
-        title       = 'File Approved',
-        description = file.file_number .. ' has been approved and opened.',
+        title       = Mclaw.T('notify_file_approved_title'),
+        description = Mclaw.T('notify_file_approved_desc', file.file_number),
     })
 
-    -- Notify opener
     if file.opened_by_citizenid then
         local openerSrc = findSource(file.opened_by_citizenid)
         if openerSrc then
             TriggerClientEvent('mclaw:client:notification:push', openerSrc, {
                 type        = 'success',
-                title       = 'Your File Was Approved',
-                description = file.file_number .. ' has been approved by the judge.',
+                title       = Mclaw.T('notify_your_file_approved_title'),
+                description = Mclaw.T('notify_your_file_approved_desc', file.file_number),
             })
         end
         MySQL.insert(
             'INSERT INTO mclaw_notifications (citizenid, type, title, message, ref_type, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
-            { file.opened_by_citizenid, 'hearing', 'Your File Was Approved', file.file_number .. ' has been approved by the judge.', 'file', data.fileId }
+            { file.opened_by_citizenid, 'hearing', Mclaw.T('notify_your_file_approved_title'), Mclaw.T('notify_your_file_approved_desc', file.file_number), 'file', data.fileId }
         )
     end
 end)
@@ -236,7 +234,7 @@ RegisterNetEvent('mclaw:server:judge:rejectFile', function(data)
         { data.fileId }
     )
     if not file then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'File not found or not eligible for rejection.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_file_not_found_rejection') })
         return
     end
 
@@ -251,23 +249,23 @@ RegisterNetEvent('mclaw:server:judge:rejectFile', function(data)
 
     TriggerClientEvent('ox_lib:notify', src, {
         type        = 'inform',
-        title       = 'File Rejected',
-        description = file.file_number .. ' has been rejected.',
+        title       = Mclaw.T('notify_file_rejected_title'),
+        description = Mclaw.T('notify_file_rejected_desc', file.file_number),
     })
 
     if file.opened_by_citizenid then
-        local reason = (data.reason and data.reason ~= '') and (' Reason: ' .. data.reason) or ''
+        local reason = (data.reason and data.reason ~= '') and Mclaw.T('notify_file_closed_reason', data.reason) or ''
         local openerSrc = findSource(file.opened_by_citizenid)
         if openerSrc then
             TriggerClientEvent('mclaw:client:notification:push', openerSrc, {
                 type        = 'error',
-                title       = 'Your File Was Rejected',
-                description = file.file_number .. ' has been rejected by the judge.' .. reason,
+                title       = Mclaw.T('notify_your_file_rejected_title'),
+                description = Mclaw.T('notify_your_file_rejected_desc', file.file_number) .. reason,
             })
         end
         MySQL.insert(
             'INSERT INTO mclaw_notifications (citizenid, type, title, message, ref_type, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
-            { file.opened_by_citizenid, 'hearing', 'Your File Was Rejected', file.file_number .. ' has been rejected by the judge.' .. reason, 'file', data.fileId }
+            { file.opened_by_citizenid, 'hearing', Mclaw.T('notify_your_file_rejected_title'), Mclaw.T('notify_your_file_rejected_desc', file.file_number) .. reason, 'file', data.fileId }
         )
     end
 end)

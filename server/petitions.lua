@@ -24,21 +24,21 @@ RegisterNetEvent('mclaw:server:lawyer:sendPetition', function(data)
     if not P or P.PlayerData.job.name ~= Config.Jobs.lawyer then return end
 
     if not data.petitionType or not data.plaintiffCid or not data.subject or not data.description then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Missing data.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_missing_data') })
         return
     end
     if #data.subject < 3 then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Subject too short.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_subject_too_short') })
         return
     end
     if #data.description < 10 then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Description too short.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_description_too_short') })
         return
     end
 
     local plaintiffExists = MySQL.scalar.await('SELECT COUNT(*) FROM players WHERE citizenid = ?', { data.plaintiffCid })
     if not plaintiffExists or plaintiffExists == 0 then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Invalid client citizen ID.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_invalid_client_cid') })
         return
     end
 
@@ -48,14 +48,14 @@ RegisterNetEvent('mclaw:server:lawyer:sendPetition', function(data)
     elseif data.petitionType == 'civil' then
         recipientJob = Config.Jobs.judge
     else
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Invalid petition type.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_invalid_petition_type') })
         return
     end
 
     local chargesJson = nil
     if data.petitionType == 'criminal' then
         if not data.charges or #data.charges == 0 then
-            TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Select at least one charge for a criminal case.' })
+            TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_criminal_needs_charge') })
             return
         end
         chargesJson = json.encode(data.charges)
@@ -79,11 +79,12 @@ RegisterNetEvent('mclaw:server:lawyer:sendPetition', function(data)
         { data.petitionType, cid, data.plaintiffCid, recipientJob, chargesJson, data.subject, data.description, attachmentsJson }
     )
 
-    local typeLabel = data.petitionType == 'criminal' and 'Criminal case' or 'Civil case'
+    local submittedDesc = data.petitionType == 'criminal' and Mclaw.T('notify_petition_submitted_criminal') or Mclaw.T('notify_petition_submitted_civil')
+    local typeLabel = data.petitionType == 'criminal' and 'criminal case' or 'civil case'
     TriggerClientEvent('ox_lib:notify', src, {
         type        = 'success',
-        title       = 'Petition Submitted',
-        description = typeLabel .. ' petition forwarded to ' .. (data.petitionType == 'criminal' and 'Prosecution.' or 'Judge.'),
+        title       = Mclaw.T('notify_petition_submitted_title'),
+        description = submittedDesc,
     })
 
     for _, pid in ipairs(GetPlayers()) do
@@ -91,8 +92,8 @@ RegisterNetEvent('mclaw:server:lawyer:sendPetition', function(data)
         if RP and RP.PlayerData.job.name == recipientJob then
             TriggerClientEvent('mclaw:client:notification:push', tonumber(pid), {
                 type        = 'inform',
-                title       = 'New Petition',
-                description = 'A new ' .. typeLabel:lower() .. ' petition has been submitted by a lawyer.',
+                title       = Mclaw.T('notify_new_petition_title'),
+                description = Mclaw.T('notify_new_petition_desc', typeLabel),
             })
         end
     end
@@ -243,7 +244,7 @@ RegisterNetEvent('mclaw:server:prosecutor:acceptPetition', function(data)
         { data.petitionId }
     )
     if not petition then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Petition not found.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_petition_not_found') })
         return
     end
 
@@ -273,7 +274,7 @@ RegisterNetEvent('mclaw:server:prosecutor:acceptPetition', function(data)
     -- Açılış logu
     MySQL.insert(
         "INSERT INTO mclaw_file_open_logs (file_id, action, actioned_by_citizenid, actioned_by_job, notes) VALUES (?, 'opened', ?, ?, ?)",
-        { fileId, cid, Config.Jobs.prosecutor, 'Investigation opened from lawyer petition.' }
+        { fileId, cid, Config.Jobs.prosecutor, Mclaw.T('log_investigation_from_petition') }
     )
 
     MySQL.update(
@@ -283,16 +284,16 @@ RegisterNetEvent('mclaw:server:prosecutor:acceptPetition', function(data)
 
     TriggerClientEvent('ox_lib:notify', src, {
         type        = 'success',
-        title       = 'Investigation Opened',
-        description = fileNumber .. ' investigation has been started.',
+        title       = Mclaw.T('notify_investigation_opened_title'),
+        description = Mclaw.T('notify_investigation_opened_desc', fileNumber),
     })
 
     local attorneySrc = findSource(petition.attorney_citizenid)
     if attorneySrc then
         TriggerClientEvent('mclaw:client:notification:push', attorneySrc, {
             type        = 'success',
-            title       = 'Petition Accepted',
-            description = 'Prosecution has opened investigation ' .. fileNumber .. '.',
+            title       = Mclaw.T('notify_petition_accepted_title'),
+            description = Mclaw.T('notify_prosecution_opened_inv', fileNumber),
         })
     end
 end)
@@ -310,7 +311,7 @@ RegisterNetEvent('mclaw:server:prosecutor:rejectPetition', function(data)
         { data.petitionId }
     )
     if not petition then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Petition not found.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_petition_not_found') })
         return
     end
 
@@ -319,14 +320,14 @@ RegisterNetEvent('mclaw:server:prosecutor:rejectPetition', function(data)
         { data.reason or nil, petition.id }
     )
 
-    TriggerClientEvent('ox_lib:notify', src, { type = 'inform', description = 'Petition rejected.' })
+    TriggerClientEvent('ox_lib:notify', src, { type = 'inform', description = Mclaw.T('notify_petition_rejected_desc') })
 
     local attorneySrc = findSource(petition.attorney_citizenid)
     if attorneySrc then
-        local reason = (data.reason and data.reason ~= '') and (' Reason: ' .. data.reason) or ''
+        local reason = (data.reason and data.reason ~= '') and Mclaw.T('notify_petition_rejected_reason', data.reason) or ''
         TriggerClientEvent('mclaw:client:notification:push', attorneySrc, {
             type        = 'error',
-            title       = 'Petition Rejected',
+            title       = Mclaw.T('notify_your_petition_rejected_title'),
             description = 'Prosecution has rejected your petition.' .. reason,
         })
     end
@@ -347,7 +348,7 @@ RegisterNetEvent('mclaw:server:judge:acceptCivilPetition', function(data)
         { data.petitionId }
     )
     if not petition then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Petition not found.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_petition_not_found') })
         return
     end
 
@@ -362,7 +363,7 @@ RegisterNetEvent('mclaw:server:judge:acceptCivilPetition', function(data)
 
     MySQL.insert(
         "INSERT INTO mclaw_file_open_logs (file_id, action, actioned_by_citizenid, actioned_by_job, notes) VALUES (?, 'opened', ?, ?, ?)",
-        { fileId, cid, Config.Jobs.judge, 'Civil case opened from lawyer petition: ' .. petition.subject }
+        { fileId, cid, Config.Jobs.judge, Mclaw.T('log_civil_from_petition', petition.subject) }
     )
 
     MySQL.update(
@@ -372,16 +373,16 @@ RegisterNetEvent('mclaw:server:judge:acceptCivilPetition', function(data)
 
     TriggerClientEvent('ox_lib:notify', src, {
         type        = 'success',
-        title       = 'Civil Case Opened',
-        description = 'Case ' .. fileNumber .. ' has been created.',
+        title       = Mclaw.T('notify_civil_opened_title'),
+        description = Mclaw.T('notify_civil_opened_desc', fileNumber),
     })
 
     local attorneySrc = findSource(petition.attorney_citizenid)
     if attorneySrc then
         TriggerClientEvent('mclaw:client:notification:push', attorneySrc, {
             type        = 'success',
-            title       = 'Petition Accepted',
-            description = 'Judge has opened civil case ' .. fileNumber .. '.',
+            title       = Mclaw.T('notify_petition_accepted_title'),
+            description = Mclaw.T('notify_judge_opened_civil', fileNumber),
         })
     end
 end)
@@ -399,7 +400,7 @@ RegisterNetEvent('mclaw:server:judge:rejectCivilPetition', function(data)
         { data.petitionId }
     )
     if not petition then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Petition not found.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_petition_not_found') })
         return
     end
 
@@ -408,14 +409,14 @@ RegisterNetEvent('mclaw:server:judge:rejectCivilPetition', function(data)
         { data.reason or nil, petition.id }
     )
 
-    TriggerClientEvent('ox_lib:notify', src, { type = 'inform', description = 'Petition rejected.' })
+    TriggerClientEvent('ox_lib:notify', src, { type = 'inform', description = Mclaw.T('notify_petition_rejected_desc') })
 
     local attorneySrc = findSource(petition.attorney_citizenid)
     if attorneySrc then
-        local reason = (data.reason and data.reason ~= '') and (' Reason: ' .. data.reason) or ''
+        local reason = (data.reason and data.reason ~= '') and Mclaw.T('notify_petition_rejected_reason', data.reason) or ''
         TriggerClientEvent('mclaw:client:notification:push', attorneySrc, {
             type        = 'error',
-            title       = 'Petition Rejected',
+            title       = Mclaw.T('notify_your_petition_rejected_title'),
             description = 'Judge has rejected your petition.' .. reason,
         })
     end
