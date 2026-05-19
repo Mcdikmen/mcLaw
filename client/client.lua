@@ -104,6 +104,7 @@ local function openPanel(activeTab)
         payload.pendingApprovals    = lib.callback.await('mclaw:cb:judge:getPendingApprovals', false) or {}
         payload.hearingList         = lib.callback.await('mclaw:cb:hearings:getList', false) or {}
         payload.incomingPetitions   = lib.callback.await('mclaw:cb:judge:getIncomingPetitions', false) or {}
+        payload.verdictFiles        = lib.callback.await('mclaw:cb:verdict:getEligibleFiles', false) or {}
     elseif job == Config.Jobs.lawyer then
         payload.hearingList = lib.callback.await('mclaw:cb:hearings:getList', false) or {}
         payload.myPetitions = lib.callback.await('mclaw:cb:lawyer:getMyPetitions', false) or {}
@@ -293,6 +294,11 @@ RegisterNUICallback('tab:refresh', function(data, cb)
         elseif job == Config.Jobs.judge then
             update.incomingPetitions = lib.callback.await('mclaw:cb:judge:getIncomingPetitions', false) or {}
         end
+
+    elseif tab == 'verdict' then
+        if job == Config.Jobs.judge then
+            update.verdictFiles = lib.callback.await('mclaw:cb:verdict:getEligibleFiles', false) or {}
+        end
     end
 
     SendNUIMessage(update)
@@ -378,4 +384,23 @@ RegisterNUICallback('citizens:search', function(data, cb)
     if not data.query or #data.query < 2 then cb({}); return end
     local results = lib.callback.await('mclaw:cb:citizens:search', false, data.query)
     cb(results or {})
+end)
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Verdict: issue (NUI → client → server)
+-- ─────────────────────────────────────────────────────────────────────────────
+RegisterNUICallback('verdict:issue', function(data, cb)
+    if not data.fileId or not data.result then
+        cb({ ok = false, error = 'Missing data.' })
+        return
+    end
+    TriggerServerEvent('mclaw:server:judge:issueVerdict', {
+        fileId    = data.fileId,
+        result    = data.result,
+        charges   = data.charges   or {},
+        totalJail = data.totalJail or 0,
+        totalFine = data.totalFine or 0,
+        reasoning = data.reasoning or '',
+    })
+    cb({ ok = true })
 end)

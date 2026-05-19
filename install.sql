@@ -273,7 +273,7 @@ CREATE TABLE IF NOT EXISTS `mclaw_petitions` (
 CREATE TABLE IF NOT EXISTS `mclaw_file_open_logs` (
     `id`                        INT AUTO_INCREMENT PRIMARY KEY,
     `file_id`                   INT NOT NULL,
-    `action`                    ENUM('opened','approved','rejected') NOT NULL,
+    `action`                    ENUM('opened','approved','rejected','verdict') NOT NULL,
     `actioned_by_citizenid`     VARCHAR(64) NOT NULL,
     `actioned_by_job`           VARCHAR(50) NOT NULL,
     `notes`                     TEXT NULL,

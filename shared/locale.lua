@@ -101,6 +101,15 @@ Mclaw.Locale = {
     -- ── Verdict ───────────────────────────────────────────────────────────────
     notify_verdict_issued_title        = 'Verdict Issued',
     notify_verdict_issued_desc         = 'File %s — Verdict: %s | Jail: %s min | Fine: $%s',
+    notify_verdict_suspect_title       = 'Verdict Has Been Issued',
+    notify_verdict_suspect_desc        = 'File %s — Result: %s',
+    notify_verdict_prosecutor_title    = 'Verdict Issued',
+    notify_verdict_prosecutor_desc     = 'File %s — %s | Jail: %s min | Fine: $%s',
+    err_file_not_hearing               = 'File not found or not at hearing stage.',
+    err_invalid_verdict_result         = 'Invalid verdict result.',
+    verdict_result_guilty              = 'Guilty',
+    verdict_result_acquitted           = 'Acquitted',
+    verdict_result_dismissed           = 'Dismissed',
 
     -- ── Warrant ───────────────────────────────────────────────────────────────
     notify_warrant_created_title       = 'Arrest Warrant Issued',

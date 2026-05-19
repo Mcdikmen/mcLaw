@@ -13,6 +13,7 @@ var docTypeList         = [];
 var myPetitions         = [];
 var incomingPetitions   = [];
 var investigationList   = [];
+var verdictFiles        = [];
 
 // -- Tab navigation
 
@@ -28,7 +29,7 @@ function activateTab(pageName) {
     if (page) { page.classList.add('active'); }
 }
 
-var REFRESHABLE_TABS = { dashboard: 1, files: 1, investigations: 1, approvals: 1, hearings: 1, referral: 1, mypetitions: 1, inpetitions: 1 };
+var REFRESHABLE_TABS = { dashboard: 1, files: 1, investigations: 1, approvals: 1, hearings: 1, referral: 1, mypetitions: 1, inpetitions: 1, verdict: 1 };
 
 navButtons.forEach(function(btn) {
     btn.addEventListener('click', function() {
@@ -1570,6 +1571,170 @@ function renderHearingList() {
     });
 }
 
+// -- Verdict tab (judge)
+
+var VERDICT_RESULT_LABELS = { guilty: 'Guilty', acquitted: 'Acquitted', dismissed: 'Dismissed' };
+var VERDICT_RESULT_COLORS = { guilty: 'status-red', acquitted: 'status-green', dismissed: 'status-gray' };
+
+function renderVerdictList() {
+    var listEl  = document.getElementById('verdict-list');
+    var emptyEl = document.getElementById('verdict-empty');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+    if (verdictFiles.length === 0) { if (emptyEl) emptyEl.style.display = ''; return; }
+    if (emptyEl) emptyEl.style.display = 'none';
+
+    verdictFiles.forEach(function(file) {
+        var card = document.createElement('div');
+        card.className = 'file-card';
+
+        var chargeRows = (file.charges || []).map(function(c) {
+            return '<div class="file-meta" style="padding-left:8px;">' +
+                '<span class="file-meta-key" style="flex:1;">[' + (c.category || '?') + '] ' + c.label + '</span>' +
+                '<span style="font-size:11px;color:#4a5268;white-space:nowrap;">' + (c.jailTime || 0) + ' min / $' + (c.fine || 0) + '</span>' +
+            '</div>';
+        }).join('');
+
+        card.innerHTML =
+            '<div class="file-card-header">' +
+                '<span class="file-number">' + file.fileNumber + '</span>' +
+                '<span class="file-status status-green">Hearing Scheduled</span>' +
+            '</div>' +
+            '<div class="file-card-body">' +
+                '<div class="file-meta"><span class="file-meta-key">Suspect</span><span>' + displayName(file.suspectName, file.suspectCid) + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">Hearing</span><span style="color:#c9a84c;font-weight:600;">' + escHtml(file.scheduledAt || '—') + '</span></div>' +
+                (file.hearingType ? '<div class="file-meta"><span class="file-meta-key">Type</span><span>' + (HEARING_TYPE_LABELS[file.hearingType] || file.hearingType) + '</span></div>' : '') +
+                '<div class="file-meta" style="flex-direction:column;gap:4px;margin-top:6px;padding-top:6px;border-top:1px solid #2e3650;">' +
+                    '<span class="file-meta-key">Charges</span>' + chargeRows +
+                '</div>' +
+            '</div>' +
+            '<div class="verdict-trigger" id="verdict-trigger-' + file.id + '">' +
+                '<button class="btn-primary verdict-open-btn" data-id="' + file.id + '" style="font-size:12px;">Issue Verdict</button>' +
+                '<button class="btn-secondary" data-id="' + file.id + '" onclick="(function(){openFileDetail(' + file.id + ',\'verdict\');})()" style="font-size:12px;margin-left:8px;">View File</button>' +
+            '</div>' +
+            '<div class="approval-reject-panel hidden" id="verdict-form-' + file.id + '"></div>';
+
+        listEl.appendChild(card);
+    });
+
+    // Build inline verdict form on "Issue Verdict" click
+    listEl.querySelectorAll('.verdict-open-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var fid   = parseInt(btn.getAttribute('data-id'), 10);
+            var file  = verdictFiles.filter(function(f) { return f.id === fid; })[0];
+            var panel = document.getElementById('verdict-form-' + fid);
+            var trigger = document.getElementById('verdict-trigger-' + fid);
+            if (!file || !panel) return;
+            if (!panel.classList.contains('hidden')) return;
+
+            // Build charge override rows
+            var chargeOverrideHtml = (file.charges || []).map(function(c, i) {
+                return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">' +
+                    '<span style="flex:2;font-size:12px;color:#c0c8de;">' + escHtml(c.label) + '</span>' +
+                    '<div style="flex:1;">' +
+                        '<label style="font-size:10px;color:#5a6480;display:block;margin-bottom:2px;">Jail (min)</label>' +
+                        '<input type="number" min="0" class="reject-reason-input vrd-jail-' + fid + '" data-code="' + escHtml(c.code) + '" value="' + (c.jailTime || 0) + '" style="width:100%;padding:5px 8px;">' +
+                    '</div>' +
+                    '<div style="flex:1;">' +
+                        '<label style="font-size:10px;color:#5a6480;display:block;margin-bottom:2px;">Fine ($)</label>' +
+                        '<input type="number" min="0" class="reject-reason-input vrd-fine-' + fid + '" data-code="' + escHtml(c.code) + '" value="' + (c.fine || 0) + '" style="width:100%;padding:5px 8px;">' +
+                    '</div>' +
+                '</div>';
+            }).join('');
+
+            panel.innerHTML =
+                '<div style="padding:12px 0 0;">' +
+                    '<div style="font-size:11px;color:#5a6480;text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px;">Verdict</div>' +
+                    '<div class="radio-group" style="margin-bottom:12px;">' +
+                        '<label class="radio-item"><input type="radio" name="vrd-result-' + fid + '" value="guilty" checked><span class="radio-label"><strong style="color:#ea4335;">Guilty</strong></span></label>' +
+                        '<label class="radio-item"><input type="radio" name="vrd-result-' + fid + '" value="acquitted"><span class="radio-label"><strong style="color:#34a853;">Acquitted</strong></span></label>' +
+                        '<label class="radio-item"><input type="radio" name="vrd-result-' + fid + '" value="dismissed"><span class="radio-label"><strong style="color:#9aa0b4;">Dismissed</strong></span></label>' +
+                    '</div>' +
+                    (chargeOverrideHtml ? '<div style="font-size:11px;color:#5a6480;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">Sentence Override (per charge)</div>' + chargeOverrideHtml : '') +
+                    '<div style="display:flex;gap:10px;margin-bottom:8px;">' +
+                        '<div style="flex:1;"><label style="font-size:11px;color:#a8b0c8;display:block;margin-bottom:4px;">Total Jail (min)</label><input type="number" min="0" id="vrd-total-jail-' + fid + '" class="reject-reason-input" value="0" style="width:100%;padding:7px 10px;"></div>' +
+                        '<div style="flex:1;"><label style="font-size:11px;color:#a8b0c8;display:block;margin-bottom:4px;">Total Fine ($)</label><input type="number" min="0" id="vrd-total-fine-' + fid + '" class="reject-reason-input" value="0" style="width:100%;padding:7px 10px;"></div>' +
+                    '</div>' +
+                    '<textarea id="vrd-reasoning-' + fid + '" class="reject-reason-input" rows="3" maxlength="500" placeholder="Reasoning (optional)…" style="width:100%;margin-bottom:8px;"></textarea>' +
+                    '<div id="vrd-error-' + fid + '" class="form-error hidden"></div>' +
+                    '<div class="form-actions" style="margin-top:6px;">' +
+                        '<button class="btn-primary vrd-submit-btn" data-id="' + fid + '">Confirm Verdict</button>' +
+                        '<button class="btn-secondary vrd-cancel-btn" data-id="' + fid + '">Cancel</button>' +
+                    '</div>' +
+                '</div>';
+
+            panel.classList.remove('hidden');
+            trigger.classList.add('hidden');
+
+            // Auto-sum jail/fine from charge overrides
+            function recalcTotals() {
+                var jailInputs = panel.querySelectorAll('.vrd-jail-' + fid);
+                var fineInputs = panel.querySelectorAll('.vrd-fine-' + fid);
+                var totalJ = 0, totalF = 0;
+                jailInputs.forEach(function(el) { totalJ += parseInt(el.value) || 0; });
+                fineInputs.forEach(function(el) { totalF += parseInt(el.value) || 0; });
+                document.getElementById('vrd-total-jail-' + fid).value = totalJ;
+                document.getElementById('vrd-total-fine-' + fid).value = totalF;
+            }
+            panel.querySelectorAll('.vrd-jail-' + fid + ', .vrd-fine-' + fid).forEach(function(el) {
+                el.addEventListener('input', recalcTotals);
+            });
+            recalcTotals();
+
+            // Submit
+            panel.querySelector('.vrd-submit-btn').addEventListener('click', function() {
+                var submitBtn = panel.querySelector('.vrd-submit-btn');
+                var errEl = document.getElementById('vrd-error-' + fid);
+                errEl.classList.add('hidden');
+
+                var resultEl = panel.querySelector('input[name="vrd-result-' + fid + '"]:checked');
+                if (!resultEl) { errEl.textContent = 'Select a verdict result.'; errEl.classList.remove('hidden'); return; }
+
+                var charges = [];
+                (file.charges || []).forEach(function(c) {
+                    var jailEl = panel.querySelector('.vrd-jail-' + fid + '[data-code="' + c.code + '"]');
+                    var fineEl = panel.querySelector('.vrd-fine-' + fid + '[data-code="' + c.code + '"]');
+                    charges.push({
+                        code:         c.code,
+                        jailOverride: jailEl ? parseInt(jailEl.value) || 0 : c.jailTime,
+                        fineOverride: fineEl ? parseInt(fineEl.value) || 0 : c.fine,
+                    });
+                });
+
+                submitBtn.disabled = true; submitBtn.textContent = 'Submitting…';
+                fetch('https://mclaw/verdict:issue', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        fileId:    fid,
+                        result:    resultEl.value,
+                        charges:   charges,
+                        totalJail: parseInt(document.getElementById('vrd-total-jail-' + fid).value) || 0,
+                        totalFine: parseInt(document.getElementById('vrd-total-fine-' + fid).value) || 0,
+                        reasoning: document.getElementById('vrd-reasoning-' + fid).value.trim(),
+                    }),
+                }).then(function(r) { return r.json(); }).then(function(result) {
+                    if (result && result.ok) {
+                        var cardEl = submitBtn.closest('.file-card');
+                        if (cardEl) { cardEl.remove(); }
+                        verdictFiles = verdictFiles.filter(function(f) { return f.id !== fid; });
+                        if (verdictFiles.length === 0 && emptyEl) emptyEl.style.display = '';
+                    } else {
+                        submitBtn.disabled = false; submitBtn.textContent = 'Confirm Verdict';
+                        errEl.textContent = (result && result.error) ? result.error : 'Submission failed.';
+                        errEl.classList.remove('hidden');
+                    }
+                }).catch(function() { submitBtn.disabled = false; submitBtn.textContent = 'Confirm Verdict'; });
+            });
+
+            // Cancel
+            panel.querySelector('.vrd-cancel-btn').addEventListener('click', function() {
+                panel.classList.add('hidden');
+                trigger.classList.remove('hidden');
+            });
+        });
+    });
+}
+
 // -- NUI message handler
 
 window.addEventListener('message', function(event) {
@@ -1586,6 +1751,7 @@ window.addEventListener('message', function(event) {
         myPetitions         = data.myPetitions         || [];
         incomingPetitions   = data.incomingPetitions   || [];
         investigationList   = data.investigationList   || [];
+        verdictFiles        = data.verdictFiles        || [];
         filterTabsForJob(currentJob);
         document.getElementById('user-job').textContent = currentJob;
         if (data.dashStats) {
@@ -1604,6 +1770,7 @@ window.addEventListener('message', function(event) {
         if (currentJob === 'lawyer') { populatePetitionCharges(); renderMyPetitions(); }
         if (currentJob === 'prosecutor' || currentJob === 'judge') { renderIncomingPetitions(); }
         if (currentJob === 'prosecutor') { renderInvestigationList(); }
+        if (currentJob === 'judge') { renderVerdictList(); }
         activateTab(data.activeTab || 'dashboard');
         document.getElementById('app').classList.remove('hidden');
     }
@@ -1643,6 +1810,10 @@ window.addEventListener('message', function(event) {
             nearbyPlayers = data.nearbyPlayers;
             chargeList = data.chargeList || chargeList;
             populateReferralForm();
+        }
+        if (data.verdictFiles !== undefined) {
+            verdictFiles = data.verdictFiles;
+            renderVerdictList();
         }
     }
     if (data.action === 'hide') {
