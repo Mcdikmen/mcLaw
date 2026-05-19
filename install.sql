@@ -280,3 +280,19 @@ CREATE TABLE IF NOT EXISTS `mclaw_file_open_logs` (
     `created_at`                TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (`file_id`) REFERENCES `mclaw_files`(`id`)
 );
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Performance indexes
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE INDEX IF NOT EXISTS `idx_files_status_deleted`        ON `mclaw_files` (`status`, `deleted_at`);
+CREATE INDEX IF NOT EXISTS `idx_files_prosecutor_status`     ON `mclaw_files` (`prosecutor_citizenid`, `status`, `deleted_at`);
+CREATE INDEX IF NOT EXISTS `idx_files_judge`                 ON `mclaw_files` (`judge_citizenid`, `deleted_at`);
+CREATE INDEX IF NOT EXISTS `idx_files_suspect`               ON `mclaw_files` (`suspect_citizenid`, `deleted_at`);
+CREATE INDEX IF NOT EXISTS `idx_file_charges_file`           ON `mclaw_file_charges` (`file_id`);
+CREATE INDEX IF NOT EXISTS `idx_documents_file`              ON `mclaw_documents` (`file_id`);
+CREATE INDEX IF NOT EXISTS `idx_hearings_file`               ON `mclaw_hearings` (`file_id`);
+CREATE INDEX IF NOT EXISTS `idx_hearings_judge_status`       ON `mclaw_hearings` (`judge_citizenid`, `status`);
+CREATE INDEX IF NOT EXISTS `idx_petitions_recipient_status`  ON `mclaw_petitions` (`recipient_job`, `status`);
+CREATE INDEX IF NOT EXISTS `idx_petitions_attorney`          ON `mclaw_petitions` (`attorney_citizenid`);
+CREATE INDEX IF NOT EXISTS `idx_attorneys_attorney_active`   ON `mclaw_attorneys` (`attorney_citizenid`, `is_active`);
+CREATE INDEX IF NOT EXISTS `idx_file_open_logs_file`         ON `mclaw_file_open_logs` (`file_id`);
