@@ -67,7 +67,7 @@ document.head.appendChild(style);
 
 function populateReferralForm() {
     var suspectSelect = document.getElementById('referral-suspect');
-    suspectSelect.innerHTML = '<option value="">-- Yakindaki oyuncu secin --</option>';
+    suspectSelect.innerHTML = '<option value="">— Select a nearby player —</option>';
     var noNearby = document.getElementById('referral-no-nearby');
     if (nearbyPlayers.length === 0) {
         noNearby.style.display = '';
@@ -127,50 +127,50 @@ document.getElementById('referral-form').addEventListener('submit', function(e) 
     e.preventDefault();
     hideReferralError();
     var suspectSource = document.getElementById('referral-suspect').value;
-    if (!suspectSource) { showReferralError('Lutfen bir suphe secin.'); return; }
+    if (!suspectSource) { showReferralError('Please select a suspect.'); return; }
     var selectedCodes = [];
     document.querySelectorAll('#referral-charges input[type="checkbox"]:checked').forEach(function(cb) {
         selectedCodes.push({ code: cb.value });
     });
-    if (selectedCodes.length === 0) { showReferralError('En az bir suc secin.'); return; }
+    if (selectedCodes.length === 0) { showReferralError('Select at least one charge.'); return; }
     var narrative = document.getElementById('referral-narrative').value.trim();
-    if (narrative.length < 10) { showReferralError('Olay anlatis en az 10 karakter olmali.'); return; }
+    if (narrative.length < 10) { showReferralError('Incident narrative must be at least 10 characters.'); return; }
     var submitBtn = document.querySelector('#referral-form .btn-primary');
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Gonderiliyor...';
+    submitBtn.textContent = 'Submitting…';
     fetch('https://mclaw/referral:submit', {
         method: 'POST',
         body: JSON.stringify({ suspectSource: parseInt(suspectSource, 10), charges: selectedCodes, narrative: narrative }),
     }).then(function(res) { return res.json(); }).then(function(result) {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Raporu Gonder';
+        submitBtn.textContent = 'Submit Report';
         if (result && result.ok) {
             document.getElementById('referral-form').reset();
             document.getElementById('narrative-count').textContent = '0';
             document.querySelectorAll('.charge-item').forEach(function(item) { item.classList.remove('checked'); });
         } else {
-            showReferralError(result && result.error ? result.error : 'Gonderme basarisiz.');
+            showReferralError(result && result.error ? result.error : 'Submission failed.');
         }
     }).catch(function() {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Raporu Gonder';
+        submitBtn.textContent = 'Submit Report';
     });
 });
 
 // -- Files tab (prosecutor / judge)
 
 var STATUS_LABELS = {
-    'opened':               'Acildi',
-    'awaiting_prosecutor':  'Savci Bekleniyor',
-    'prosecutor_review':    'Savci Incelemesinde',
-    'indictment_ready':     'Iddianame Hazir',
-    'hearing_scheduled':    'Durusma Planlandi',
-    'written_trial_active': 'Yazili Yargilama',
-    'verdict_issued':       'Karar Verildi',
-    'enforcement_active':   'Icra Aktif',
-    'closed':               'Kapatıldı',
-    'archived':             'Arşivlendi',
-    'pending_approval':     'Onay Bekliyor',
+    'opened':               'Opened',
+    'awaiting_prosecutor':  'Awaiting Prosecutor',
+    'prosecutor_review':    'Prosecutor Review',
+    'indictment_ready':     'Indictment Ready',
+    'hearing_scheduled':    'Hearing Scheduled',
+    'written_trial_active': 'Written Trial',
+    'verdict_issued':       'Verdict Issued',
+    'enforcement_active':   'Enforcement Active',
+    'closed':               'Closed',
+    'archived':             'Archived',
+    'pending_approval':     'Pending Approval',
 };
 
 var STATUS_COLORS = {
@@ -206,26 +206,25 @@ function renderInvestigationList() {
                 '<span class="file-status ' + statusClass + '">' + statusLabel + '</span>' +
             '</div>' +
             '<div class="file-card-body">' +
-                '<div class="file-meta"><span class="file-meta-key">Şüpheli</span><span>' + displayName(file.suspectName, file.suspectCid) + '</span></div>' +
-                '<div class="file-meta"><span class="file-meta-key">Suçlar</span><span class="file-charges-text">' + chargeNames + '</span></div>' +
-                '<div class="file-meta"><span class="file-meta-key">Açılış</span><span>' + (file.createdAt || '-') + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">Suspect</span><span>' + displayName(file.suspectName, file.suspectCid) + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">Charges</span><span class="file-charges-text">' + chargeNames + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">Opened</span><span>' + (file.createdAt || '-') + '</span></div>' +
             '</div>';
         var viewBtn = document.createElement('button');
         viewBtn.type = 'button';
         viewBtn.className = 'btn-secondary file-indictment-btn';
-        viewBtn.textContent = 'Dosyayı İncele →';
+        viewBtn.textContent = 'View File →';
         (function(fid) {
             viewBtn.addEventListener('click', function() { openFileDetail(fid, 'investigations'); });
         }(file.id));
         card.appendChild(viewBtn);
 
-        // İddianame hazırla butonu — soruşturma iddianameye taşınabilir
         var eligible = ['opened', 'awaiting_prosecutor', 'prosecutor_review'];
         if (eligible.indexOf(file.status) !== -1) {
             var indBtn = document.createElement('button');
             indBtn.type = 'button';
             indBtn.className = 'btn-secondary file-indictment-btn';
-            indBtn.textContent = 'İddianame Hazırla →';
+            indBtn.textContent = 'Prepare Indictment →';
             (function(fid) {
                 indBtn.addEventListener('click', function() {
                     prefillIndictmentForm(fid);
@@ -250,11 +249,11 @@ function renderFilesList() {
         var statusClass = STATUS_COLORS[file.status] || 'status-gray';
         var statusLabel = STATUS_LABELS[file.status] || file.status;
         var chargeNames = (file.charges || []).map(function(c) { return c.label; }).join(', ') || '-';
-        var notesRow = file.notes ? '<div class="file-meta"><span class="file-meta-key">Not</span><span class="file-charges-text">' + file.notes + '</span></div>' : '';
+        var notesRow = file.notes ? '<div class="file-meta"><span class="file-meta-key">Note</span><span class="file-charges-text">' + file.notes + '</span></div>' : '';
         var pendingRow = (file.status === 'pending_approval')
             ? '<div class="file-meta" style="margin-top:6px;padding-top:6px;border-top:1px solid #2e3650;">' +
-                  '<span class="file-meta-key" style="color:#fbbc04;">Onay</span>' +
-                  '<span style="color:#fbbc04;font-size:12px;">Hakim onayı bekleniyor</span>' +
+                  '<span class="file-meta-key" style="color:#fbbc04;">Approval</span>' +
+                  '<span style="color:#fbbc04;font-size:12px;">Awaiting judge approval</span>' +
               '</div>'
             : '';
         card.innerHTML =
@@ -263,17 +262,17 @@ function renderFilesList() {
                 '<span class="file-status ' + statusClass + '">' + statusLabel + '</span>' +
             '</div>' +
             '<div class="file-card-body">' +
-                '<div class="file-meta"><span class="file-meta-key">Şüpheli</span><span>' + displayName(file.suspectName, file.suspectCid) + '</span></div>' +
-                '<div class="file-meta"><span class="file-meta-key">Suçlar</span><span class="file-charges-text">' + chargeNames + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">Suspect</span><span>' + displayName(file.suspectName, file.suspectCid) + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">Charges</span><span class="file-charges-text">' + chargeNames + '</span></div>' +
                 notesRow +
-                '<div class="file-meta"><span class="file-meta-key">Açılış</span><span>' + (file.createdAt || '-') + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">Opened</span><span>' + (file.createdAt || '-') + '</span></div>' +
                 pendingRow +
             '</div>';
         // View detail button — all cards
         var viewBtn = document.createElement('button');
         viewBtn.type = 'button';
         viewBtn.className = 'btn-secondary file-indictment-btn';
-        viewBtn.textContent = 'Dosyayı İncele →';
+        viewBtn.textContent = 'View File →';
         (function(fid) {
             viewBtn.addEventListener('click', function() { openFileDetail(fid, 'files'); });
         }(file.id));
@@ -284,7 +283,7 @@ function renderFilesList() {
             var btn = document.createElement('button');
             btn.type = 'button';
             btn.className = 'btn-secondary file-indictment-btn';
-            btn.textContent = 'İddianame Hazırla →';
+            btn.textContent = 'Prepare Indictment →';
             (function(fid) {
                 btn.addEventListener('click', function() {
                     prefillIndictmentForm(fid);
@@ -298,7 +297,7 @@ function renderFilesList() {
             var acceptTrigger = document.createElement('div');
             acceptTrigger.className = 'approval-actions';
             acceptTrigger.id = 'accept-trigger-' + file.id;
-            acceptTrigger.innerHTML = '<button class="btn-primary accept-case-open-btn" data-id="' + file.id + '">Duruşma Planla →</button>';
+            acceptTrigger.innerHTML = '<button class="btn-primary accept-case-open-btn" data-id="' + file.id + '">Schedule Hearing →</button>';
             card.appendChild(acceptTrigger);
             // Inline scheduling form (hidden)
             var acceptPanel = document.createElement('div');
@@ -306,22 +305,22 @@ function renderFilesList() {
             acceptPanel.id = 'accept-panel-' + file.id;
             acceptPanel.innerHTML =
                 '<div class="form-group" style="margin-bottom:10px;">' +
-                    '<label style="font-size:12px;color:#a8b0c8;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:6px;">Duruşma Tarihi & Saati</label>' +
+                    '<label style="font-size:12px;color:#a8b0c8;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:6px;">Hearing Date & Time</label>' +
                     '<input type="datetime-local" class="reject-reason-input accept-datetime" id="accept-dt-' + file.id + '" style="width:100%;padding:8px 10px;">' +
                 '</div>' +
                 '<div class="form-group" style="margin-bottom:10px;">' +
-                    '<label style="font-size:12px;color:#a8b0c8;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:6px;">Tür</label>' +
+                    '<label style="font-size:12px;color:#a8b0c8;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:6px;">Type</label>' +
                     '<select class="reject-reason-input accept-type" id="accept-type-' + file.id + '" style="width:100%;padding:8px 10px;">' +
-                        '<option value="physical">Fiziksel Duruşma</option>' +
-                        '<option value="written">Yazılı Yargılama</option>' +
+                        '<option value="physical">Physical Hearing</option>' +
+                        '<option value="written">Written Trial</option>' +
                     '</select>' +
                 '</div>' +
                 '<div class="form-group" style="margin-bottom:10px;">' +
-                    '<textarea class="reject-reason-input accept-notes" id="accept-notes-' + file.id + '" rows="2" maxlength="300" placeholder="Hakim notu (isteğe bağlı)…"></textarea>' +
+                    '<textarea class="reject-reason-input accept-notes" id="accept-notes-' + file.id + '" rows="2" maxlength="300" placeholder="Judge note (optional)…"></textarea>' +
                 '</div>' +
                 '<div class="form-actions" style="margin-top:8px;">' +
-                    '<button class="btn-primary accept-case-confirm-btn" data-id="' + file.id + '">Duruşmayı Kaydet</button>' +
-                    '<button class="btn-secondary accept-case-cancel-btn" data-id="' + file.id + '">İptal</button>' +
+                    '<button class="btn-primary accept-case-confirm-btn" data-id="' + file.id + '">Save Hearing</button>' +
+                    '<button class="btn-secondary accept-case-cancel-btn" data-id="' + file.id + '">Cancel</button>' +
                 '</div>';
             card.appendChild(acceptPanel);
         }
@@ -353,8 +352,8 @@ function renderFilesList() {
             var dtVal   = document.getElementById('accept-dt-' + fid).value;
             var typeVal = document.getElementById('accept-type-' + fid).value;
             var notes   = document.getElementById('accept-notes-' + fid).value.trim();
-            if (!dtVal) { alert('Lütfen duruşma tarihini seçin.'); return; }
-            btn.disabled = true; btn.textContent = 'Kaydediliyor...';
+            if (!dtVal) { alert('Please select a hearing date.'); return; }
+            btn.disabled = true; btn.textContent = 'Saving…';
             fetch('https://mclaw/judge:acceptCase', {
                 method: 'POST',
                 body: JSON.stringify({ fileId: fid, scheduledAt: dtVal, hearingType: typeVal, notes: notes }),
@@ -362,15 +361,15 @@ function renderFilesList() {
                 if (result && result.ok) {
                     var card = btn.closest('.file-card');
                     var badge = card && card.querySelector('.file-status');
-                    if (badge) { badge.className = 'file-status status-green'; badge.textContent = 'Duruşma Planlandı'; }
+                    if (badge) { badge.className = 'file-status status-green'; badge.textContent = 'Hearing Scheduled'; }
                     var panel = document.getElementById('accept-panel-' + fid);
                     if (panel) { panel.remove(); }
                     var trigger = document.getElementById('accept-trigger-' + fid);
                     if (trigger) { trigger.remove(); }
                 } else {
-                    btn.disabled = false; btn.textContent = 'Duruşmayı Kaydet';
+                    btn.disabled = false; btn.textContent = 'Save Hearing';
                 }
-            }).catch(function() { btn.disabled = false; btn.textContent = 'Duruşmayı Kaydet'; });
+            }).catch(function() { btn.disabled = false; btn.textContent = 'Save Hearing'; });
         });
     });
 }
@@ -379,9 +378,9 @@ function renderFilesList() {
 
 function populateIndictmentFileSelect() {
     var sel = document.getElementById('indictment-file');
-    sel.innerHTML = '<option value="">-- Dosya secin --</option>';
+    sel.innerHTML = '<option value="">— Select a file —</option>';
     var eligible = ['opened', 'awaiting_prosecutor', 'prosecutor_review'];
-    // Soruşturmalar + dava dosyaları
+    // Investigations + case files
     var allFiles = investigationList.concat(prosecutorFiles);
     allFiles.forEach(function(file) {
         if (eligible.indexOf(file.status) !== -1) {
@@ -416,28 +415,28 @@ document.getElementById('indictment-form').addEventListener('submit', function(e
     e.preventDefault();
     hideIndictmentError();
     var fileId = document.getElementById('indictment-file').value;
-    if (!fileId) { showIndictmentError('Lutfen bir dosya secin.'); return; }
+    if (!fileId) { showIndictmentError('Please select a file.'); return; }
     var hearingTypeEl = document.querySelector('input[name="hearing-type"]:checked');
-    if (!hearingTypeEl) { showIndictmentError('Yargilama turu secin.'); return; }
+    if (!hearingTypeEl) { showIndictmentError('Please select a trial type.'); return; }
     var notes = document.getElementById('indictment-notes').value.trim();
     var submitBtn = document.querySelector('#indictment-form .btn-primary');
     submitBtn.disabled = true;
-    submitBtn.textContent = 'Gonderiliyor...';
+    submitBtn.textContent = 'Submitting…';
     fetch('https://mclaw/prosecutor:submitIndictment', {
         method: 'POST',
         body: JSON.stringify({ fileId: parseInt(fileId, 10), hearingType: hearingTypeEl.value, notes: notes }),
     }).then(function(res) { return res.json(); }).then(function(result) {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Iddianameyi Gonder';
+        submitBtn.textContent = 'Submit Indictment';
         if (result && result.ok) {
             document.getElementById('indictment-form').reset();
             hideIndictmentError();
         } else {
-            showIndictmentError(result && result.error ? result.error : 'Gonderme basarisiz.');
+            showIndictmentError(result && result.error ? result.error : 'Submission failed.');
         }
     }).catch(function() {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Iddianameyi Gonder';
+        submitBtn.textContent = 'Submit Indictment';
     });
 });
 
@@ -485,32 +484,32 @@ document.getElementById('fileopening-form').addEventListener('submit', function(
     var errEl = document.getElementById('fileopening-error');
     errEl.classList.add('hidden');
     var suspectCid = document.getElementById('fileopening-suspect').value.trim();
-    if (!suspectCid) { errEl.textContent = 'Şüpheli kimlik numarası girilmedi.'; errEl.classList.remove('hidden'); return; }
+    if (!suspectCid) { errEl.textContent = 'Suspect citizen ID is required.'; errEl.classList.remove('hidden'); return; }
     var selectedCodes = [];
     document.querySelectorAll('#fileopening-charges input[type="checkbox"]:checked').forEach(function(cb) {
         selectedCodes.push({ code: cb.value });
     });
-    if (selectedCodes.length === 0) { errEl.textContent = 'En az bir suç seçin.'; errEl.classList.remove('hidden'); return; }
+    if (selectedCodes.length === 0) { errEl.textContent = 'Select at least one charge.'; errEl.classList.remove('hidden'); return; }
     var narrative = document.getElementById('fileopening-narrative').value.trim();
-    if (narrative.length < 10) { errEl.textContent = 'Gerekçe en az 10 karakter olmalıdır.'; errEl.classList.remove('hidden'); return; }
+    if (narrative.length < 10) { errEl.textContent = 'Grounds must be at least 10 characters.'; errEl.classList.remove('hidden'); return; }
     var notes = document.getElementById('fileopening-notes').value.trim();
     var submitBtn = document.getElementById('fileopening-submit');
-    submitBtn.disabled = true; submitBtn.textContent = 'Gönderiliyor...';
+    submitBtn.disabled = true; submitBtn.textContent = 'Submitting…';
     fetch('https://mclaw/fileopening:openFile', {
         method: 'POST',
         body: JSON.stringify({ suspectCid: suspectCid, charges: selectedCodes, narrative: narrative, notes: notes }),
     }).then(function(res) { return res.json(); }).then(function(result) {
-        submitBtn.disabled = false; submitBtn.textContent = 'Dosyayı Oluştur';
+        submitBtn.disabled = false; submitBtn.textContent = 'Create File';
         if (result && result.ok) {
             document.getElementById('fileopening-form').reset();
             document.getElementById('fileopening-narrative-count').textContent = '0';
             document.querySelectorAll('#fileopening-charges .charge-item').forEach(function(i) { i.classList.remove('checked'); });
         } else {
-            errEl.textContent = result && result.error ? result.error : 'Gönderme başarısız.';
+            errEl.textContent = result && result.error ? result.error : 'Submission failed.';
             errEl.classList.remove('hidden');
         }
     }).catch(function() {
-        submitBtn.disabled = false; submitBtn.textContent = 'Dosyayı Oluştur';
+        submitBtn.disabled = false; submitBtn.textContent = 'Create File';
     });
 });
 
@@ -531,45 +530,45 @@ function renderPendingApprovals() {
         }).join('');
         var narrativeRow = file.narrative
             ? '<div class="file-meta" style="flex-direction:column;gap:4px;margin-top:6px;padding-top:6px;border-top:1px solid #2e3650;">' +
-                  '<span class="file-meta-key">Açılış Gerekçesi</span>' +
+                  '<span class="file-meta-key">Opening Grounds</span>' +
                   '<span style="font-size:12px;color:#c0c8de;line-height:1.5;white-space:pre-wrap;">' + file.narrative + '</span>' +
               '</div>'
             : '';
         var internalNoteRow = file.notes
             ? '<div class="file-meta" style="flex-direction:column;gap:4px;margin-top:4px;">' +
-                  '<span class="file-meta-key">Dahili Not</span>' +
+                  '<span class="file-meta-key">Internal Note</span>' +
                   '<span style="font-size:12px;color:#8a93a8;white-space:pre-wrap;">' + file.notes + '</span>' +
               '</div>'
             : '';
-        var JOB_LABELS = { prosecutor: 'Savcı', lawyer: 'Avukat', judge: 'Hakim' };
+        var JOB_LABELS = { prosecutor: 'Prosecutor', lawyer: 'Lawyer', judge: 'Judge' };
         var card = document.createElement('div');
         card.className = 'file-card';
         card.innerHTML =
             '<div class="file-card-header">' +
                 '<span class="file-number">' + file.fileNumber + '</span>' +
-                '<span class="file-status status-yellow">Onay Bekliyor</span>' +
+                '<span class="file-status status-yellow">Pending Approval</span>' +
             '</div>' +
             '<div class="file-card-body">' +
-                '<div class="file-meta"><span class="file-meta-key">Şüpheli</span><span>' + displayName(file.suspectName, file.suspectCid) + '</span></div>' +
-                '<div class="file-meta"><span class="file-meta-key">Açan</span><span>' + (JOB_LABELS[file.openedByJob] || file.openedByJob || '?') + ' — ' + displayName(file.openedByName, file.openedBy) + '</span></div>' +
-                '<div class="file-meta"><span class="file-meta-key">Açılış</span><span>' + (file.createdAt || '-') + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">Suspect</span><span>' + displayName(file.suspectName, file.suspectCid) + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">Opened By</span><span>' + (JOB_LABELS[file.openedByJob] || file.openedByJob || '?') + ' — ' + displayName(file.openedByName, file.openedBy) + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">Opened</span><span>' + (file.createdAt || '-') + '</span></div>' +
                 '<div class="file-meta" style="flex-direction:column;gap:4px;margin-top:6px;padding-top:6px;border-top:1px solid #2e3650;">' +
-                    '<span class="file-meta-key">Suçlar</span>' +
+                    '<span class="file-meta-key">Charges</span>' +
                     chargeRows +
                 '</div>' +
                 narrativeRow +
                 internalNoteRow +
             '</div>' +
             '<div class="approval-actions" id="approval-actions-' + file.id + '">' +
-                '<button class="btn-primary approval-approve-btn" data-id="' + file.id + '">Onayla</button>' +
-                '<button class="btn-danger approval-reject-btn" data-id="' + file.id + '">Reddet</button>' +
-                '<button class="btn-secondary approval-view-btn" data-id="' + file.id + '" style="margin-left:auto;">İncele →</button>' +
+                '<button class="btn-primary approval-approve-btn" data-id="' + file.id + '">Approve</button>' +
+                '<button class="btn-danger approval-reject-btn" data-id="' + file.id + '">Reject</button>' +
+                '<button class="btn-secondary approval-view-btn" data-id="' + file.id + '" style="margin-left:auto;">View →</button>' +
             '</div>' +
             '<div class="approval-reject-panel hidden" id="reject-panel-' + file.id + '">' +
-                '<textarea class="reject-reason-input" id="reject-reason-' + file.id + '" rows="2" maxlength="300" placeholder="Ret gerekçesi (isteğe bağlı)…"></textarea>' +
+                '<textarea class="reject-reason-input" id="reject-reason-' + file.id + '" rows="2" maxlength="300" placeholder="Rejection reason (optional)…"></textarea>' +
                 '<div class="form-actions" style="margin-top:8px;">' +
-                    '<button class="btn-danger approval-reject-confirm-btn" data-id="' + file.id + '">Reddi Onayla</button>' +
-                    '<button class="btn-secondary approval-reject-cancel-btn" data-id="' + file.id + '">İptal</button>' +
+                    '<button class="btn-danger approval-reject-confirm-btn" data-id="' + file.id + '">Confirm Rejection</button>' +
+                    '<button class="btn-secondary approval-reject-cancel-btn" data-id="' + file.id + '">Cancel</button>' +
                 '</div>' +
             '</div>';
         listEl.appendChild(card);
@@ -586,7 +585,7 @@ function renderPendingApprovals() {
     listEl.querySelectorAll('.approval-approve-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
             var fid = parseInt(btn.getAttribute('data-id'), 10);
-            btn.disabled = true; btn.textContent = 'Onaylanıyor...';
+            btn.disabled = true; btn.textContent = 'Approving…';
             fetch('https://mclaw/judge:approveFile', {
                 method: 'POST',
                 body: JSON.stringify({ fileId: fid, notes: '' }),
@@ -597,9 +596,9 @@ function renderPendingApprovals() {
                     pendingApprovals = pendingApprovals.filter(function(f) { return f.id !== fid; });
                     if (pendingApprovals.length === 0) { document.getElementById('approvals-empty').style.display = ''; }
                 } else {
-                    btn.disabled = false; btn.textContent = 'Onayla';
+                    btn.disabled = false; btn.textContent = 'Approve';
                 }
-            }).catch(function() { btn.disabled = false; btn.textContent = 'Onayla'; });
+            }).catch(function() { btn.disabled = false; btn.textContent = 'Approve'; });
         });
     });
 
@@ -626,7 +625,7 @@ function renderPendingApprovals() {
         btn.addEventListener('click', function() {
             var fid = parseInt(btn.getAttribute('data-id'), 10);
             var reason = document.getElementById('reject-reason-' + fid).value.trim();
-            btn.disabled = true; btn.textContent = 'Reddediliyor...';
+            btn.disabled = true; btn.textContent = 'Rejecting…';
             fetch('https://mclaw/judge:rejectFile', {
                 method: 'POST',
                 body: JSON.stringify({ fileId: fid, reason: reason }),
@@ -637,9 +636,9 @@ function renderPendingApprovals() {
                     pendingApprovals = pendingApprovals.filter(function(f) { return f.id !== fid; });
                     if (pendingApprovals.length === 0) { document.getElementById('approvals-empty').style.display = ''; }
                 } else {
-                    btn.disabled = false; btn.textContent = 'Reddi Onayla';
+                    btn.disabled = false; btn.textContent = 'Confirm Rejection';
                 }
-            }).catch(function() { btn.disabled = false; btn.textContent = 'Reddi Onayla'; });
+            }).catch(function() { btn.disabled = false; btn.textContent = 'Confirm Rejection'; });
         });
     });
 }
@@ -666,7 +665,7 @@ function getDocTypesForJob(job) {
     return result;
 }
 
-var JOB_TR = { prosecutor: 'Savcı', judge: 'Hakim', lawyer: 'Avukat', police: 'Polis' };
+var JOB_TR = { prosecutor: 'Prosecutor', judge: 'Judge', lawyer: 'Lawyer', police: 'Police' };
 
 function displayName(name, cid) {
     if (name && cid) return name + ' <span style="color:#4a5268;font-size:11px;">(' + escHtml(cid) + ')</span>';
@@ -706,21 +705,21 @@ function renderFileDetail(file) {
     var body = document.getElementById('filedetail-body');
     body.innerHTML = '';
 
-    // ── Taraflar
-    var parties = mkSection('Taraflar');
+    // ── Parties
+    var parties = mkSection('Parties');
     var pb = parties.querySelector('.detail-section-body');
     pb.innerHTML =
-        mkRow('Davacı',   '<span style="color:#c9a84c;font-weight:600;">Devlet (Savcılık)</span>') +
-        mkRow('Davalı',   displayName(file.suspectName,    file.suspectCid)) +
-        mkRow('Savcı',    displayName(file.prosecutorName, file.prosecutorCid)) +
-        mkRow('Hakim',    displayName(file.judgeName,      file.judgeCid)) +
-        mkRow('Açılış',   file.createdAt || '—') +
-        (file.closedAt ? mkRow('Kapanış', '<span style="color:#ea4335;">' + file.closedAt + '</span>') : '') +
-        (file.openedBy ? mkRow('Açan', (JOB_TR[file.openedByJob] || file.openedByJob || '?') + ' — ' + displayName(file.openedByName, file.openedBy)) : '');
+        mkRow('Plaintiff',    '<span style="color:#c9a84c;font-weight:600;">State (Prosecution)</span>') +
+        mkRow('Defendant',    displayName(file.suspectName,    file.suspectCid)) +
+        mkRow('Prosecutor',   displayName(file.prosecutorName, file.prosecutorCid)) +
+        mkRow('Judge',        displayName(file.judgeName,      file.judgeCid)) +
+        mkRow('Opened',       file.createdAt || '—') +
+        (file.closedAt ? mkRow('Closed', '<span style="color:#ea4335;">' + file.closedAt + '</span>') : '') +
+        (file.openedBy ? mkRow('Opened By', (JOB_TR[file.openedByJob] || file.openedByJob || '?') + ' — ' + displayName(file.openedByName, file.openedBy)) : '');
     body.appendChild(parties);
 
-    // ── Suçlar
-    var chargesSection = mkSection('Suçlar');
+    // ── Charges
+    var chargesSection = mkSection('Charges');
     var cb2 = chargesSection.querySelector('.detail-section-body');
     cb2.style.padding = '0';
     cb2.style.gap = '0';
@@ -743,46 +742,46 @@ function renderFileDetail(file) {
     });
     body.appendChild(chargesSection);
 
-    // ── Kaynak dilekçe (avukat dilekçesinden açılan soruşturmalarda)
+    // ── Source petition (for investigations opened from lawyer petitions)
     if (file.sourcePetition) {
         var sp = file.sourcePetition;
-        var PETITION_TR = { criminal: 'Ceza Davası', civil: 'Hukuk Davası' };
-        var spSection = mkSection('Kaynak Dilekçe');
+        var PETITION_TR = { criminal: 'Criminal Case', civil: 'Civil Case' };
+        var spSection = mkSection('Source Petition');
         var spb = spSection.querySelector('.detail-section-body');
 
         var spChargeRows = (sp.charges || []).map(function(c) {
             return '<div class="charge-row">' +
                 '<span class="charge-cat">' + (c.category || '?').toUpperCase() + '</span>' +
                 '<span class="charge-name">' + c.label + '</span>' +
-                '<span class="charge-penalty">' + c.jailTime + ' dk / $' + c.fine + '</span>' +
+                '<span class="charge-penalty">' + c.jailTime + ' min / $' + c.fine + '</span>' +
             '</div>';
         }).join('');
 
         spb.innerHTML =
-            mkRow('Tür',     PETITION_TR[sp.petitionType] || sp.petitionType) +
-            mkRow('Avukat',  displayName(sp.attorneyName,  sp.attorneyCid)) +
-            mkRow('Müvekkil',displayName(sp.plaintiffName, sp.plaintiffCid)) +
-            mkRow('Konu',    escHtml(sp.subject)) +
-            mkRow('Tarih',   sp.createdAt || '—');
+            mkRow('Type',     PETITION_TR[sp.petitionType] || sp.petitionType) +
+            mkRow('Lawyer',   displayName(sp.attorneyName,  sp.attorneyCid)) +
+            mkRow('Client',   displayName(sp.plaintiffName, sp.plaintiffCid)) +
+            mkRow('Subject',  escHtml(sp.subject)) +
+            mkRow('Date',     sp.createdAt || '—');
 
         if (sp.description) {
             var descEl = document.createElement('div');
             descEl.className = 'detail-narrative';
             descEl.style.margin = '0 0 0 0';
-            descEl.innerHTML = '<div style="padding:8px 16px 2px;font-size:11px;color:#5a6480;text-transform:uppercase;letter-spacing:.4px;">Dilekçe İçeriği</div>' +
+            descEl.innerHTML = '<div style="padding:8px 16px 2px;font-size:11px;color:#5a6480;text-transform:uppercase;letter-spacing:.4px;">Petition Content</div>' +
                 '<div style="padding:0 16px 12px;font-size:13px;color:#c0c8de;white-space:pre-wrap;">' + escHtml(sp.description) + '</div>';
             spb.appendChild(descEl);
         }
 
         if (spChargeRows) {
             var chEl = document.createElement('div');
-            chEl.innerHTML = '<div style="padding:8px 16px 4px;font-size:11px;color:#5a6480;text-transform:uppercase;letter-spacing:.4px;">Suçlar</div>' + spChargeRows;
+            chEl.innerHTML = '<div style="padding:8px 16px 4px;font-size:11px;color:#5a6480;text-transform:uppercase;letter-spacing:.4px;">Charges</div>' + spChargeRows;
             spb.appendChild(chEl);
         }
 
         if (sp.attachments && sp.attachments.length > 0) {
             var attEl = document.createElement('div');
-            attEl.innerHTML = '<div style="padding:8px 16px 4px;font-size:11px;color:#5a6480;text-transform:uppercase;letter-spacing:.4px;">Ekler</div>' +
+            attEl.innerHTML = '<div style="padding:8px 16px 4px;font-size:11px;color:#5a6480;text-transform:uppercase;letter-spacing:.4px;">Attachments</div>' +
                 buildAttachmentsHtml(sp.attachments).replace('<div class="file-meta"', '<div class="file-meta" style="margin:0;padding:0 16px 10px;border-top:none;"');
             spb.appendChild(attEl);
             bindAttachmentCopyBtns(spb);
@@ -791,9 +790,9 @@ function renderFileDetail(file) {
         body.appendChild(spSection);
     }
 
-    // ── Açılış gerekçesi
+    // ── Opening grounds
     if (file.narrative) {
-        var narSection = mkSection('Açılış Gerekçesi');
+        var narSection = mkSection('Opening Grounds');
         var nb = narSection.querySelector('.detail-section-body');
         nb.style.padding = '0';
         var narEl = document.createElement('div');
@@ -809,22 +808,22 @@ function renderFileDetail(file) {
         body.appendChild(narSection);
     }
 
-    // ── Duruşma
+    // ── Hearing
     if (file.hearing) {
         var h = file.hearing;
-        var hearSection = mkSection('Duruşma');
+        var hearSection = mkSection('Hearing');
         var hb = hearSection.querySelector('.detail-section-body');
         hb.innerHTML =
-            mkRow('Tür',    h.hearingType === 'written' ? 'Yazılı Yargılama' : 'Fiziksel Duruşma') +
-            mkRow('Tarih',  '<span style="color:#c9a84c;font-weight:600;">' + (h.scheduledAt || '—') + '</span>') +
-            mkRow('Durum',  HEARING_STATUS_LABELS[h.status] || h.status) +
-            (h.notes ? mkRow('Not', h.notes) : '');
+            mkRow('Type',   h.hearingType === 'written' ? 'Written Trial' : 'Physical Hearing') +
+            mkRow('Date',   '<span style="color:#c9a84c;font-weight:600;">' + (h.scheduledAt || '—') + '</span>') +
+            mkRow('Status', HEARING_STATUS_LABELS[h.status] || h.status) +
+            (h.notes ? mkRow('Note', h.notes) : '');
         body.appendChild(hearSection);
     }
 
-    // ── Dahili not
+    // ── Internal note
     if (file.notes) {
-        var noteSection = mkSection('Dahili Not');
+        var noteSection = mkSection('Internal Note');
         var noteSB = noteSection.querySelector('.detail-section-body');
         noteSB.style.padding = '0';
         var noteEl2 = document.createElement('div');
@@ -834,9 +833,9 @@ function renderFileDetail(file) {
         body.appendChild(noteSection);
     }
 
-    // ── Duruşma Planla (hakim, indictment_ready veya hearing_scheduled yeni tur için)
+    // ── Schedule hearing (judge, when file is indictment_ready)
     if (currentJob === 'judge' && file.status === 'indictment_ready') {
-        var hearingSection = mkSection('Duruşma Planla');
+        var hearingSection = mkSection('Schedule Hearing');
         var hb2 = hearingSection.querySelector('.detail-section-body');
         hb2.style.padding = '0';
         var hForm = document.createElement('div');
@@ -845,20 +844,20 @@ function renderFileDetail(file) {
         hForm.innerHTML =
             '<div style="display:flex;gap:10px;">' +
                 '<div style="flex:1;">' +
-                    '<label style="font-size:11px;color:#a8b0c8;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px;">Tarih & Saat</label>' +
+                    '<label style="font-size:11px;color:#a8b0c8;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px;">Date & Time</label>' +
                     '<input type="datetime-local" id="dh-dt-' + file.id + '" style="width:100%;padding:8px 10px;">' +
                 '</div>' +
                 '<div style="flex:1;">' +
-                    '<label style="font-size:11px;color:#a8b0c8;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px;">Tür</label>' +
+                    '<label style="font-size:11px;color:#a8b0c8;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px;">Type</label>' +
                     '<select id="dh-type-' + file.id + '" style="width:100%;padding:8px 10px;">' +
-                        '<option value="physical">Fiziksel Duruşma</option>' +
-                        '<option value="written">Yazılı Yargılama</option>' +
+                        '<option value="physical">Physical Hearing</option>' +
+                        '<option value="written">Written Trial</option>' +
                     '</select>' +
                 '</div>' +
             '</div>' +
-            '<textarea id="dh-notes-' + file.id + '" rows="2" maxlength="300" placeholder="Not (isteğe bağlı)…"></textarea>' +
+            '<textarea id="dh-notes-' + file.id + '" rows="2" maxlength="300" placeholder="Note (optional)…"></textarea>' +
             '<div id="dh-error-' + file.id + '" class="form-error hidden"></div>' +
-            '<div><button class="btn-primary dh-submit" data-id="' + file.id + '" style="font-size:12px;padding:8px 20px;">Duruşmayı Kaydet</button></div>';
+            '<div><button class="btn-primary dh-submit" data-id="' + file.id + '" style="font-size:12px;padding:8px 20px;">Save Hearing</button></div>';
         hb2.appendChild(hForm);
         body.appendChild(hearingSection);
 
@@ -869,29 +868,28 @@ function renderFileDetail(file) {
             var notes  = document.getElementById('dh-notes-' + fid).value.trim();
             var errEl  = document.getElementById('dh-error-' + fid);
             errEl.classList.add('hidden');
-            if (!dtVal) { errEl.textContent = 'Lütfen tarih seçin.'; errEl.classList.remove('hidden'); return; }
+            if (!dtVal) { errEl.textContent = 'Please select a date.'; errEl.classList.remove('hidden'); return; }
             var btn = hForm.querySelector('.dh-submit');
-            btn.disabled = true; btn.textContent = 'Kaydediliyor...';
+            btn.disabled = true; btn.textContent = 'Saving…';
             fetch('https://mclaw/judge:acceptCase', {
                 method: 'POST',
                 body: JSON.stringify({ fileId: fid, scheduledAt: dtVal, hearingType: type, notes: notes }),
             }).then(function(r) { return r.json(); }).then(function(result) {
                 if (result && result.ok) {
-                    // Güncelle: status rozeti + formu kaldır
+                    // Update: status badge + remove form
                     var badge = document.getElementById('filedetail-status');
-                    if (badge) { badge.className = 'file-status status-green'; badge.textContent = 'Duruşma Planlandı'; }
+                    if (badge) { badge.className = 'file-status status-green'; badge.textContent = 'Hearing Scheduled'; }
                     hearingSection.remove();
-                    // Duruşma bölümünü ekle
-                    var typeLabel2 = type === 'written' ? 'Yazılı Yargılama' : 'Fiziksel Duruşma';
+                    var typeLabel2 = type === 'written' ? 'Written Trial' : 'Physical Hearing';
                     var dtFormatted = dtVal.replace('T', ' ');
-                    var newHearSec = mkSection('Duruşma');
+                    var newHearSec = mkSection('Hearing');
                     var nhb = newHearSec.querySelector('.detail-section-body');
                     nhb.innerHTML =
-                        mkRow('Tür', typeLabel2) +
-                        mkRow('Tarih', '<span style="color:#c9a84c;font-weight:600;">' + dtFormatted + '</span>') +
-                        mkRow('Durum', 'Planlandı') +
-                        (notes ? mkRow('Not', notes) : '');
-                    // Suçlar bölümünden sonraya ekle
+                        mkRow('Type', typeLabel2) +
+                        mkRow('Date', '<span style="color:#c9a84c;font-weight:600;">' + dtFormatted + '</span>') +
+                        mkRow('Status', 'Scheduled') +
+                        (notes ? mkRow('Note', notes) : '');
+                    // Insert after the charges section
                     var chargesSec = body.querySelector('.detail-section:nth-child(2)');
                     if (chargesSec && chargesSec.nextSibling) {
                         body.insertBefore(newHearSec, chargesSec.nextSibling);
@@ -899,15 +897,15 @@ function renderFileDetail(file) {
                         body.appendChild(newHearSec);
                     }
                 } else {
-                    btn.disabled = false; btn.textContent = 'Duruşmayı Kaydet';
-                    errEl.textContent = 'Kaydetme başarısız.'; errEl.classList.remove('hidden');
+                    btn.disabled = false; btn.textContent = 'Save Hearing';
+                    errEl.textContent = 'Save failed.'; errEl.classList.remove('hidden');
                 }
-            }).catch(function() { btn.disabled = false; btn.textContent = 'Duruşmayı Kaydet'; });
+            }).catch(function() { btn.disabled = false; btn.textContent = 'Save Hearing'; });
         });
     }
 
-    // ── Evraklar
-    var docsSection = mkSection('Evraklar');
+    // ── Documents
+    var docsSection = mkSection('Documents');
     var docsBody = docsSection.querySelector('.detail-section-body');
     docsBody.style.padding = '0';
     docsBody.style.gap = '0';
@@ -916,7 +914,7 @@ function renderFileDetail(file) {
         var noDoc = document.createElement('div');
         noDoc.style.cssText = 'padding:16px;font-size:13px;color:#3a4258;text-align:center;';
         noDoc.id = 'filedetail-no-doc-' + file.id;
-        noDoc.textContent = 'Henüz evrak eklenmemiş.';
+        noDoc.textContent = 'No documents added yet.';
         docsBody.appendChild(noDoc);
     }
     (file.documents || []).forEach(function(d) {
@@ -929,7 +927,7 @@ function renderFileDetail(file) {
     if (canAdd) {
         var formDivider = document.createElement('div');
         formDivider.style.cssText = 'border-top:1px solid #2e3650;padding:10px 16px 4px;font-size:11px;color:#5a6480;text-transform:uppercase;letter-spacing:.5px;';
-        formDivider.textContent = 'Evrak Ekle';
+        formDivider.textContent = 'Add Document';
         docsBody.appendChild(formDivider);
 
         var formEl = document.createElement('div');
@@ -938,16 +936,16 @@ function renderFileDetail(file) {
         var typeOpts = docTypes.map(function(t) { return '<option value="' + t.value + '">' + t.label + '</option>'; }).join('');
         formEl.innerHTML =
             '<select id="adoc-type-' + file.id + '">' + typeOpts + '</select>' +
-            '<input type="text" id="adoc-title-' + file.id + '" maxlength="128" placeholder="Başlık…">' +
-            '<textarea id="adoc-content-' + file.id + '" rows="5" maxlength="3000" placeholder="İçerik…"></textarea>' +
+            '<input type="text" id="adoc-title-' + file.id + '" maxlength="128" placeholder="Title…">' +
+            '<textarea id="adoc-content-' + file.id + '" rows="5" maxlength="3000" placeholder="Content…"></textarea>' +
             '<div id="adoc-error-' + file.id + '" class="form-error hidden"></div>' +
-            '<div><button class="btn-primary adoc-submit" data-id="' + file.id + '" style="font-size:12px;padding:8px 20px;">Ekle</button></div>';
+            '<div><button class="btn-primary adoc-submit" data-id="' + file.id + '" style="font-size:12px;padding:8px 20px;">Add</button></div>';
         docsBody.appendChild(formEl);
     }
 
     body.appendChild(docsSection);
 
-    // ── Geçmiş
+    // ── History
     if (file.history && file.history.length > 0) {
         body.appendChild(renderHistory(file.history));
     }
@@ -961,14 +959,14 @@ function renderFileDetail(file) {
             var title  = document.getElementById('adoc-title-' + fid).value.trim();
             var cont   = document.getElementById('adoc-content-' + fid).value.trim();
             errEl.classList.add('hidden');
-            if (title.length < 2) { errEl.textContent = 'Başlık çok kısa.'; errEl.classList.remove('hidden'); return; }
-            if (cont.length < 5)  { errEl.textContent = 'İçerik çok kısa.'; errEl.classList.remove('hidden'); return; }
-            btn.disabled = true; btn.textContent = 'Ekleniyor...';
+            if (title.length < 2) { errEl.textContent = 'Title is too short.'; errEl.classList.remove('hidden'); return; }
+            if (cont.length < 5)  { errEl.textContent = 'Content is too short.'; errEl.classList.remove('hidden'); return; }
+            btn.disabled = true; btn.textContent = 'Adding…';
             fetch('https://mclaw/file:addDocument', {
                 method: 'POST',
                 body: JSON.stringify({ fileId: fid, docType: dtype, title: title, content: cont }),
             }).then(function(res) { return res.json(); }).then(function(result) {
-                btn.disabled = false; btn.textContent = 'Ekle';
+                btn.disabled = false; btn.textContent = 'Add';
                 if (result && result.ok) {
                     // Append new doc card optimistically
                     var noDoc2 = document.getElementById('filedetail-no-doc-' + fid);
@@ -983,15 +981,15 @@ function renderFileDetail(file) {
                     document.getElementById('adoc-title-' + fid).value = '';
                     document.getElementById('adoc-content-' + fid).value = '';
                 } else {
-                    errEl.textContent = 'Eklenemedi.';
+                    errEl.textContent = 'Could not add document.';
                     errEl.classList.remove('hidden');
                 }
-            }).catch(function() { btn.disabled = false; btn.textContent = 'Ekle'; });
+            }).catch(function() { btn.disabled = false; btn.textContent = 'Add'; });
         });
     });
 }
 
-// ── Dosya geçmişi (sahafat)
+// ── File history
 function renderHistory(histItems) {
     var HIST_ICONS = {
         'opened':          '📂',
@@ -1001,18 +999,18 @@ function renderHistory(histItems) {
         'hearing_created': '📅',
     };
     var HIST_LABELS = {
-        'opened':          'Dosya Açıldı',
-        'approved':        'Dosya Onaylandı',
-        'rejected':        'Dosya Reddedildi',
-        'document':        'Evrak Eklendi',
-        'hearing_created': 'Duruşma Planlandı',
+        'opened':          'File Opened',
+        'approved':        'File Approved',
+        'rejected':        'File Rejected',
+        'document':        'Document Added',
+        'hearing_created': 'Hearing Scheduled',
     };
-    var sec = mkSection('Dosya Geçmişi');
+    var sec = mkSection('File History');
     var sb = sec.querySelector('.detail-section-body');
     sb.style.padding = '0';
     sb.style.gap = '0';
     if (!histItems || histItems.length === 0) {
-        sb.innerHTML = '<div style="padding:16px;font-size:13px;color:#3a4258;text-align:center;">Geçmiş kaydı yok.</div>';
+        sb.innerHTML = '<div style="padding:16px;font-size:13px;color:#3a4258;text-align:center;">No history records.</div>';
         return sec;
     }
     histItems.forEach(function(item) {
@@ -1024,7 +1022,7 @@ function renderHistory(histItems) {
         if (item.eventType === 'document') {
             detail = getDocTypeLabel(item.docType) + ' — ' + escHtml(item.title || '');
         } else if (item.eventType === 'hearing_created') {
-            var htLabel = item.hearingType === 'written' ? 'Yazılı Yargılama' : 'Fiziksel Duruşma';
+            var htLabel = item.hearingType === 'written' ? 'Written Trial' : 'Physical Hearing';
             detail = htLabel + ' → ' + (item.scheduledAt || '—');
         } else if (item.note) {
             detail = escHtml(item.note.length > 80 ? item.note.substring(0, 80) + '…' : item.note);
@@ -1045,7 +1043,7 @@ function renderHistory(histItems) {
     return sec;
 }
 
-// ── Evrak görüntüleme modali
+// ── Document view modal
 function openDocModal(doc, file) {
     var typeLabel = getDocTypeLabel(doc.docType);
     document.getElementById('doc-modal-fileno').textContent   = file ? file.fileNumber : '—';
@@ -1064,13 +1062,13 @@ document.getElementById('doc-modal-close').addEventListener('click', function() 
 document.getElementById('doc-modal-print').addEventListener('click', function() {
     var lines = [
         '════════════════════════════════════════',
-        '     T.C. mcLaw Yargı Sistemi',
-        '     Dosya No: ' + (document.getElementById('doc-modal-fileno').textContent || ''),
+        '     mcLaw Legal System',
+        '     File No: ' + (document.getElementById('doc-modal-fileno').textContent || ''),
         '════════════════════════════════════════',
-        'Belge Türü : ' + (document.getElementById('doc-modal-type').textContent   || ''),
-        'Başlık     : ' + (document.getElementById('doc-modal-title').textContent  || ''),
-        'Tarih      : ' + (document.getElementById('doc-modal-date').textContent   || ''),
-        'Yazar      : ' + (document.getElementById('doc-modal-author').textContent || ''),
+        'Doc Type : ' + (document.getElementById('doc-modal-type').textContent   || ''),
+        'Title    : ' + (document.getElementById('doc-modal-title').textContent  || ''),
+        'Date     : ' + (document.getElementById('doc-modal-date').textContent   || ''),
+        'Author   : ' + (document.getElementById('doc-modal-author').textContent || ''),
         '────────────────────────────────────────',
         '',
         (document.getElementById('doc-modal-content').textContent || ''),
@@ -1086,9 +1084,9 @@ document.getElementById('doc-modal-print').addEventListener('click', function() 
     ta.select();
     try {
         document.execCommand('copy');
-        document.getElementById('doc-modal-print').textContent = '✓ Panoya Kopyalandı';
+        document.getElementById('doc-modal-print').textContent = '✓ Copied to Clipboard';
         setTimeout(function() {
-            document.getElementById('doc-modal-print').textContent = '📋 Panoya Kopyala';
+            document.getElementById('doc-modal-print').textContent = '📋 Copy to Clipboard';
         }, 2000);
     } catch (e) {}
     document.body.removeChild(ta);
@@ -1103,7 +1101,7 @@ function buildDocCard(d, file) {
             '<span class="doc-type-badge doc-badge-generic">' + typeLabel + '</span>' +
             '<span class="doc-title">' + escHtml(d.title) + '</span>' +
             '<span class="doc-meta">' + (JOB_TR[d.authorJob] || d.authorJob) + ' · ' + displayName(d.authorName, d.authorCid) + '  ·  ' + (d.createdAt || '') + '</span>' +
-            '<button class="btn-secondary doc-view-btn" style="font-size:11px;padding:4px 10px;margin-left:8px;flex-shrink:0;">Görüntüle</button>' +
+            '<button class="btn-secondary doc-view-btn" style="font-size:11px;padding:4px 10px;margin-left:8px;flex-shrink:0;">View</button>' +
         '</div>' +
         '<div class="doc-content">' + escHtml(d.content) + '</div>';
     var viewBtn = el.querySelector('.doc-view-btn');
@@ -1146,19 +1144,19 @@ document.getElementById('filedetail-close-confirm').addEventListener('click', fu
     var btn    = document.getElementById('filedetail-close-confirm');
     var reason = document.getElementById('filedetail-close-reason').value.trim();
     var fid    = parseInt(document.getElementById('filedetail-close-btn').getAttribute('data-id'), 10);
-    btn.disabled = true; btn.textContent = 'Kapatılıyor...';
+    btn.disabled = true; btn.textContent = 'Closing…';
     fetch('https://mclaw/judge:closeFile', {
         method: 'POST',
         body: JSON.stringify({ fileId: fid, reason: reason }),
     }).then(function(res) { return res.json(); }).then(function(result) {
-        btn.disabled = false; btn.textContent = 'Dosyayı Kapat';
+        btn.disabled = false; btn.textContent = 'Close File';
         if (result && result.ok) {
             document.getElementById('filedetail-close-panel').classList.add('hidden');
             var badge = document.getElementById('filedetail-status');
             badge.className = 'file-status status-gray';
-            badge.textContent = 'Kapatıldı';
+            badge.textContent = 'Closed';
         }
-    }).catch(function() { btn.disabled = false; btn.textContent = 'Dosyayı Kapat'; });
+    }).catch(function() { btn.disabled = false; btn.textContent = 'Close File'; });
 });
 
 // -- Investigation open (prosecutor)
@@ -1199,49 +1197,49 @@ document.getElementById('invopen-form').addEventListener('submit', function(e) {
     var errEl = document.getElementById('invopen-error');
     errEl.classList.add('hidden');
     var suspectCid = document.getElementById('invopen-suspect').value.trim();
-    if (!suspectCid) { errEl.textContent = 'Şüpheli kimlik numarası girilmedi.'; errEl.classList.remove('hidden'); return; }
+    if (!suspectCid) { errEl.textContent = 'Suspect citizen ID is required.'; errEl.classList.remove('hidden'); return; }
     var charges = [];
     document.querySelectorAll('#invopen-charges input[type="checkbox"]:checked').forEach(function(cb) {
         charges.push({ code: cb.value });
     });
-    if (charges.length === 0) { errEl.textContent = 'En az bir suç seçin.'; errEl.classList.remove('hidden'); return; }
+    if (charges.length === 0) { errEl.textContent = 'Select at least one charge.'; errEl.classList.remove('hidden'); return; }
     var narrative = document.getElementById('invopen-narrative').value.trim();
-    if (narrative.length < 10) { errEl.textContent = 'Gerekçe en az 10 karakter olmalıdır.'; errEl.classList.remove('hidden'); return; }
+    if (narrative.length < 10) { errEl.textContent = 'Grounds must be at least 10 characters.'; errEl.classList.remove('hidden'); return; }
     var notes = document.getElementById('invopen-notes').value.trim();
     var submitBtn = document.getElementById('invopen-submit');
-    submitBtn.disabled = true; submitBtn.textContent = 'Açılıyor...';
+    submitBtn.disabled = true; submitBtn.textContent = 'Opening…';
     fetch('https://mclaw/prosecutor:openInvestigation', {
         method: 'POST',
         body: JSON.stringify({ suspectCid: suspectCid, charges: charges, narrative: narrative, notes: notes }),
     }).then(function(r) { return r.json(); }).then(function(result) {
-        submitBtn.disabled = false; submitBtn.textContent = 'Soruşturmayı Başlat';
+        submitBtn.disabled = false; submitBtn.textContent = 'Start Investigation';
         if (result && result.ok) {
             document.getElementById('invopen-form').reset();
             document.getElementById('invopen-narrative-count').textContent = '0';
             document.querySelectorAll('#invopen-charges .charge-item').forEach(function(i) { i.classList.remove('checked'); });
         } else {
-            errEl.textContent = result && result.error ? result.error : 'Açma başarısız.';
+            errEl.textContent = result && result.error ? result.error : 'Submission failed.';
             errEl.classList.remove('hidden');
         }
-    }).catch(function() { submitBtn.disabled = false; submitBtn.textContent = 'Soruşturmayı Başlat'; });
+    }).catch(function() { submitBtn.disabled = false; submitBtn.textContent = 'Start Investigation'; });
 });
 
 // -- Petition system
 
-var PETITION_TYPE_LABELS   = { criminal: 'Ceza Davası', civil: 'Hukuk Davası' };
-var PETITION_STATUS_LABELS = { pending: 'Bekliyor', accepted: 'Kabul Edildi', rejected: 'Reddedildi' };
+var PETITION_TYPE_LABELS   = { criminal: 'Criminal Case', civil: 'Civil Case' };
+var PETITION_STATUS_LABELS = { pending: 'Pending', accepted: 'Accepted', rejected: 'Rejected' };
 var PETITION_STATUS_COLORS = { pending: 'status-yellow', accepted: 'status-green', rejected: 'status-red' };
 
 function buildAttachmentsHtml(attachments) {
     if (!attachments || attachments.length === 0) return '';
     var rows = attachments.map(function(att) {
         return '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;">' +
-            '<span style="font-size:12px;color:#c0c8de;flex:1;">' + escHtml(att.label || 'Ek') + '</span>' +
-            '<button class="btn-secondary att-copy-btn" data-url="' + escHtml(att.url) + '" style="font-size:11px;padding:3px 10px;flex-shrink:0;">Linki Kopyala</button>' +
+            '<span style="font-size:12px;color:#c0c8de;flex:1;">' + escHtml(att.label || 'Attachment') + '</span>' +
+            '<button class="btn-secondary att-copy-btn" data-url="' + escHtml(att.url) + '" style="font-size:11px;padding:3px 10px;flex-shrink:0;">Copy Link</button>' +
         '</div>';
     }).join('');
     return '<div class="file-meta" style="flex-direction:column;gap:2px;margin-top:6px;padding-top:6px;border-top:1px solid #2e3650;">' +
-        '<span class="file-meta-key">Ekler</span>' +
+        '<span class="file-meta-key">Attachments</span>' +
         '<div id="att-rows-' + Math.random().toString(36).slice(2) + '">' + rows + '</div>' +
     '</div>';
 }
@@ -1257,8 +1255,8 @@ function bindAttachmentCopyBtns(container) {
             ta.focus(); ta.select();
             try {
                 document.execCommand('copy');
-                btn.textContent = '✓ Kopyalandı';
-                setTimeout(function() { btn.textContent = 'Linki Kopyala'; }, 2000);
+                btn.textContent = '✓ Copied';
+                setTimeout(function() { btn.textContent = 'Copy Link'; }, 2000);
             } catch(e) {}
             document.body.removeChild(ta);
         });
@@ -1287,7 +1285,7 @@ function populatePetitionCharges() {
     });
 }
 
-// Ceza/hukuk radio → suç listesini göster/gizle
+// Criminal/civil radio → show/hide charge list
 document.querySelectorAll('input[name="petition-type"]').forEach(function(radio) {
     radio.addEventListener('change', function() {
         var grp = document.getElementById('petition-charges-group');
@@ -1295,14 +1293,14 @@ document.querySelectorAll('input[name="petition-type"]').forEach(function(radio)
     });
 });
 
-// Ek ekleme
+// Add attachment
 document.getElementById('petition-add-attachment').addEventListener('click', function() {
     var container = document.getElementById('petition-attachments');
     var row = document.createElement('div');
     row.className = 'attachment-row';
     row.style.cssText = 'display:flex;gap:8px;margin-bottom:6px;align-items:center;';
     row.innerHTML =
-        '<input type="text" class="att-label" maxlength="64" placeholder="Etiket (ör: Fotoğraf 1)" style="flex:1;padding:7px 10px;">' +
+        '<input type="text" class="att-label" maxlength="64" placeholder="Label (e.g. Photo 1)" style="flex:1;padding:7px 10px;">' +
         '<input type="url" class="att-url" maxlength="512" placeholder="https://..." style="flex:2;padding:7px 10px;">' +
         '<button type="button" class="att-remove btn-danger" style="padding:6px 10px;font-size:12px;flex-shrink:0;">✕</button>';
     row.querySelector('.att-remove').addEventListener('click', function() { row.remove(); });
@@ -1333,42 +1331,42 @@ document.getElementById('petition-form').addEventListener('submit', function(e) 
     var subject    = document.getElementById('petition-subject').value.trim();
     var desc       = document.getElementById('petition-description').value.trim();
 
-    if (!plaintiff) { errEl.textContent = 'Müvekkil kimlik numarası girilmedi.'; errEl.classList.remove('hidden'); return; }
-    if (!subject)   { errEl.textContent = 'Konu boş olamaz.'; errEl.classList.remove('hidden'); return; }
-    if (desc.length < 10) { errEl.textContent = 'Dilekçe içeriği en az 10 karakter olmalıdır.'; errEl.classList.remove('hidden'); return; }
+    if (!plaintiff) { errEl.textContent = 'Client citizen ID is required.'; errEl.classList.remove('hidden'); return; }
+    if (!subject)   { errEl.textContent = 'Subject cannot be empty.'; errEl.classList.remove('hidden'); return; }
+    if (desc.length < 10) { errEl.textContent = 'Petition content must be at least 10 characters.'; errEl.classList.remove('hidden'); return; }
 
     var charges = [];
     if (petType === 'criminal') {
         document.querySelectorAll('#petition-charges input[type="checkbox"]:checked').forEach(function(cb) {
             charges.push({ code: cb.value });
         });
-        if (charges.length === 0) { errEl.textContent = 'Ceza davası için en az bir suç seçin.'; errEl.classList.remove('hidden'); return; }
+        if (charges.length === 0) { errEl.textContent = 'Select at least one charge for a criminal case.'; errEl.classList.remove('hidden'); return; }
     }
 
     var attachments = [];
     document.querySelectorAll('#petition-attachments .attachment-row').forEach(function(row) {
         var label = row.querySelector('.att-label').value.trim();
         var url   = row.querySelector('.att-url').value.trim();
-        if (url) attachments.push({ label: label || 'Ek', url: url });
+        if (url) attachments.push({ label: label || 'Attachment', url: url });
     });
 
     var submitBtn = document.getElementById('petition-submit');
-    submitBtn.disabled = true; submitBtn.textContent = 'Gönderiliyor...';
+    submitBtn.disabled = true; submitBtn.textContent = 'Submitting…';
     fetch('https://mclaw/lawyer:sendPetition', {
         method: 'POST',
         body: JSON.stringify({ petitionType: petType, plaintiffCid: plaintiff, charges: charges, subject: subject, description: desc, attachments: attachments }),
     }).then(function(r) { return r.json(); }).then(function(result) {
-        submitBtn.disabled = false; submitBtn.textContent = 'Dilekçeyi Gönder';
+        submitBtn.disabled = false; submitBtn.textContent = 'Submit Petition';
         if (result && result.ok) {
             document.getElementById('petition-form').reset();
             document.getElementById('petition-desc-count').textContent = '0';
             document.getElementById('petition-attachments').innerHTML = '';
             document.querySelectorAll('#petition-charges .charge-item').forEach(function(i) { i.classList.remove('checked'); });
         } else {
-            errEl.textContent = result && result.error ? result.error : 'Gönderme başarısız.';
+            errEl.textContent = result && result.error ? result.error : 'Submission failed.';
             errEl.classList.remove('hidden');
         }
-    }).catch(function() { submitBtn.disabled = false; submitBtn.textContent = 'Dilekçeyi Gönder'; });
+    }).catch(function() { submitBtn.disabled = false; submitBtn.textContent = 'Submit Petition'; });
 });
 
 function renderMyPetitions() {
@@ -1386,7 +1384,7 @@ function renderMyPetitions() {
         var statusClass = PETITION_STATUS_COLORS[p.status]       || 'status-gray';
         var rejectRow   = (p.status === 'rejected' && p.rejectReason)
             ? '<div class="file-meta" style="flex-direction:column;gap:2px;margin-top:4px;">' +
-                  '<span class="file-meta-key" style="color:#ea4335;">Ret Gerekçesi</span>' +
+                  '<span class="file-meta-key" style="color:#ea4335;">Rejection Reason</span>' +
                   '<span style="font-size:12px;color:#c0c8de;">' + escHtml(p.rejectReason) + '</span>' +
               '</div>'
             : '';
@@ -1396,9 +1394,9 @@ function renderMyPetitions() {
                 '<span class="file-status ' + statusClass + '">' + statusLabel + '</span>' +
             '</div>' +
             '<div class="file-card-body">' +
-                '<div class="file-meta"><span class="file-meta-key">Müvekkil</span><span>' + displayName(p.plaintiffName, p.plaintiffCid) + '</span></div>' +
-                '<div class="file-meta"><span class="file-meta-key">Konu</span><span>' + escHtml(p.subject) + '</span></div>' +
-                '<div class="file-meta"><span class="file-meta-key">Gönderildi</span><span>' + (p.createdAt || '—') + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">Client</span><span>' + displayName(p.plaintiffName, p.plaintiffCid) + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">Subject</span><span>' + escHtml(p.subject) + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">Submitted</span><span>' + (p.createdAt || '—') + '</span></div>' +
                 rejectRow +
                 buildAttachmentsHtml(p.attachments) +
             '</div>';
@@ -1427,35 +1425,35 @@ function renderIncomingPetitions() {
         }).join('');
         var chargesSection = chargeRows
             ? '<div class="file-meta" style="flex-direction:column;gap:4px;margin-top:6px;padding-top:6px;border-top:1px solid #2e3650;">' +
-                  '<span class="file-meta-key">Suçlar</span>' + chargeRows +
+                  '<span class="file-meta-key">Charges</span>' + chargeRows +
               '</div>'
             : '';
         card.innerHTML =
             '<div class="file-card-header">' +
                 '<span class="file-number">' + typeLabel + '</span>' +
-                '<span class="file-status status-yellow">Bekliyor</span>' +
+                '<span class="file-status status-yellow">Pending</span>' +
             '</div>' +
             '<div class="file-card-body">' +
-                '<div class="file-meta"><span class="file-meta-key">Avukat</span><span>' + displayName(p.attorneyName, p.attorneyCid) + '</span></div>' +
-                '<div class="file-meta"><span class="file-meta-key">Müvekkil</span><span>' + displayName(p.plaintiffName, p.plaintiffCid) + '</span></div>' +
-                '<div class="file-meta"><span class="file-meta-key">Konu</span><span>' + escHtml(p.subject) + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">Lawyer</span><span>' + displayName(p.attorneyName, p.attorneyCid) + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">Client</span><span>' + displayName(p.plaintiffName, p.plaintiffCid) + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">Subject</span><span>' + escHtml(p.subject) + '</span></div>' +
                 '<div class="file-meta" style="flex-direction:column;gap:4px;margin-top:4px;">' +
-                    '<span class="file-meta-key">Dilekçe</span>' +
+                    '<span class="file-meta-key">Petition</span>' +
                     '<span style="font-size:12px;color:#c0c8de;white-space:pre-wrap;">' + escHtml(p.description) + '</span>' +
                 '</div>' +
                 chargesSection +
-                '<div class="file-meta"><span class="file-meta-key">Tarih</span><span>' + (p.createdAt || '—') + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">Date</span><span>' + (p.createdAt || '—') + '</span></div>' +
                 buildAttachmentsHtml(p.attachments) +
             '</div>' +
             '<div class="approval-actions" id="inpet-actions-' + p.id + '">' +
-                '<button class="btn-primary inpet-accept-btn" data-id="' + p.id + '">Kabul Et</button>' +
-                '<button class="btn-danger inpet-reject-btn" data-id="' + p.id + '">Reddet</button>' +
+                '<button class="btn-primary inpet-accept-btn" data-id="' + p.id + '">Accept</button>' +
+                '<button class="btn-danger inpet-reject-btn" data-id="' + p.id + '">Reject</button>' +
             '</div>' +
             '<div class="approval-reject-panel hidden" id="inpet-reject-panel-' + p.id + '">' +
-                '<textarea class="reject-reason-input" id="inpet-reason-' + p.id + '" rows="2" maxlength="300" placeholder="Ret gerekçesi (isteğe bağlı)…"></textarea>' +
+                '<textarea class="reject-reason-input" id="inpet-reason-' + p.id + '" rows="2" maxlength="300" placeholder="Rejection reason (optional)…"></textarea>' +
                 '<div class="form-actions" style="margin-top:8px;">' +
-                    '<button class="btn-danger inpet-reject-confirm-btn" data-id="' + p.id + '" data-type="' + p.petitionType + '">Reddi Onayla</button>' +
-                    '<button class="btn-secondary inpet-reject-cancel-btn" data-id="' + p.id + '">İptal</button>' +
+                    '<button class="btn-danger inpet-reject-confirm-btn" data-id="' + p.id + '" data-type="' + p.petitionType + '">Confirm Rejection</button>' +
+                    '<button class="btn-secondary inpet-reject-cancel-btn" data-id="' + p.id + '">Cancel</button>' +
                 '</div>' +
             '</div>';
         bindAttachmentCopyBtns(card);
@@ -1468,7 +1466,7 @@ function renderIncomingPetitions() {
     listEl.querySelectorAll('.inpet-accept-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
             var pid = parseInt(btn.getAttribute('data-id'), 10);
-            btn.disabled = true; btn.textContent = 'İşleniyor...';
+            btn.disabled = true; btn.textContent = 'Processing…';
             var endpoint = currentJob === 'prosecutor' ? 'prosecutor:acceptPetition' : 'judge:acceptCivilPetition';
             fetch('https://mclaw/' + endpoint, {
                 method: 'POST',
@@ -1480,9 +1478,9 @@ function renderIncomingPetitions() {
                     incomingPetitions = incomingPetitions.filter(function(p) { return p.id !== pid; });
                     if (incomingPetitions.length === 0 && inpetEmptyEl) inpetEmptyEl.style.display = '';
                 } else {
-                    btn.disabled = false; btn.textContent = 'Kabul Et';
+                    btn.disabled = false; btn.textContent = 'Accept';
                 }
-            }).catch(function() { btn.disabled = false; btn.textContent = 'Kabul Et'; });
+            }).catch(function() { btn.disabled = false; btn.textContent = 'Accept'; });
         });
     });
 
@@ -1509,7 +1507,7 @@ function renderIncomingPetitions() {
         btn.addEventListener('click', function() {
             var pid    = parseInt(btn.getAttribute('data-id'), 10);
             var reason = document.getElementById('inpet-reason-' + pid).value.trim();
-            btn.disabled = true; btn.textContent = 'Reddediliyor...';
+            btn.disabled = true; btn.textContent = 'Rejecting…';
             var endpoint = currentJob === 'prosecutor' ? 'prosecutor:rejectPetition' : 'judge:rejectCivilPetition';
             fetch('https://mclaw/' + endpoint, {
                 method: 'POST',
@@ -1521,17 +1519,17 @@ function renderIncomingPetitions() {
                     incomingPetitions = incomingPetitions.filter(function(p) { return p.id !== pid; });
                     if (incomingPetitions.length === 0 && inpetEmptyEl) inpetEmptyEl.style.display = '';
                 } else {
-                    btn.disabled = false; btn.textContent = 'Reddi Onayla';
+                    btn.disabled = false; btn.textContent = 'Confirm Rejection';
                 }
-            }).catch(function() { btn.disabled = false; btn.textContent = 'Reddi Onayla'; });
+            }).catch(function() { btn.disabled = false; btn.textContent = 'Confirm Rejection'; });
         });
     });
 }
 
 // -- Hearings tab
 
-var HEARING_TYPE_LABELS = { 'physical': 'Fiziksel Duruşma', 'written': 'Yazılı Yargılama' };
-var HEARING_STATUS_LABELS = { 'scheduled': 'Planlandı', 'active': 'Aktif', 'completed': 'Tamamlandı', 'cancelled': 'İptal' };
+var HEARING_TYPE_LABELS = { 'physical': 'Physical Hearing', 'written': 'Written Trial' };
+var HEARING_STATUS_LABELS = { 'scheduled': 'Scheduled', 'active': 'Active', 'completed': 'Completed', 'cancelled': 'Cancelled' };
 var HEARING_STATUS_COLORS = { 'scheduled': 'status-blue', 'active': 'status-green', 'completed': 'status-gray', 'cancelled': 'status-red' };
 
 function renderHearingList() {
@@ -1547,23 +1545,23 @@ function renderHearingList() {
         var typeLabel   = HEARING_TYPE_LABELS[h.hearingType]   || h.hearingType;
         var statusLabel = HEARING_STATUS_LABELS[h.status]      || h.status;
         var statusClass = HEARING_STATUS_COLORS[h.status]      || 'status-gray';
-        var notesRow = h.notes ? '<div class="file-meta"><span class="file-meta-key">Not</span><span class="file-charges-text">' + h.notes + '</span></div>' : '';
+        var notesRow = h.notes ? '<div class="file-meta"><span class="file-meta-key">Note</span><span class="file-charges-text">' + h.notes + '</span></div>' : '';
         card.innerHTML =
             '<div class="file-card-header">' +
                 '<span class="file-number">' + h.fileNumber + '</span>' +
                 '<span class="file-status ' + statusClass + '">' + statusLabel + '</span>' +
             '</div>' +
             '<div class="file-card-body">' +
-                '<div class="file-meta"><span class="file-meta-key">Şüpheli</span><span>' + displayName(h.suspectName, h.suspectCid) + '</span></div>' +
-                '<div class="file-meta"><span class="file-meta-key">Savcı</span><span>' + displayName(h.prosecutorName, h.prosecutorCid) + '</span></div>' +
-                '<div class="file-meta"><span class="file-meta-key">Tür</span><span>' + typeLabel + '</span></div>' +
-                '<div class="file-meta"><span class="file-meta-key">Tarih</span><span style="color:#c9a84c;font-weight:600;">' + (h.scheduledAt || '—') + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">Suspect</span><span>' + displayName(h.suspectName, h.suspectCid) + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">Prosecutor</span><span>' + displayName(h.prosecutorName, h.prosecutorCid) + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">Type</span><span>' + typeLabel + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">Date</span><span style="color:#c9a84c;font-weight:600;">' + (h.scheduledAt || '—') + '</span></div>' +
                 notesRow +
             '</div>';
         var hViewBtn = document.createElement('button');
         hViewBtn.type = 'button';
         hViewBtn.className = 'btn-secondary file-indictment-btn';
-        hViewBtn.textContent = 'Dosyayı İncele →';
+        hViewBtn.textContent = 'View File →';
         (function(fid) {
             hViewBtn.addEventListener('click', function() { openFileDetail(fid, 'hearings'); });
         }(h.fileId));

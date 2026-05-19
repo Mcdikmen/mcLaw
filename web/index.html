@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,59 +21,59 @@
                     &#128196; Dashboard
                 </button>
                 <button class="nav-btn" data-page="referral" data-jobs="police">
-                    &#128221; Sevk Raporu
+                    &#128221; Referral Report
                 </button>
                 <button class="nav-btn" data-page="warrants" data-jobs="police">
-                    &#128680; Yakalama Kararları
+                    &#128680; Arrest Warrants
                 </button>
                 <button class="nav-btn" data-page="investigations" data-jobs="prosecutor">
-                    &#128269; Soruşturmalar
+                    &#128269; Investigations
                 </button>
                 <button class="nav-btn" data-page="files" data-jobs="prosecutor,judge">
-                    &#128193; Dava Dosyaları
+                    &#128193; Case Files
                 </button>
                 <button class="nav-btn" data-page="indictment" data-jobs="prosecutor">
-                    &#9998; İddianame
+                    &#9998; Indictment
                 </button>
                 <button class="nav-btn" data-page="fileopening" data-jobs="judge">
-                    &#43; Dava Aç
+                    &#43; Open File
                 </button>
                 <button class="nav-btn" data-page="invopen" data-jobs="prosecutor">
-                    &#128269; Soruşturma Aç
+                    &#128269; Open Investigation
                 </button>
                 <button class="nav-btn" data-page="petition" data-jobs="lawyer">
-                    &#128394; Dilekçe Gönder
+                    &#128394; Send Petition
                 </button>
                 <button class="nav-btn" data-page="mypetitions" data-jobs="lawyer">
-                    &#128196; Dilekçelerim
+                    &#128196; My Petitions
                 </button>
                 <button class="nav-btn" data-page="inpetitions" data-jobs="prosecutor,judge">
-                    &#128229; Gelen Dilekçeler
+                    &#128229; Incoming Petitions
                 </button>
                 <button class="nav-btn" data-page="approvals" data-jobs="judge">
-                    &#9745; Onay Bekleyenler
+                    &#9745; Pending Approvals
                 </button>
                 <button class="nav-btn" data-page="hearings" data-jobs="judge,lawyer">
-                    &#9878; Duruşmalar
+                    &#9878; Hearings
                 </button>
                 <button class="nav-btn" data-page="verdict" data-jobs="judge">
-                    &#9878; Karar Ver
+                    &#9878; Issue Verdict
                 </button>
                 <button class="nav-btn" data-page="citizens" data-jobs="all">
                     &#128100; Citizens
                 </button>
                 <button class="nav-btn" data-page="clients" data-jobs="lawyer">
-                    &#128100; Müvekkiller
+                    &#128100; Clients
                 </button>
                 <button class="nav-btn" data-page="attorney" data-jobs="lawyer">
-                    &#128196; Vekaletler
+                    &#128196; Powers of Attorney
                 </button>
             </nav>
 
             <div id="user-info">
                 <span id="user-job"></span>
             </div>
-            <button id="btn-exit-app">&#10005; Çıkış</button>
+            <button id="btn-exit-app">&#10005; Exit</button>
         </div>
 
         <div id="content">
@@ -81,14 +81,14 @@
             <!-- DASHBOARD -->
             <div id="page-dashboard" class="page active">
                 <h2>Dashboard</h2>
-                <p class="subtitle">mcLaw Yargı Yönetim Sistemi</p>
+                <p class="subtitle">mcLaw Legal Management System</p>
                 <div id="dashboard-stats" class="stats-grid">
                     <div class="stat-card">
-                        <div class="stat-label">Aktif Dosyalar</div>
+                        <div class="stat-label">Active Files</div>
                         <div class="stat-value" id="stat-active-files">—</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-label">Bekleyen Kararlar</div>
+                        <div class="stat-label">Pending Decisions</div>
                         <div class="stat-value" id="stat-pending">—</div>
                     </div>
                 </div>
@@ -96,125 +96,125 @@
 
             <!-- REFERRAL (police) -->
             <div id="page-referral" class="page">
-                <h2>Sevk Raporu</h2>
-                <p class="subtitle">Şüpheli hakkında sevk raporu oluştur.</p>
+                <h2>Referral Report</h2>
+                <p class="subtitle">Create a referral report for a suspect.</p>
 
                 <form id="referral-form" class="form">
                     <div class="form-group">
-                        <label for="referral-suspect">Şüpheli</label>
+                        <label for="referral-suspect">Suspect</label>
                         <select id="referral-suspect" required>
-                            <option value="">— Yakındaki oyuncu seçin —</option>
+                            <option value="">— Select a nearby player —</option>
                         </select>
                         <p class="form-hint" id="referral-no-nearby" style="display:none; color:#e05c5c;">
-                            10 metre içinde başka oyuncu yok.
+                            No other players within 10 metres.
                         </p>
                     </div>
 
                     <div class="form-group">
-                        <label>Suç(lar) <span class="label-hint">(en az bir tane seçin)</span></label>
+                        <label>Charge(s) <span class="label-hint">(select at least one)</span></label>
                         <div id="referral-charges" class="charge-list"></div>
                     </div>
 
                     <div class="form-group">
-                        <label for="referral-narrative">Olay Anlatısı</label>
+                        <label for="referral-narrative">Incident Narrative</label>
                         <textarea id="referral-narrative" rows="6" minlength="10" maxlength="1000"
-                            placeholder="Olayı kısaca açıklayın…" required></textarea>
+                            placeholder="Briefly describe the incident…" required></textarea>
                         <p class="char-counter"><span id="narrative-count">0</span>/1000</p>
                     </div>
 
                     <div id="referral-error" class="form-error hidden"></div>
 
                     <div class="form-actions">
-                        <button type="submit" class="btn-primary">Raporu Gönder</button>
-                        <button type="button" class="btn-secondary" id="referral-reset">Temizle</button>
+                        <button type="submit" class="btn-primary">Submit Report</button>
+                        <button type="button" class="btn-secondary" id="referral-reset">Clear</button>
                     </div>
                 </form>
             </div>
 
             <!-- WARRANTS (police) -->
             <div id="page-warrants" class="page">
-                <h2>Yakalama Kararları</h2>
-                <p class="subtitle">Aktif yakalama kararları burada listelenecek.</p>
-                <div class="placeholder-box">Bu sekme yakında aktif olacak.</div>
+                <h2>Arrest Warrants</h2>
+                <p class="subtitle">Active arrest warrants will be listed here.</p>
+                <div class="placeholder-box">This tab is coming soon.</div>
             </div>
 
             <!-- INVESTIGATION OPEN (prosecutor) -->
             <div id="page-invopen" class="page">
-                <h2>Soruşturma Aç</h2>
-                <p class="subtitle">Şüpheli hakkında re'sen soruşturma başlat.</p>
+                <h2>Open Investigation</h2>
+                <p class="subtitle">Open an investigation against a suspect on your own initiative.</p>
                 <form id="invopen-form" class="form">
                     <div class="form-group">
-                        <label for="invopen-suspect">Şüpheli Kimlik No</label>
-                        <input type="text" id="invopen-suspect" maxlength="64" placeholder="Örn: ABC12345" required>
-                        <p class="form-hint">Şüphelinin citizenid'ini girin.</p>
+                        <label for="invopen-suspect">Suspect Citizen ID</label>
+                        <input type="text" id="invopen-suspect" maxlength="64" placeholder="e.g. ABC12345" required>
+                        <p class="form-hint">Enter the suspect's citizen ID. Use the Citizens tab to look it up.</p>
                     </div>
                     <div class="form-group">
-                        <label>Suç(lar) <span class="label-hint">(en az bir tane seçin)</span></label>
+                        <label>Charge(s) <span class="label-hint">(select at least one)</span></label>
                         <div id="invopen-charges" class="charge-list"></div>
                     </div>
                     <div class="form-group">
-                        <label for="invopen-narrative">Soruşturma Gerekçesi</label>
+                        <label for="invopen-narrative">Investigation Grounds</label>
                         <textarea id="invopen-narrative" rows="5" minlength="10" maxlength="1000"
-                            placeholder="Soruşturmanın açılış gerekçesini yazın…" required></textarea>
+                            placeholder="State the reason for opening this investigation…" required></textarea>
                         <p class="char-counter"><span id="invopen-narrative-count">0</span>/1000</p>
                     </div>
                     <div class="form-group">
-                        <label for="invopen-notes">Dahili Not <span class="label-hint">(isteğe bağlı)</span></label>
-                        <textarea id="invopen-notes" rows="3" maxlength="500" placeholder="İç not…"></textarea>
+                        <label for="invopen-notes">Internal Note <span class="label-hint">(optional)</span></label>
+                        <textarea id="invopen-notes" rows="3" maxlength="500" placeholder="Internal note…"></textarea>
                     </div>
                     <div id="invopen-error" class="form-error hidden"></div>
                     <div class="form-actions">
-                        <button type="submit" class="btn-primary" id="invopen-submit">Soruşturmayı Başlat</button>
-                        <button type="button" class="btn-secondary" id="invopen-reset">Temizle</button>
+                        <button type="submit" class="btn-primary" id="invopen-submit">Start Investigation</button>
+                        <button type="button" class="btn-secondary" id="invopen-reset">Clear</button>
                     </div>
                 </form>
             </div>
 
             <!-- INVESTIGATIONS (prosecutor) -->
             <div id="page-investigations" class="page">
-                <h2>Soruşturmalar</h2>
-                <p class="subtitle">Avukat dilekçesinden açılan soruşturma dosyaları.</p>
-                <div id="investigations-empty" class="placeholder-box">Aktif soruşturma yok.</div>
+                <h2>Investigations</h2>
+                <p class="subtitle">Investigation files opened from lawyer petitions.</p>
+                <div id="investigations-empty" class="placeholder-box">No active investigations.</div>
                 <div id="investigations-list" class="file-list"></div>
             </div>
 
             <!-- FILES (prosecutor, judge) -->
             <div id="page-files" class="page">
-                <h2>Dosyalar</h2>
-                <p class="subtitle">Atanmış dosyalar aşağıda listelenmektedir.</p>
-                <div id="files-empty" class="placeholder-box" style="display:none;">Atanmış dosya yok.</div>
+                <h2>Case Files</h2>
+                <p class="subtitle">Files assigned to you are listed below.</p>
+                <div id="files-empty" class="placeholder-box" style="display:none;">No assigned files.</div>
                 <div id="files-list" class="file-list"></div>
             </div>
 
             <!-- INDICTMENT (prosecutor) -->
             <div id="page-indictment" class="page">
-                <h2>İddianame Hazırla</h2>
-                <p class="subtitle">Dosyayı duruşmaya taşı ve yargılama türünü belirle.</p>
+                <h2>Prepare Indictment</h2>
+                <p class="subtitle">Move a file to hearing stage and select the trial type.</p>
 
                 <form id="indictment-form" class="form">
                     <div class="form-group">
-                        <label for="indictment-file">Dosya</label>
+                        <label for="indictment-file">File</label>
                         <select id="indictment-file" required>
-                            <option value="">— Dosya seçin —</option>
+                            <option value="">— Select a file —</option>
                         </select>
-                        <p class="form-hint">Yalnızca iddianame için uygun dosyalar listelenir.</p>
+                        <p class="form-hint">Only files eligible for indictment are listed.</p>
                     </div>
 
                     <div class="form-group">
-                        <label>Yargılama Türü</label>
+                        <label>Trial Type</label>
                         <div class="radio-group">
                             <label class="radio-item">
                                 <input type="radio" name="hearing-type" value="physical" checked>
                                 <span class="radio-label">
-                                    <strong>Fiziksel Duruşma</strong>
-                                    <small>Taraflar mahkemede fiziksel olarak hazır bulunur.</small>
+                                    <strong>Physical Hearing</strong>
+                                    <small>Parties appear in court in person.</small>
                                 </span>
                             </label>
                             <label class="radio-item">
                                 <input type="radio" name="hearing-type" value="written">
                                 <span class="radio-label">
-                                    <strong>Yazılı Yargılama</strong>
-                                    <small>Taraflar argümanlarını sistem üzerinden sunar.</small>
+                                    <strong>Written Trial</strong>
+                                    <small>Parties submit arguments through the system panel.</small>
                                 </span>
                             </label>
                         </div>
@@ -222,96 +222,96 @@
 
                     <div class="form-group">
                         <label for="indictment-notes">
-                            Savcı Notu <span class="label-hint">(isteğe bağlı)</span>
+                            Prosecutor Note <span class="label-hint">(optional)</span>
                         </label>
                         <textarea id="indictment-notes" rows="4" maxlength="500"
-                            placeholder="Dosyaya eklemek istediğiniz notlar…"></textarea>
+                            placeholder="Any notes to add to the file…"></textarea>
                     </div>
 
                     <div id="indictment-error" class="form-error hidden"></div>
 
                     <div class="form-actions">
-                        <button type="submit" class="btn-primary">İddianameyi Gönder</button>
-                        <button type="button" class="btn-secondary" id="indictment-reset">Temizle</button>
+                        <button type="submit" class="btn-primary">Submit Indictment</button>
+                        <button type="button" class="btn-secondary" id="indictment-reset">Clear</button>
                     </div>
                 </form>
             </div>
 
             <!-- FILE OPENING (prosecutor, judge, lawyer) -->
             <div id="page-fileopening" class="page">
-                <h2>Dosya Aç</h2>
-                <p class="subtitle">Şüpheli hakkında manuel dosya oluştur.</p>
+                <h2>Open File</h2>
+                <p class="subtitle">Manually create a case file against a suspect.</p>
 
                 <form id="fileopening-form" class="form">
                     <div class="form-group">
-                        <label for="fileopening-suspect">Şüpheli Kimlik No</label>
+                        <label for="fileopening-suspect">Suspect Citizen ID</label>
                         <input type="text" id="fileopening-suspect" maxlength="64"
-                            placeholder="Örn: ABC12345" required>
-                        <p class="form-hint">Şüphelinin citizenid'ini girin.</p>
+                            placeholder="e.g. ABC12345" required>
+                        <p class="form-hint">Enter the suspect's citizen ID. Use the Citizens tab to look it up.</p>
                     </div>
 
                     <div class="form-group">
-                        <label>Suç(lar) <span class="label-hint">(en az bir tane seçin)</span></label>
+                        <label>Charge(s) <span class="label-hint">(select at least one)</span></label>
                         <div id="fileopening-charges" class="charge-list"></div>
                     </div>
 
                     <div class="form-group">
-                        <label for="fileopening-narrative">Gerekçe / Olay Anlatısı</label>
+                        <label for="fileopening-narrative">Grounds / Incident Narrative</label>
                         <textarea id="fileopening-narrative" rows="5" minlength="10" maxlength="1000"
-                            placeholder="Dosyanın açılış gerekçesini açıklayın…" required></textarea>
+                            placeholder="Describe the reason for opening this file…" required></textarea>
                         <p class="char-counter"><span id="fileopening-narrative-count">0</span>/1000</p>
                     </div>
 
                     <div class="form-group">
                         <label for="fileopening-notes">
-                            Dahili Not <span class="label-hint">(isteğe bağlı)</span>
+                            Internal Note <span class="label-hint">(optional)</span>
                         </label>
                         <textarea id="fileopening-notes" rows="3" maxlength="500"
-                            placeholder="Diğer yetkililere iç not…"></textarea>
+                            placeholder="Internal note for other officials…"></textarea>
                     </div>
 
                     <div id="fileopening-error" class="form-error hidden"></div>
                     <p id="fileopening-pending-note" class="form-hint" style="color:#c9a84c; display:none;">
-                        &#9432; Dosya hakim onayına gönderilecek.
+                        &#9432; This file will be sent to the judge for approval.
                     </p>
 
                     <div class="form-actions">
-                        <button type="submit" class="btn-primary" id="fileopening-submit">Dosyayı Oluştur</button>
-                        <button type="button" class="btn-secondary" id="fileopening-reset">Temizle</button>
+                        <button type="submit" class="btn-primary" id="fileopening-submit">Create File</button>
+                        <button type="button" class="btn-secondary" id="fileopening-reset">Clear</button>
                     </div>
                 </form>
             </div>
 
             <!-- PENDING APPROVALS (judge) -->
             <div id="page-approvals" class="page">
-                <h2>Onay Bekleyenler</h2>
-                <p class="subtitle">Savcı ve avukat tarafından açılmış, onay bekleyen dosyalar.</p>
-                <div id="approvals-empty" class="placeholder-box">Onay bekleyen dosya yok.</div>
+                <h2>Pending Approvals</h2>
+                <p class="subtitle">Files opened by prosecutors and lawyers awaiting your approval.</p>
+                <div id="approvals-empty" class="placeholder-box">No files pending approval.</div>
                 <div id="approvals-list" class="file-list"></div>
             </div>
 
             <!-- HEARINGS (judge, lawyer) -->
             <div id="page-hearings" class="page">
-                <h2>Duruşmalar</h2>
-                <p class="subtitle">Planlanmış ve aktif duruşmalar.</p>
-                <div id="hearings-empty" class="placeholder-box">Planlanmış duruşma yok.</div>
+                <h2>Hearings</h2>
+                <p class="subtitle">Scheduled and active hearings.</p>
+                <div id="hearings-empty" class="placeholder-box">No scheduled hearings.</div>
                 <div id="hearings-list" class="file-list"></div>
             </div>
 
             <!-- FILE DETAIL (all legal jobs) -->
             <div id="page-filedetail" class="page">
                 <div id="filedetail-topbar">
-                    <button class="btn-secondary" id="filedetail-back">&#8592; Geri</button>
+                    <button class="btn-secondary" id="filedetail-back">&#8592; Back</button>
                     <span id="filedetail-number"></span>
                     <span id="filedetail-status" class="file-status"></span>
                     <div style="flex:1;"></div>
-                    <button id="filedetail-close-btn" class="btn-danger hidden">Dosyayı Kapat</button>
+                    <button id="filedetail-close-btn" class="btn-danger hidden">Close File</button>
                 </div>
                 <div id="filedetail-close-panel" class="hidden" style="margin-bottom:16px;">
-                    <textarea id="filedetail-close-reason" class="reject-reason-input" rows="2" maxlength="300" placeholder="Kapanış gerekçesi (isteğe bağlı)…"></textarea>
+                    <textarea id="filedetail-close-reason" class="reject-reason-input" rows="2" maxlength="300" placeholder="Closing reason (optional)…"></textarea>
                     <div class="form-actions" style="margin-top:8px;">
-                        <button id="filedetail-close-confirm" class="btn-danger">Dosyayı Kapat</button>
-                        <button id="filedetail-close-cancel" class="btn-secondary">İptal</button>
+                        <button id="filedetail-close-confirm" class="btn-danger">Close File</button>
+                        <button id="filedetail-close-cancel" class="btn-secondary">Cancel</button>
                     </div>
                 </div>
                 <div id="filedetail-body"></div>
@@ -319,81 +319,81 @@
 
             <!-- PETITION (lawyer) -->
             <div id="page-petition" class="page">
-                <h2>Dilekçe Gönder</h2>
-                <p class="subtitle">Müvekkiliniz adına savcılığa veya hakime dilekçe gönderin.</p>
+                <h2>Send Petition</h2>
+                <p class="subtitle">Submit a petition to the prosecutor or judge on behalf of your client.</p>
                 <form id="petition-form" class="form">
                     <div class="form-group">
-                        <label>Dava Türü</label>
+                        <label>Case Type</label>
                         <div class="radio-group">
                             <label class="radio-item">
                                 <input type="radio" name="petition-type" value="criminal" checked>
                                 <span class="radio-label">
-                                    <strong>Ceza Davası</strong>
-                                    <small>Dilekçe Savcılığa iletilir. Savcı soruşturma açar.</small>
+                                    <strong>Criminal Case</strong>
+                                    <small>Petition is forwarded to Prosecution. Prosecutor opens an investigation.</small>
                                 </span>
                             </label>
                             <label class="radio-item">
                                 <input type="radio" name="petition-type" value="civil">
                                 <span class="radio-label">
-                                    <strong>Hukuk Davası</strong>
-                                    <small>Dilekçe doğrudan Hakime iletilir.</small>
+                                    <strong>Civil Case</strong>
+                                    <small>Petition is forwarded directly to the Judge.</small>
                                 </span>
                             </label>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label for="petition-plaintiff">Müvekkil Kimlik No</label>
-                        <input type="text" id="petition-plaintiff" maxlength="64" placeholder="Örn: ABC12345" required>
-                        <p class="form-hint">Davacı/müvekkilin citizenid'ini girin.</p>
+                        <label for="petition-plaintiff">Client Citizen ID</label>
+                        <input type="text" id="petition-plaintiff" maxlength="64" placeholder="e.g. ABC12345" required>
+                        <p class="form-hint">Enter the plaintiff / client's citizen ID. Use the Citizens tab to look it up.</p>
                     </div>
                     <div class="form-group" id="petition-charges-group">
-                        <label>Suç(lar) <span class="label-hint">(ceza davası için)</span></label>
+                        <label>Charge(s) <span class="label-hint">(for criminal cases)</span></label>
                         <div id="petition-charges" class="charge-list"></div>
                     </div>
                     <div class="form-group">
-                        <label for="petition-subject">Konu</label>
-                        <input type="text" id="petition-subject" maxlength="256" placeholder="Dilekçe konusu…" required>
+                        <label for="petition-subject">Subject</label>
+                        <input type="text" id="petition-subject" maxlength="256" placeholder="Petition subject…" required>
                     </div>
                     <div class="form-group">
-                        <label for="petition-description">Dilekçe İçeriği</label>
+                        <label for="petition-description">Petition Content</label>
                         <textarea id="petition-description" rows="8" minlength="10" maxlength="2000"
-                            placeholder="Dilekçenizi buraya yazın…" required></textarea>
+                            placeholder="Write your petition here…" required></textarea>
                         <p class="char-counter"><span id="petition-desc-count">0</span>/2000</p>
                     </div>
                     <div class="form-group">
-                        <label>Ekler <span class="label-hint">(isteğe bağlı — URL ile)</span></label>
+                        <label>Attachments <span class="label-hint">(optional — via URL)</span></label>
                         <div id="petition-attachments"></div>
-                        <button type="button" class="btn-secondary" id="petition-add-attachment" style="margin-top:8px;font-size:12px;padding:6px 14px;">+ Ek Ekle</button>
+                        <button type="button" class="btn-secondary" id="petition-add-attachment" style="margin-top:8px;font-size:12px;padding:6px 14px;">+ Add Attachment</button>
                     </div>
                     <div id="petition-error" class="form-error hidden"></div>
                     <div class="form-actions">
-                        <button type="submit" class="btn-primary" id="petition-submit">Dilekçeyi Gönder</button>
-                        <button type="button" class="btn-secondary" id="petition-reset">Temizle</button>
+                        <button type="submit" class="btn-primary" id="petition-submit">Submit Petition</button>
+                        <button type="button" class="btn-secondary" id="petition-reset">Clear</button>
                     </div>
                 </form>
             </div>
 
             <!-- MY PETITIONS (lawyer) -->
             <div id="page-mypetitions" class="page">
-                <h2>Dilekçelerim</h2>
-                <p class="subtitle">Gönderdiğiniz dilekçeler ve durumları.</p>
-                <div id="mypetitions-empty" class="placeholder-box">Henüz dilekçe gönderilmemiş.</div>
+                <h2>My Petitions</h2>
+                <p class="subtitle">Petitions you have submitted and their current status.</p>
+                <div id="mypetitions-empty" class="placeholder-box">No petitions submitted yet.</div>
                 <div id="mypetitions-list" class="file-list"></div>
             </div>
 
             <!-- INCOMING PETITIONS (prosecutor, judge) -->
             <div id="page-inpetitions" class="page">
-                <h2>Gelen Dilekçeler</h2>
-                <p class="subtitle">Avukatlardan gelen ve işlem bekleyen dilekçeler.</p>
-                <div id="inpetitions-empty" class="placeholder-box">Bekleyen dilekçe yok.</div>
+                <h2>Incoming Petitions</h2>
+                <p class="subtitle">Petitions from lawyers awaiting action.</p>
+                <div id="inpetitions-empty" class="placeholder-box">No pending petitions.</div>
                 <div id="inpetitions-list" class="file-list"></div>
             </div>
 
             <!-- VERDICT (judge) -->
             <div id="page-verdict" class="page">
-                <h2>Karar Ver</h2>
-                <p class="subtitle">Hakim kararları burada verilecek.</p>
-                <div class="placeholder-box">Bu sekme yakında aktif olacak.</div>
+                <h2>Issue Verdict</h2>
+                <p class="subtitle">Judge verdicts will be issued here.</p>
+                <div class="placeholder-box">This tab is coming soon.</div>
             </div>
 
             <!-- CITIZENS (all legal jobs) -->
@@ -415,16 +415,16 @@
 
             <!-- CLIENTS (lawyer) -->
             <div id="page-clients" class="page">
-                <h2>Müvekkiller</h2>
-                <p class="subtitle">Müvekkil listesi burada olacak.</p>
-                <div class="placeholder-box">Bu sekme yakında aktif olacak.</div>
+                <h2>Clients</h2>
+                <p class="subtitle">Your client list will be displayed here.</p>
+                <div class="placeholder-box">This tab is coming soon.</div>
             </div>
 
             <!-- ATTORNEY (lawyer) -->
             <div id="page-attorney" class="page">
-                <h2>Vekaletler</h2>
-                <p class="subtitle">Vekalet yönetimi burada olacak.</p>
-                <div class="placeholder-box">Bu sekme yakında aktif olacak.</div>
+                <h2>Powers of Attorney</h2>
+                <p class="subtitle">Power of attorney management will be available here.</p>
+                <div class="placeholder-box">This tab is coming soon.</div>
             </div>
 
         </div>
@@ -436,21 +436,21 @@
         <div id="doc-modal-wrapper">
             <div id="doc-modal-paper">
                 <div id="doc-modal-letterhead">
-                    <div id="doc-modal-court">T.C. mcLaw Yargı Sistemi</div>
-                    <div id="doc-modal-fileno-row">Dosya No: <span id="doc-modal-fileno"></span></div>
+                    <div id="doc-modal-court">mcLaw Legal System</div>
+                    <div id="doc-modal-fileno-row">File No: <span id="doc-modal-fileno"></span></div>
                 </div>
                 <div id="doc-modal-meta-block">
-                    <div class="doc-modal-meta-row"><span class="doc-modal-meta-key">Belge Türü</span><span id="doc-modal-type"></span></div>
-                    <div class="doc-modal-meta-row"><span class="doc-modal-meta-key">Başlık</span><strong id="doc-modal-title"></strong></div>
-                    <div class="doc-modal-meta-row"><span class="doc-modal-meta-key">Tarih</span><span id="doc-modal-date"></span></div>
-                    <div class="doc-modal-meta-row"><span class="doc-modal-meta-key">Yazar</span><span id="doc-modal-author"></span></div>
+                    <div class="doc-modal-meta-row"><span class="doc-modal-meta-key">Document Type</span><span id="doc-modal-type"></span></div>
+                    <div class="doc-modal-meta-row"><span class="doc-modal-meta-key">Title</span><strong id="doc-modal-title"></strong></div>
+                    <div class="doc-modal-meta-row"><span class="doc-modal-meta-key">Date</span><span id="doc-modal-date"></span></div>
+                    <div class="doc-modal-meta-row"><span class="doc-modal-meta-key">Author</span><span id="doc-modal-author"></span></div>
                 </div>
                 <hr id="doc-modal-divider">
                 <div id="doc-modal-content"></div>
             </div>
             <div id="doc-modal-actions">
-                <button id="doc-modal-print" class="btn-primary">&#128438; PDF / Yazdır</button>
-                <button id="doc-modal-close" class="btn-secondary">Kapat</button>
+                <button id="doc-modal-print" class="btn-primary">&#128438; PDF / Print</button>
+                <button id="doc-modal-close" class="btn-secondary">Close</button>
             </div>
         </div>
     </div>
