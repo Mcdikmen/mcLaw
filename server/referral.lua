@@ -29,12 +29,6 @@ local function pickProsecutor()
     return candidates[1].citizenid, candidates[1].source
 end
 
--- Resolves a server source to its citizenid; returns nil if player not found.
-local function getCitizenid(src)
-    local P = exports.qbx_core:GetPlayer(src)
-    return P and P.PlayerData.citizenid or nil
-end
-
 -- Returns the server source for a citizenid, or nil if offline.
 local function findSource(citizenid)
     for _, playerId in ipairs(GetPlayers()) do
@@ -51,7 +45,7 @@ end
 -- Submitted by a police officer. Creates referral report, opens a file,
 -- assigns a prosecutor, and triggers the suspect's jail decision panel.
 --
--- data.suspectSource     (number)  server source of the suspect
+-- data.suspectCid        (string)  citizenid of the suspect
 -- data.charges           (table)   array of { code = 'charge_code' }
 -- data.narrative         (string)  officer's written narrative
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -61,11 +55,18 @@ RegisterNetEvent('mclaw:server:referral:submit', function(data)
     if not Player then return end
     if Player.PlayerData.job.name ~= Config.Jobs.police then return end
 
-    local officerCid  = Player.PlayerData.citizenid
-    local suspectCid  = getCitizenid(tonumber(data.suspectSource))
+    local officerCid = Player.PlayerData.citizenid
+    local suspectCid = data.suspectCid and tostring(data.suspectCid):match('^%s*(.-)%s*$')
 
-    if not suspectCid then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Suspect is not online.' })
+    if not suspectCid or suspectCid == '' then
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Invalid suspect Citizen ID.' })
+        return
+    end
+
+    -- Verify the citizenid exists in the database
+    local suspectExists = MySQL.scalar.await('SELECT 1 FROM players WHERE citizenid = ? LIMIT 1', { suspectCid })
+    if not suspectExists then
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'No player found with that Citizen ID.' })
         return
     end
 

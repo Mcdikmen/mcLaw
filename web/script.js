@@ -4,7 +4,6 @@
 
 var currentJob          = null;
 var chargeList          = [];
-var nearbyPlayers       = [];
 var prosecutorFiles     = [];
 var fileOpenChargeList  = [];
 var pendingApprovals    = [];
@@ -67,20 +66,6 @@ document.head.appendChild(style);
 // -- Referral form
 
 function populateReferralForm() {
-    var suspectSelect = document.getElementById('referral-suspect');
-    suspectSelect.innerHTML = '<option value="">— Select a nearby player —</option>';
-    var noNearby = document.getElementById('referral-no-nearby');
-    if (nearbyPlayers.length === 0) {
-        noNearby.style.display = '';
-    } else {
-        noNearby.style.display = 'none';
-        nearbyPlayers.forEach(function(p) {
-            var opt = document.createElement('option');
-            opt.value = p.value;
-            opt.textContent = p.label;
-            suspectSelect.appendChild(opt);
-        });
-    }
     var chargeContainer = document.getElementById('referral-charges');
     chargeContainer.innerHTML = '';
     chargeList.forEach(function(charge) {
@@ -127,8 +112,8 @@ function hideReferralError() {
 document.getElementById('referral-form').addEventListener('submit', function(e) {
     e.preventDefault();
     hideReferralError();
-    var suspectSource = document.getElementById('referral-suspect').value;
-    if (!suspectSource) { showReferralError('Please select a suspect.'); return; }
+    var suspectCid = document.getElementById('referral-suspect-cid').value.trim();
+    if (!suspectCid) { showReferralError('Please enter the suspect\'s Citizen ID.'); return; }
     var selectedCodes = [];
     document.querySelectorAll('#referral-charges input[type="checkbox"]:checked').forEach(function(cb) {
         selectedCodes.push({ code: cb.value });
@@ -141,7 +126,7 @@ document.getElementById('referral-form').addEventListener('submit', function(e) 
     submitBtn.textContent = 'Submitting…';
     fetch('https://mclaw/referral:submit', {
         method: 'POST',
-        body: JSON.stringify({ suspectSource: parseInt(suspectSource, 10), charges: selectedCodes, narrative: narrative }),
+        body: JSON.stringify({ suspectCid: suspectCid, charges: selectedCodes, narrative: narrative }),
     }).then(function(res) { return res.json(); }).then(function(result) {
         submitBtn.disabled = false;
         submitBtn.textContent = 'Submit Report';
@@ -1741,7 +1726,6 @@ window.addEventListener('message', function(event) {
     var data = event.data;
     if (data.action === 'show') {
         currentJob          = data.job || 'civilian';
-        nearbyPlayers       = data.nearbyPlayers       || [];
         chargeList          = data.chargeList          || [];
         prosecutorFiles     = data.prosecutorFiles     || [];
         fileOpenChargeList  = data.fileOpenChargeList  || [];
@@ -1806,9 +1790,8 @@ window.addEventListener('message', function(event) {
             incomingPetitions = data.incomingPetitions;
             renderIncomingPetitions();
         }
-        if (data.nearbyPlayers !== undefined) {
-            nearbyPlayers = data.nearbyPlayers;
-            chargeList = data.chargeList || chargeList;
+        if (data.chargeList !== undefined) {
+            chargeList = data.chargeList;
             populateReferralForm();
         }
         if (data.verdictFiles !== undefined) {

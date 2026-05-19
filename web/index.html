@@ -101,13 +101,9 @@
 
                 <form id="referral-form" class="form">
                     <div class="form-group">
-                        <label for="referral-suspect">Suspect</label>
-                        <select id="referral-suspect" required>
-                            <option value="">— Select a nearby player —</option>
-                        </select>
-                        <p class="form-hint" id="referral-no-nearby" style="display:none; color:#e05c5c;">
-                            No other players within 10 metres.
-                        </p>
+                        <label for="referral-suspect-cid">Suspect Citizen ID</label>
+                        <input type="text" id="referral-suspect-cid" placeholder="e.g. QBX00001" required />
+                        <p class="form-hint">You can look up the citizen ID from the Citizens tab.</p>
                     </div>
 
                     <div class="form-group">
