@@ -62,6 +62,7 @@ local function openPanel(activeTab)
 
     if job == Config.Jobs.police then
         payload.chargeList = lib.callback.await('mclaw:cb:referral:getChargeList', false) or {}
+        payload.myReports  = lib.callback.await('mclaw:cb:referral:getMyReports', false) or {}
     elseif job == Config.Jobs.prosecutor or job == Config.Jobs.judge then
         payload.prosecutorFiles = lib.callback.await('mclaw:cb:prosecutor:getFiles', false) or {}
         if job == Config.Jobs.prosecutor then
@@ -257,6 +258,11 @@ RegisterNUICallback('tab:refresh', function(data, cb)
     elseif tab == 'referral' then
         if job == Config.Jobs.police then
             update.chargeList = lib.callback.await('mclaw:cb:referral:getChargeList', false) or {}
+        end
+
+    elseif tab == 'myreports' then
+        if job == Config.Jobs.police then
+            update.myReports = lib.callback.await('mclaw:cb:referral:getMyReports', false) or {}
         end
 
     elseif tab == 'mypetitions' then

@@ -23,6 +23,9 @@
                 <button class="nav-btn" data-page="referral" data-jobs="police">
                     &#128221; Referral Report
                 </button>
+                <button class="nav-btn" data-page="myreports" data-jobs="police">
+                    &#128196; My Reports
+                </button>
                 <button class="nav-btn" data-page="warrants" data-jobs="police">
                     &#128680; Arrest Warrants
                 </button>
@@ -118,6 +121,12 @@
                         <p class="char-counter"><span id="narrative-count">0</span>/1000</p>
                     </div>
 
+                    <div class="form-group">
+                        <label>Evidence <span class="label-hint">(optional)</span></label>
+                        <div id="referral-evidence-list"></div>
+                        <button type="button" class="btn-secondary" id="referral-add-evidence" style="margin-top:6px;">+ Add Evidence</button>
+                    </div>
+
                     <div id="referral-error" class="form-error hidden"></div>
 
                     <div class="form-actions">
@@ -125,6 +134,14 @@
                         <button type="button" class="btn-secondary" id="referral-reset">Clear</button>
                     </div>
                 </form>
+            </div>
+
+            <!-- MY REPORTS (police) -->
+            <div id="page-myreports" class="page">
+                <h2>My Reports</h2>
+                <p class="subtitle">Referral reports you have submitted.</p>
+                <div id="myreports-empty" class="placeholder-box">No reports submitted yet.</div>
+                <div id="myreports-list" class="file-list"></div>
             </div>
 
             <!-- WARRANTS (police) -->

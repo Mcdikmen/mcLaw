@@ -4,6 +4,7 @@
 
 var currentJob          = null;
 var chargeList          = [];
+var myReports           = [];
 var prosecutorFiles     = [];
 var fileOpenChargeList  = [];
 var pendingApprovals    = [];
@@ -28,7 +29,7 @@ function activateTab(pageName) {
     if (page) { page.classList.add('active'); }
 }
 
-var REFRESHABLE_TABS = { dashboard: 1, files: 1, investigations: 1, approvals: 1, hearings: 1, referral: 1, mypetitions: 1, inpetitions: 1, verdict: 1 };
+var REFRESHABLE_TABS = { dashboard: 1, files: 1, investigations: 1, approvals: 1, hearings: 1, referral: 1, myreports: 1, mypetitions: 1, inpetitions: 1, verdict: 1 };
 
 navButtons.forEach(function(btn) {
     btn.addEventListener('click', function() {
@@ -63,6 +64,19 @@ var style = document.createElement('style');
 style.textContent = '.nav-hidden { display: none !important; }';
 document.head.appendChild(style);
 
+// -- Helpers
+
+function escHtml(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function Mclaw_FormatDate(val) {
+    if (!val) return '—';
+    var d = new Date(val);
+    if (isNaN(d.getTime())) return String(val);
+    return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
 // -- Referral form
 
 function populateReferralForm() {
@@ -96,7 +110,57 @@ document.getElementById('referral-reset').addEventListener('click', function() {
     document.getElementById('referral-form').reset();
     document.getElementById('narrative-count').textContent = '0';
     document.querySelectorAll('.charge-item').forEach(function(item) { item.classList.remove('checked'); });
+    document.getElementById('referral-evidence-list').innerHTML = '';
     hideReferralError();
+});
+
+var EVIDENCE_TYPES = [
+    { value: 'text',       label: 'Text Note' },
+    { value: 'coordinate', label: 'Location' },
+    { value: 'item',       label: 'Item' },
+    { value: 'screenshot', label: 'Screenshot URL' },
+];
+
+document.getElementById('referral-add-evidence').addEventListener('click', function() {
+    var list = document.getElementById('referral-evidence-list');
+    var row = document.createElement('div');
+    row.className = 'evidence-row';
+    row.style.cssText = 'display:flex;gap:6px;margin-bottom:6px;align-items:flex-start;';
+
+    var typeSelect = document.createElement('select');
+    typeSelect.className = 'evidence-type';
+    typeSelect.style.cssText = 'width:130px;flex-shrink:0;';
+    EVIDENCE_TYPES.forEach(function(t) {
+        var opt = document.createElement('option');
+        opt.value = t.value;
+        opt.textContent = t.label;
+        typeSelect.appendChild(opt);
+    });
+
+    var labelInput = document.createElement('input');
+    labelInput.type = 'text';
+    labelInput.placeholder = 'Label (e.g. Knife)';
+    labelInput.className = 'evidence-label';
+    labelInput.style.cssText = 'width:120px;flex-shrink:0;';
+
+    var contentInput = document.createElement('input');
+    contentInput.type = 'text';
+    contentInput.placeholder = 'Description / content';
+    contentInput.className = 'evidence-content';
+    contentInput.style.flex = '1';
+
+    var removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.textContent = '✕';
+    removeBtn.className = 'btn-secondary';
+    removeBtn.style.cssText = 'padding:4px 8px;flex-shrink:0;';
+    removeBtn.addEventListener('click', function() { list.removeChild(row); });
+
+    row.appendChild(typeSelect);
+    row.appendChild(labelInput);
+    row.appendChild(contentInput);
+    row.appendChild(removeBtn);
+    list.appendChild(row);
 });
 
 function showReferralError(msg) {
@@ -121,12 +185,19 @@ document.getElementById('referral-form').addEventListener('submit', function(e) 
     if (selectedCodes.length === 0) { showReferralError('Select at least one charge.'); return; }
     var narrative = document.getElementById('referral-narrative').value.trim();
     if (narrative.length < 10) { showReferralError('Incident narrative must be at least 10 characters.'); return; }
+    var evidenceList = [];
+    document.querySelectorAll('#referral-evidence-list .evidence-row').forEach(function(row) {
+        var type    = row.querySelector('.evidence-type').value;
+        var label   = row.querySelector('.evidence-label').value.trim();
+        var content = row.querySelector('.evidence-content').value.trim();
+        if (content) { evidenceList.push({ type: type, label: label, content: content }); }
+    });
     var submitBtn = document.querySelector('#referral-form .btn-primary');
     submitBtn.disabled = true;
     submitBtn.textContent = 'Submitting…';
     fetch('https://mclaw/referral:submit', {
         method: 'POST',
-        body: JSON.stringify({ suspectCid: suspectCid, charges: selectedCodes, narrative: narrative }),
+        body: JSON.stringify({ suspectCid: suspectCid, charges: selectedCodes, narrative: narrative, evidence: evidenceList }),
     }).then(function(res) { return res.json(); }).then(function(result) {
         submitBtn.disabled = false;
         submitBtn.textContent = 'Submit Report';
@@ -134,6 +205,7 @@ document.getElementById('referral-form').addEventListener('submit', function(e) 
             document.getElementById('referral-form').reset();
             document.getElementById('narrative-count').textContent = '0';
             document.querySelectorAll('.charge-item').forEach(function(item) { item.classList.remove('checked'); });
+            document.getElementById('referral-evidence-list').innerHTML = '';
         } else {
             showReferralError(result && result.error ? result.error : 'Submission failed.');
         }
@@ -1558,6 +1630,40 @@ function renderHearingList() {
 
 // -- Verdict tab (judge)
 
+// -- My Reports (police)
+
+var REPORT_STATUS_LABELS = { pending: 'Pending', processed: 'Processed', rejected: 'Withdrawn' };
+var REPORT_STATUS_COLORS = { pending: 'status-yellow', processed: 'status-green', rejected: 'status-red' };
+
+function renderMyReports() {
+    var listEl  = document.getElementById('myreports-list');
+    var emptyEl = document.getElementById('myreports-empty');
+    listEl.innerHTML = '';
+    if (!myReports || myReports.length === 0) {
+        emptyEl.style.display = '';
+        return;
+    }
+    emptyEl.style.display = 'none';
+    myReports.forEach(function(r) {
+        var card = document.createElement('div');
+        card.className = 'file-card';
+        card.style.cursor = 'default';
+        var statusLabel = REPORT_STATUS_LABELS[r.status] || r.status;
+        var statusClass = REPORT_STATUS_COLORS[r.status] || '';
+        card.innerHTML =
+            '<div class="file-card-header">' +
+                '<span class="file-number">' + escHtml(r.file_number || '—') + '</span>' +
+                '<span class="file-status ' + statusClass + '">' + escHtml(statusLabel) + '</span>' +
+            '</div>' +
+            '<div class="file-card-body">' +
+                '<div><strong>Suspect:</strong> ' + escHtml(r.suspect_citizenid) + '</div>' +
+                '<div><strong>Submitted:</strong> ' + Mclaw_FormatDate(r.created_at) + '</div>' +
+                (r.narrative ? '<div style="margin-top:4px;color:#aaa;font-size:12px;">' + escHtml(r.narrative.substring(0, 120)) + (r.narrative.length > 120 ? '…' : '') + '</div>' : '') +
+            '</div>';
+        listEl.appendChild(card);
+    });
+}
+
 var VERDICT_RESULT_LABELS = { guilty: 'Guilty', acquitted: 'Acquitted', dismissed: 'Dismissed' };
 var VERDICT_RESULT_COLORS = { guilty: 'status-red', acquitted: 'status-green', dismissed: 'status-gray' };
 
@@ -1736,6 +1842,7 @@ window.addEventListener('message', function(event) {
         incomingPetitions   = data.incomingPetitions   || [];
         investigationList   = data.investigationList   || [];
         verdictFiles        = data.verdictFiles        || [];
+        myReports           = data.myReports           || [];
         filterTabsForJob(currentJob);
         document.getElementById('user-job').textContent = currentJob;
         if (data.dashStats) {
@@ -1744,7 +1851,7 @@ window.addEventListener('message', function(event) {
             if (af) af.textContent = data.dashStats.activeFiles != null ? data.dashStats.activeFiles : '—';
             if (pn) pn.textContent = data.dashStats.pendingCount != null ? data.dashStats.pendingCount : '—';
         }
-        if (currentJob === 'police') { populateReferralForm(); }
+        if (currentJob === 'police') { populateReferralForm(); renderMyReports(); }
         if (currentJob === 'prosecutor' || currentJob === 'judge') { renderFilesList(); }
         if (currentJob === 'prosecutor') { populateInvOpenCharges(); }
         if (currentJob === 'prosecutor') { populateIndictmentFileSelect(); }
@@ -1793,6 +1900,10 @@ window.addEventListener('message', function(event) {
         if (data.chargeList !== undefined) {
             chargeList = data.chargeList;
             populateReferralForm();
+        }
+        if (data.myReports !== undefined) {
+            myReports = data.myReports;
+            renderMyReports();
         }
         if (data.verdictFiles !== undefined) {
             verdictFiles = data.verdictFiles;

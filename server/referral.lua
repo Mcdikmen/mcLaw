@@ -124,6 +124,19 @@ RegisterNetEvent('mclaw:server:referral:submit', function(data)
         MySQL.insert('INSERT INTO mclaw_file_charges (file_id, charge_code) VALUES (?, ?)', { fileId, c.code })
     end
 
+    -- Insert evidence (optional)
+    local VALID_EVIDENCE_TYPES = { text = true, coordinate = true, item = true, screenshot = true }
+    if data.evidence and type(data.evidence) == 'table' then
+        for _, ev in ipairs(data.evidence) do
+            if VALID_EVIDENCE_TYPES[ev.type] and ev.content and #tostring(ev.content) > 0 then
+                MySQL.insert(
+                    'INSERT INTO mclaw_evidence (file_id, added_by, type, content, label) VALUES (?, ?, ?, ?, ?)',
+                    { fileId, officerCid, ev.type, tostring(ev.content):sub(1, 512), ev.label and tostring(ev.label):sub(1, 128) or nil }
+                )
+            end
+        end
+    end
+
     -- Create jail decision (pending)
     local jailDecisionId = MySQL.insert.await(
         'INSERT INTO mclaw_jail_decisions (suspect_citizenid, officer_citizenid, charges, proposed_jail_time, proposed_fine, file_id) VALUES (?, ?, ?, ?, ?, ?)',
@@ -275,4 +288,27 @@ lib.callback.register('mclaw:cb:referral:getChargeList', function(source)
         return list
     end
     return Config.Charges.list
+end)
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- mclaw:cb:referral:getMyReports
+-- Returns referral reports submitted by this officer, newest first.
+-- ─────────────────────────────────────────────────────────────────────────────
+lib.callback.register('mclaw:cb:referral:getMyReports', function(source)
+    local Player = exports.qbx_core:GetPlayer(source)
+    if not Player then return {} end
+    if Player.PlayerData.job.name ~= Config.Jobs.police then return {} end
+
+    local cid  = Player.PlayerData.citizenid
+    local rows = MySQL.query.await(
+        [[SELECT r.id, r.suspect_citizenid, r.narrative, r.status, r.created_at,
+                 f.file_number
+          FROM mclaw_referral_reports r
+          LEFT JOIN mclaw_files f ON f.id = r.file_id
+          WHERE r.officer_citizenid = ?
+          ORDER BY r.created_at DESC
+          LIMIT 50]],
+        { cid }
+    )
+    return rows or {}
 end)
