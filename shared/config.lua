@@ -78,7 +78,7 @@ Config.Compensation = {
 -- ─────────────────────────────────────────────
 Config.Webhook = {
     enabled    = true,
-    url        = '',
+    url        = 'https://discord.com/api/webhooks/1505654100438814761/0LaZydB70eJT4S2BeOnbCXJ2urimUpfcw9ovEVk_rg_Y_gw_nmz2KHy7-fICC8T-dyCN',
     serverName = 'mcLaw Server',
 
     roleMentions = {
@@ -193,16 +193,16 @@ Config.InvestigationNumber = {
 -- Add as many entries as you need — no code changes required.
 -- ─────────────────────────────────────────────
 Config.DocTypes = {
-    { value = 'petition',          label = 'Dilekçe',              jobs = { 'lawyer' } },
-    { value = 'motion',            label = 'Talep',                jobs = { 'lawyer' } },
-    { value = 'defense_brief',     label = 'Savunma Layihası',     jobs = { 'lawyer' } },
-    { value = 'prosecution_note',  label = 'Savcı Yazısı',         jobs = { 'prosecutor' } },
-    { value = 'indictment_detail', label = 'İddianame Eki',        jobs = { 'prosecutor' } },
-    { value = 'evidence_summary',  label = 'Delil Özeti',          jobs = { 'prosecutor' } },
-    { value = 'judge_order',       label = 'Hakim Kararı',         jobs = { 'judge' } },
-    { value = 'court_note',        label = 'Mahkeme Notu',         jobs = { 'judge' } },
-    { value = 'interim_ruling',    label = 'Ara Karar',            jobs = { 'judge' } },
-    { value = 'police_report',     label = 'Polis Raporu',         jobs = { 'police' } },
+    { value = 'petition',          label = 'Petition',             jobs = { 'lawyer' } },
+    { value = 'motion',            label = 'Motion',               jobs = { 'lawyer' } },
+    { value = 'defense_brief',     label = 'Defense Brief',        jobs = { 'lawyer' } },
+    { value = 'prosecution_note',  label = 'Prosecution Note',     jobs = { 'prosecutor' } },
+    { value = 'indictment_detail', label = 'Indictment Attachment',jobs = { 'prosecutor' } },
+    { value = 'evidence_summary',  label = 'Evidence Summary',     jobs = { 'prosecutor' } },
+    { value = 'judge_order',       label = 'Judge Order',          jobs = { 'judge' } },
+    { value = 'court_note',        label = 'Court Note',           jobs = { 'judge' } },
+    { value = 'interim_ruling',    label = 'Interim Ruling',       jobs = { 'judge' } },
+    { value = 'police_report',     label = 'Police Report',        jobs = { 'police' } },
 }
 
 -- ─────────────────────────────────────────────
@@ -221,7 +221,7 @@ Config.Charges = {
     list = {
         {
             code     = 'armed_assault',
-            label    = 'Silahlı Saldırı',
+            label    = 'Armed Assault',
             category = 'violence',
             jailTime = 60,
             fine     = 5000,
@@ -229,7 +229,7 @@ Config.Charges = {
         },
         {
             code     = 'theft',
-            label    = 'Hırsızlık',
+            label    = 'Theft',
             category = 'property',
             jailTime = 20,
             fine     = 2000,
@@ -237,7 +237,7 @@ Config.Charges = {
         },
         {
             code     = 'drug_possession',
-            label    = 'Uyuşturucu Bulundurma',
+            label    = 'Drug Possession',
             category = 'drug',
             jailTime = 30,
             fine     = 3000,
@@ -245,7 +245,7 @@ Config.Charges = {
         },
         {
             code     = 'speeding',
-            label    = 'Hız İhlali',
+            label    = 'Speeding',
             category = 'traffic',
             jailTime = 0,
             fine     = 500,

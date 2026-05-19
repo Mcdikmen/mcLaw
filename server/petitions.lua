@@ -24,21 +24,21 @@ RegisterNetEvent('mclaw:server:lawyer:sendPetition', function(data)
     if not P or P.PlayerData.job.name ~= Config.Jobs.lawyer then return end
 
     if not data.petitionType or not data.plaintiffCid or not data.subject or not data.description then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Eksik veri.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Missing data.' })
         return
     end
     if #data.subject < 3 then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Konu çok kısa.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Subject too short.' })
         return
     end
     if #data.description < 10 then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Açıklama çok kısa.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Description too short.' })
         return
     end
 
     local plaintiffExists = MySQL.scalar.await('SELECT COUNT(*) FROM players WHERE citizenid = ?', { data.plaintiffCid })
     if not plaintiffExists or plaintiffExists == 0 then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Geçersiz müvekkil kimlik numarası.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Invalid client citizen ID.' })
         return
     end
 
@@ -48,15 +48,14 @@ RegisterNetEvent('mclaw:server:lawyer:sendPetition', function(data)
     elseif data.petitionType == 'civil' then
         recipientJob = Config.Jobs.judge
     else
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Geçersiz dilekçe türü.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Invalid petition type.' })
         return
     end
 
-    -- Ceza davası için en az bir suç gerekli
     local chargesJson = nil
     if data.petitionType == 'criminal' then
         if not data.charges or #data.charges == 0 then
-            TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Ceza davası için en az bir suç seçin.' })
+            TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Select at least one charge for a criminal case.' })
             return
         end
         chargesJson = json.encode(data.charges)
@@ -80,21 +79,20 @@ RegisterNetEvent('mclaw:server:lawyer:sendPetition', function(data)
         { data.petitionType, cid, data.plaintiffCid, recipientJob, chargesJson, data.subject, data.description, attachmentsJson }
     )
 
-    local typeLabel = data.petitionType == 'criminal' and 'Ceza davası' or 'Hukuk davası'
+    local typeLabel = data.petitionType == 'criminal' and 'Criminal case' or 'Civil case'
     TriggerClientEvent('ox_lib:notify', src, {
         type        = 'success',
-        title       = 'Dilekçe Gönderildi',
-        description = typeLabel .. ' dilekçesi ' .. (data.petitionType == 'criminal' and 'Savcılığa' or 'Hakime') .. ' iletildi.',
+        title       = 'Petition Submitted',
+        description = typeLabel .. ' petition forwarded to ' .. (data.petitionType == 'criminal' and 'Prosecution.' or 'Judge.'),
     })
 
-    -- Online alıcılara bildirim
     for _, pid in ipairs(GetPlayers()) do
         local RP = exports.qbx_core:GetPlayer(tonumber(pid))
         if RP and RP.PlayerData.job.name == recipientJob then
             TriggerClientEvent('mclaw:client:notification:push', tonumber(pid), {
                 type        = 'inform',
-                title       = 'Yeni Dilekçe',
-                description = 'Avukat tarafından yeni bir ' .. typeLabel:lower() .. ' dilekçesi gönderildi.',
+                title       = 'New Petition',
+                description = 'A new ' .. typeLabel:lower() .. ' petition has been submitted by a lawyer.',
             })
         end
     end
@@ -245,11 +243,11 @@ RegisterNetEvent('mclaw:server:prosecutor:acceptPetition', function(data)
         { data.petitionId }
     )
     if not petition then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Dilekçe bulunamadı.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Petition not found.' })
         return
     end
 
-    -- Soruşturma numarası üret (SRS-YYYY-NNNNN)
+    -- Generate investigation number (SRS-YYYY-NNNNN)
     local year = tonumber(os.date('%Y'))
     local invCount = MySQL.scalar.await(
         "SELECT COUNT(*) FROM mclaw_files WHERE type = 'investigation' AND YEAR(created_at) = ?", { year }
@@ -275,10 +273,9 @@ RegisterNetEvent('mclaw:server:prosecutor:acceptPetition', function(data)
     -- Açılış logu
     MySQL.insert(
         "INSERT INTO mclaw_file_open_logs (file_id, action, actioned_by_citizenid, actioned_by_job, notes) VALUES (?, 'opened', ?, ?, ?)",
-        { fileId, cid, Config.Jobs.prosecutor, 'Avukat dilekçesinden soruşturma açıldı.' }
+        { fileId, cid, Config.Jobs.prosecutor, 'Investigation opened from lawyer petition.' }
     )
 
-    -- Dilekçeyi güncelle
     MySQL.update(
         "UPDATE mclaw_petitions SET status = 'accepted', file_id = ?, updated_at = NOW() WHERE id = ?",
         { fileId, petition.id }
@@ -286,17 +283,16 @@ RegisterNetEvent('mclaw:server:prosecutor:acceptPetition', function(data)
 
     TriggerClientEvent('ox_lib:notify', src, {
         type        = 'success',
-        title       = 'Soruşturma Açıldı',
-        description = fileNumber .. ' numaralı soruşturma başlatıldı.',
+        title       = 'Investigation Opened',
+        description = fileNumber .. ' investigation has been started.',
     })
 
-    -- Avukata bildir
     local attorneySrc = findSource(petition.attorney_citizenid)
     if attorneySrc then
         TriggerClientEvent('mclaw:client:notification:push', attorneySrc, {
             type        = 'success',
-            title       = 'Dilekçeniz Kabul Edildi',
-            description = 'Savcılık ' .. fileNumber .. ' numaralı soruşturmayı açtı.',
+            title       = 'Petition Accepted',
+            description = 'Prosecution has opened investigation ' .. fileNumber .. '.',
         })
     end
 end)
@@ -314,7 +310,7 @@ RegisterNetEvent('mclaw:server:prosecutor:rejectPetition', function(data)
         { data.petitionId }
     )
     if not petition then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Dilekçe bulunamadı.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Petition not found.' })
         return
     end
 
@@ -323,15 +319,15 @@ RegisterNetEvent('mclaw:server:prosecutor:rejectPetition', function(data)
         { data.reason or nil, petition.id }
     )
 
-    TriggerClientEvent('ox_lib:notify', src, { type = 'inform', description = 'Dilekçe reddedildi.' })
+    TriggerClientEvent('ox_lib:notify', src, { type = 'inform', description = 'Petition rejected.' })
 
     local attorneySrc = findSource(petition.attorney_citizenid)
     if attorneySrc then
-        local reason = (data.reason and data.reason ~= '') and (' Gerekçe: ' .. data.reason) or ''
+        local reason = (data.reason and data.reason ~= '') and (' Reason: ' .. data.reason) or ''
         TriggerClientEvent('mclaw:client:notification:push', attorneySrc, {
             type        = 'error',
-            title       = 'Dilekçeniz Reddedildi',
-            description = 'Savcılık dilekçenizi reddetti.' .. reason,
+            title       = 'Petition Rejected',
+            description = 'Prosecution has rejected your petition.' .. reason,
         })
     end
 end)
@@ -351,7 +347,7 @@ RegisterNetEvent('mclaw:server:judge:acceptCivilPetition', function(data)
         { data.petitionId }
     )
     if not petition then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Dilekçe bulunamadı.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Petition not found.' })
         return
     end
 
@@ -366,7 +362,7 @@ RegisterNetEvent('mclaw:server:judge:acceptCivilPetition', function(data)
 
     MySQL.insert(
         "INSERT INTO mclaw_file_open_logs (file_id, action, actioned_by_citizenid, actioned_by_job, notes) VALUES (?, 'opened', ?, ?, ?)",
-        { fileId, cid, Config.Jobs.judge, 'Avukat hukuk dilekçesinden dava açıldı: ' .. petition.subject }
+        { fileId, cid, Config.Jobs.judge, 'Civil case opened from lawyer petition: ' .. petition.subject }
     )
 
     MySQL.update(
@@ -376,16 +372,16 @@ RegisterNetEvent('mclaw:server:judge:acceptCivilPetition', function(data)
 
     TriggerClientEvent('ox_lib:notify', src, {
         type        = 'success',
-        title       = 'Hukuk Davası Açıldı',
-        description = fileNumber .. ' numaralı dava oluşturuldu.',
+        title       = 'Civil Case Opened',
+        description = 'Case ' .. fileNumber .. ' has been created.',
     })
 
     local attorneySrc = findSource(petition.attorney_citizenid)
     if attorneySrc then
         TriggerClientEvent('mclaw:client:notification:push', attorneySrc, {
             type        = 'success',
-            title       = 'Dilekçeniz Kabul Edildi',
-            description = 'Hakim ' .. fileNumber .. ' numaralı hukuk davasını açtı.',
+            title       = 'Petition Accepted',
+            description = 'Judge has opened civil case ' .. fileNumber .. '.',
         })
     end
 end)
@@ -403,7 +399,7 @@ RegisterNetEvent('mclaw:server:judge:rejectCivilPetition', function(data)
         { data.petitionId }
     )
     if not petition then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Dilekçe bulunamadı.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Petition not found.' })
         return
     end
 
@@ -412,15 +408,15 @@ RegisterNetEvent('mclaw:server:judge:rejectCivilPetition', function(data)
         { data.reason or nil, petition.id }
     )
 
-    TriggerClientEvent('ox_lib:notify', src, { type = 'inform', description = 'Dilekçe reddedildi.' })
+    TriggerClientEvent('ox_lib:notify', src, { type = 'inform', description = 'Petition rejected.' })
 
     local attorneySrc = findSource(petition.attorney_citizenid)
     if attorneySrc then
-        local reason = (data.reason and data.reason ~= '') and (' Gerekçe: ' .. data.reason) or ''
+        local reason = (data.reason and data.reason ~= '') and (' Reason: ' .. data.reason) or ''
         TriggerClientEvent('mclaw:client:notification:push', attorneySrc, {
             type        = 'error',
-            title       = 'Dilekçeniz Reddedildi',
-            description = 'Hakim dilekçenizi reddetti.' .. reason,
+            title       = 'Petition Rejected',
+            description = 'Judge has rejected your petition.' .. reason,
         })
     end
 end)

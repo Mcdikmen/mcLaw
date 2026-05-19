@@ -45,24 +45,24 @@ RegisterNetEvent('mclaw:server:fileopening:openFile', function(data)
         'SELECT COUNT(*) FROM players WHERE citizenid = ?', { data.suspectCid }
     )
     if not suspectExists or suspectExists == 0 then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Geçersiz şüpheli kimlik numarası.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Invalid suspect citizen ID.' })
         return
     end
 
     if not data.charges or #data.charges == 0 then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'En az bir suç seçilmelidir.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'At least one charge must be selected.' })
         return
     end
 
     for _, c in ipairs(data.charges) do
         if not Mclaw.GetChargeByCode(c.code) then
-            TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Geçersiz suç kodu: ' .. tostring(c.code) })
+            TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Invalid charge code: ' .. tostring(c.code) })
             return
         end
     end
 
     if not data.narrative or #data.narrative < 10 then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Anlatı en az 10 karakter olmalıdır.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Narrative must be at least 10 characters.' })
         return
     end
 
@@ -89,10 +89,10 @@ RegisterNetEvent('mclaw:server:fileopening:openFile', function(data)
         { fileId, 'opened', cid, job, data.narrative }
     )
 
-    local statusNote = fileStatus == 'pending_approval' and ' — Hakim onayı bekleniyor.' or ' — Dosya açıldı.'
+    local statusNote = fileStatus == 'pending_approval' and ' — Pending judge approval.' or ' — File opened.'
     TriggerClientEvent('ox_lib:notify', src, {
         type        = 'success',
-        title       = 'Dosya Oluşturuldu',
+        title       = 'File Created',
         description = fileNumber .. statusNote,
     })
 
@@ -103,12 +103,12 @@ RegisterNetEvent('mclaw:server:fileopening:openFile', function(data)
             if JP and JP.PlayerData.job.name == Config.Jobs.judge then
                 TriggerClientEvent('mclaw:client:notification:push', tonumber(pid), {
                     type        = 'inform',
-                    title       = 'Dosya Onay Bekliyor',
-                    description = fileNumber .. ' numaralı dosya onayınızı bekliyor.',
+                    title       = 'File Pending Approval',
+                    description = fileNumber .. ' is pending your approval.',
                 })
                 MySQL.insert(
                     'INSERT INTO mclaw_notifications (citizenid, type, title, message, ref_type, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
-                    { JP.PlayerData.citizenid, 'hearing', 'Dosya Onay Bekliyor', fileNumber .. ' numaralı dosya onayınızı bekliyor.', 'file', fileId }
+                    { JP.PlayerData.citizenid, 'hearing', 'File Pending Approval', fileNumber .. ' is pending your approval.', 'file', fileId }
                 )
             end
         end
@@ -183,7 +183,7 @@ RegisterNetEvent('mclaw:server:judge:approveFile', function(data)
         { data.fileId }
     )
     if not file then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Dosya bulunamadı veya onay için uygun değil.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'File not found or not eligible for approval.' })
         return
     end
 
@@ -198,8 +198,8 @@ RegisterNetEvent('mclaw:server:judge:approveFile', function(data)
 
     TriggerClientEvent('ox_lib:notify', src, {
         type        = 'success',
-        title       = 'Dosya Onaylandı',
-        description = file.file_number .. ' numaralı dosya onaylandı ve açıldı.',
+        title       = 'File Approved',
+        description = file.file_number .. ' has been approved and opened.',
     })
 
     -- Notify opener
@@ -208,13 +208,13 @@ RegisterNetEvent('mclaw:server:judge:approveFile', function(data)
         if openerSrc then
             TriggerClientEvent('mclaw:client:notification:push', openerSrc, {
                 type        = 'success',
-                title       = 'Dosyanız Onaylandı',
-                description = file.file_number .. ' numaralı dosyanız hakim tarafından onaylandı.',
+                title       = 'Your File Was Approved',
+                description = file.file_number .. ' has been approved by the judge.',
             })
         end
         MySQL.insert(
             'INSERT INTO mclaw_notifications (citizenid, type, title, message, ref_type, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
-            { file.opened_by_citizenid, 'hearing', 'Dosyanız Onaylandı', file.file_number .. ' numaralı dosyanız hakim tarafından onaylandı.', 'file', data.fileId }
+            { file.opened_by_citizenid, 'hearing', 'Your File Was Approved', file.file_number .. ' has been approved by the judge.', 'file', data.fileId }
         )
     end
 end)
@@ -236,7 +236,7 @@ RegisterNetEvent('mclaw:server:judge:rejectFile', function(data)
         { data.fileId }
     )
     if not file then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Dosya bulunamadı veya onay için uygun değil.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'File not found or not eligible for rejection.' })
         return
     end
 
@@ -251,23 +251,23 @@ RegisterNetEvent('mclaw:server:judge:rejectFile', function(data)
 
     TriggerClientEvent('ox_lib:notify', src, {
         type        = 'inform',
-        title       = 'Dosya Reddedildi',
-        description = file.file_number .. ' numaralı dosya reddedildi.',
+        title       = 'File Rejected',
+        description = file.file_number .. ' has been rejected.',
     })
 
     if file.opened_by_citizenid then
-        local reason = (data.reason and data.reason ~= '') and (' Gerekçe: ' .. data.reason) or ''
+        local reason = (data.reason and data.reason ~= '') and (' Reason: ' .. data.reason) or ''
         local openerSrc = findSource(file.opened_by_citizenid)
         if openerSrc then
             TriggerClientEvent('mclaw:client:notification:push', openerSrc, {
                 type        = 'error',
-                title       = 'Dosyanız Reddedildi',
-                description = file.file_number .. ' numaralı dosyanız hakim tarafından reddedildi.' .. reason,
+                title       = 'Your File Was Rejected',
+                description = file.file_number .. ' has been rejected by the judge.' .. reason,
             })
         end
         MySQL.insert(
             'INSERT INTO mclaw_notifications (citizenid, type, title, message, ref_type, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
-            { file.opened_by_citizenid, 'hearing', 'Dosyanız Reddedildi', file.file_number .. ' numaralı dosyanız hakim tarafından reddedildi.' .. reason, 'file', data.fileId }
+            { file.opened_by_citizenid, 'hearing', 'Your File Was Rejected', file.file_number .. ' has been rejected by the judge.' .. reason, 'file', data.fileId }
         )
     end
 end)
