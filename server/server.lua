@@ -11,6 +11,10 @@ AddEventHandler('onResourceStart', function(resource)
     local current = GetResourceMetadata(resource, 'version', 0) or 'unknown'
 
     PerformHttpRequest(GITHUB_API, function(status, body)
+        if status == 404 then
+            print('^3[mcLaw] v' .. current .. ' — no releases found on GitHub yet.^7')
+            return
+        end
         if status ~= 200 or not body then
             print('^3[mcLaw] Version check failed (HTTP ' .. tostring(status) .. ').^7')
             return
