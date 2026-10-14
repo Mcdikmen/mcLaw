@@ -168,10 +168,14 @@ RegisterNetEvent('mclaw:server:referral:submit', function(data)
         proposedFine   = sentence.fine,
     }
 
-    -- Send jail panel to suspect if online
+    -- Plea panel only when the suspect is right next to the officer. Otherwise the
+    -- officer arrests them first and opens it with /suclamaac.
     local suspectSrc = findSource(suspectCid)
     if suspectSrc then
-        TriggerClientEvent('mclaw:client:jail:showPanel', suspectSrc, panelData)
+        local near = #(GetEntityCoords(GetPlayerPed(src)) - GetEntityCoords(GetPlayerPed(suspectSrc))) <= (Config.Jail.panelDistance or 10.0)
+        if near then
+            TriggerClientEvent('mclaw:client:jail:showPanel', suspectSrc, panelData)
+        end
     end
 
     -- Auto-accept timeout (server-side enforcement)

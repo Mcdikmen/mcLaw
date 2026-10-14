@@ -136,6 +136,8 @@ Mclaw.Locale = {
     err_prison_no_sentence             = 'Bu kişi için infaz bekleyen hüküm yok.',
     err_prison_not_at_intake           = 'Hükümlüyü hapishane girişinde teslim etmelisiniz.',
     err_prison_not_cuffed              = 'Hükümlü kelepçeli olmalıdır.',
+    err_jail_no_pending                = 'Bu kişi için bekleyen suçlama kararı yok.',
+    jail_panel_opened                  = 'Suçlama penceresi şüpheliye açıldı.',
 
     -- ── Log messages (stored in DB) ───────────────────────────────────────────
     log_investigation_from_petition    = 'Avukat dilekçesi üzerine soruşturma açıldı.',

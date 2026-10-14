@@ -77,17 +77,12 @@ RegisterNetEvent('mclaw:server:jail:submitDecision', function(data)
 end)
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- mclaw:server:jail:checkPending
--- Called by the client on spawn. If the player has a pending jail decision,
--- the panel is re-sent so they cannot permanently dismiss it.
+-- Pending plea panel
+-- The accept/contest panel is shown to the suspect only when a police officer
+-- is with them (referral submitted next to the suspect, or the officer runs
+-- /suclamaac after arresting them). Nothing pops up remotely.
 -- ─────────────────────────────────────────────────────────────────────────────
-RegisterNetEvent('mclaw:server:jail:checkPending', function()
-    local src    = source
-    local Player = Mclaw.GetPlayer(src)
-    if not Player or not Config.Jail.reopenOnSpawn then return end
-
-    local citizenid = Player.PlayerData.citizenid
-
+local function sendPendingPanel(targetSrc, citizenid)
     local pending = MySQL.single.await(
         [[SELECT jd.id, jd.charges, jd.proposed_jail_time, jd.proposed_fine, f.file_number
           FROM mclaw_jail_decisions jd
@@ -96,8 +91,7 @@ RegisterNetEvent('mclaw:server:jail:checkPending', function()
           ORDER BY jd.created_at DESC LIMIT 1]],
         { citizenid }
     )
-
-    if not pending then return end
+    if not pending then return false end
 
     local charges = json.decode(pending.charges) or {}
     local chargeLabels = {}
@@ -106,33 +100,42 @@ RegisterNetEvent('mclaw:server:jail:checkPending', function()
         table.insert(chargeLabels, def and def.label or c.code)
     end
 
-    TriggerClientEvent('mclaw:client:jail:showPanel', src, {
+    TriggerClientEvent('mclaw:client:jail:showPanel', targetSrc, {
         jailDecisionId = pending.id,
         fileNumber     = pending.file_number,
         charges        = chargeLabels,
         proposedJail   = pending.proposed_jail_time,
         proposedFine   = pending.proposed_fine,
     })
-end)
+    return true
+end
 
--- ─────────────────────────────────────────────────────────────────────────────
--- mclaw:server:jail:openPanel
--- Police manually re-sends the jail panel to a suspect (e.g. after booking).
---
--- data.suspectCitizenid  (string)  target player's citizenid
--- data  (table)          same shape as panelData sent to mclaw:client:jail:showPanel
--- ─────────────────────────────────────────────────────────────────────────────
-RegisterNetEvent('mclaw:server:jail:openPanel', function(data)
+-- Re-show on login only if explicitly enabled (off by default).
+RegisterNetEvent('mclaw:server:jail:checkPending', function()
     local src    = source
     local Player = Mclaw.GetPlayer(src)
-    if not Player then return end
-    if Mclaw.GetRole(Player) ~= Config.Jobs.police then return end
-
-    local targetSrc = findOnlineSource(data.suspectCitizenid)
-    if not targetSrc then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Şüpheli çevrimiçi değil.' })
-        return
-    end
-
-    TriggerClientEvent('mclaw:client:jail:showPanel', targetSrc, data)
+    if not Player or not Config.Jail.reopenOnSpawn then return end
+    sendPendingPanel(src, Player.PlayerData.citizenid)
 end)
+
+-- Police opens the plea panel for the nearest suspect (/suclamaac).
+RegisterNetEvent('mclaw:server:jail:openForTarget', function(targetId)
+    local src     = source
+    targetId      = tonumber(targetId)
+    local officer = Mclaw.GetPlayer(src)
+    local target  = targetId and Mclaw.GetPlayer(targetId)
+    if not officer or Mclaw.GetRole(officer) ~= Config.Jobs.police then return end
+    if not target then
+        return TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_prison_no_target') })
+    end
+    if #(GetEntityCoords(GetPlayerPed(src)) - GetEntityCoords(GetPlayerPed(targetId))) > 4.0 then
+        return TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_prison_too_far') })
+    end
+    if not sendPendingPanel(targetId, target.PlayerData.citizenid) then
+        return TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_jail_no_pending') })
+    end
+    TriggerClientEvent('ox_lib:notify', src, { type = 'success', description = Mclaw.T('jail_panel_opened') })
+end)
+
+-- Used by referral.lua right after a report is filed.
+Mclaw.SendPendingPanel = sendPendingPanel

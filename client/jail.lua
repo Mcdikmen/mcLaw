@@ -74,3 +74,13 @@ end
 
 AddEventHandler('QBCore:Client:OnPlayerLoaded', checkPendingOnSpawn)
 
+
+-- /suclamaac : police — open the accept/contest panel for the nearest arrested suspect
+RegisterCommand(Config.Jail.openCommand, function()
+    local playerId = lib.getClosestPlayer(GetEntityCoords(cache.ped), 4.0, false)
+    if not playerId then
+        lib.notify({ type = 'error', description = Mclaw.T('err_prison_no_target') })
+        return
+    end
+    TriggerServerEvent('mclaw:server:jail:openForTarget', GetPlayerServerId(playerId))
+end, false)

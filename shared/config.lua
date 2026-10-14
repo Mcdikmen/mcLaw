@@ -78,7 +78,9 @@ Config.Jobs = {
 -- ─────────────────────────────────────────────
 Config.Jail = {
     autoAcceptTimeout  = 0,
-    reopenOnSpawn      = true,
+    reopenOnSpawn      = false, -- plea panel is opened by police (nearby or /suclamaac), not on login
+    panelDistance      = 10.0,  -- max distance (m) officer-suspect for the panel to open right after the report
+    openCommand        = 'suclamaac',
     reportWithdrawTime = 300,
 }
 
