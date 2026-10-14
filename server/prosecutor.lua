@@ -255,7 +255,7 @@ RegisterNetEvent('mclaw:server:judge:acceptCase', function(data)
 
     local cid  = P.PlayerData.citizenid
     local file = MySQL.single.await(
-        "SELECT id, file_number, prosecutor_citizenid FROM mclaw_files WHERE id = ? AND status = 'indictment_ready' AND deleted_at IS NULL",
+        "SELECT id, file_number, prosecutor_citizenid FROM mclaw_files WHERE id = ? AND status IN ('indictment_ready','written_trial_active') AND deleted_at IS NULL",
         { data.fileId }
     )
     if not file then

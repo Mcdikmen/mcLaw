@@ -354,7 +354,7 @@ function renderFilesList() {
             }(file.id));
             card.appendChild(btn);
         }
-        if (currentJob === 'judge' && file.status === 'indictment_ready') {
+        if (currentJob === 'judge' && (file.status === 'indictment_ready' || file.status === 'written_trial_active')) {
             // Trigger button
             var acceptTrigger = document.createElement('div');
             acceptTrigger.className = 'approval-actions';
@@ -896,7 +896,7 @@ function renderFileDetail(file) {
     }
 
     // ── Schedule hearing (judge, when file is indictment_ready)
-    if (currentJob === 'judge' && file.status === 'indictment_ready') {
+    if (currentJob === 'judge' && (file.status === 'indictment_ready' || file.status === 'written_trial_active')) {
         var hearingSection = mkSection('Duruşma Planla');
         var hb2 = hearingSection.querySelector('.detail-section-body');
         hb2.style.padding = '0';
