@@ -167,6 +167,7 @@ function Mclaw.BraceletDueFor(citizenid, reason)
     MySQL.update.await("UPDATE mclaw_bracelets SET status = 'removal_due', removal_reason = ? WHERE id = ?", { reason, b.id })
     local name = Mclaw.GetCharName(citizenid) or citizenid
     notifyDutyPolice('inform', Mclaw.T('bracelet_removal_due', name, b.file_number or '-', reason))
+    Mclaw.NotifyCitizen(citizenid, 'subpoena', Mclaw.T('suspect_bracelet_title'), Mclaw.T('suspect_bracelet_due', b.file_number or '-'))
 end
 
 -- Remove outright (the wearer goes to prison, the bracelet is no longer relevant).

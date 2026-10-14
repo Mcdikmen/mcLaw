@@ -292,6 +292,7 @@ RegisterNetEvent('mclaw:server:judge:closeFile', function(data)
     )
 
     pcall(Mclaw.BraceletDueFor, file.suspect_citizenid, Mclaw.T('notify_file_closed_title'))
+    Mclaw.NotifyCitizen(file.suspect_citizenid, 'verdict', Mclaw.T('notify_file_closed_title'), Mclaw.T('notify_file_closed_desc', file.file_number))
 
     local reasonSuffix = (data.reason and data.reason ~= '') and Mclaw.T('notify_file_closed_reason', data.reason) or ''
     local msg = Mclaw.T('notify_file_closed_desc', file.file_number) .. reasonSuffix

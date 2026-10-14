@@ -182,7 +182,7 @@ RegisterNetEvent('mclaw:server:prosecutor:submitIndictment', function(data)
 
     local cid  = P.PlayerData.citizenid
     local file = MySQL.single.await(
-        'SELECT id, file_number, status, judge_citizenid FROM mclaw_files WHERE id = ? AND prosecutor_citizenid = ? AND deleted_at IS NULL',
+        'SELECT id, file_number, status, judge_citizenid, suspect_citizenid FROM mclaw_files WHERE id = ? AND prosecutor_citizenid = ? AND deleted_at IS NULL',
         { data.fileId, cid }
     )
 
@@ -219,6 +219,9 @@ RegisterNetEvent('mclaw:server:prosecutor:submitIndictment', function(data)
         title       = Mclaw.T('notify_indictment_prepared_title'),
         description = Mclaw.T('notify_indictment_prepared_desc', file.file_number),
     })
+
+    Mclaw.NotifyCitizen(file.suspect_citizenid, 'hearing', Mclaw.T('suspect_indictment_title'),
+        Mclaw.T('suspect_indictment_desc', file.file_number))
 
     if file.judge_citizenid then
         MySQL.insert(
@@ -263,7 +266,7 @@ RegisterNetEvent('mclaw:server:judge:acceptCase', function(data)
 
     local cid  = P.PlayerData.citizenid
     local file = MySQL.single.await(
-        "SELECT id, file_number, prosecutor_citizenid FROM mclaw_files WHERE id = ? AND status IN ('indictment_ready','written_trial_active') AND deleted_at IS NULL",
+        "SELECT id, file_number, prosecutor_citizenid, suspect_citizenid FROM mclaw_files WHERE id = ? AND status IN ('indictment_ready','written_trial_active') AND deleted_at IS NULL",
         { data.fileId }
     )
     if not file then
@@ -286,6 +289,8 @@ RegisterNetEvent('mclaw:server:judge:acceptCase', function(data)
     )
 
     local typeLabel = hearingType == 'written' and Mclaw.T('hearing_type_written') or Mclaw.T('hearing_type_physical')
+    Mclaw.NotifyCitizen(file.suspect_citizenid, 'hearing', Mclaw.T('suspect_hearing_title'),
+        Mclaw.T('suspect_hearing_desc', file.file_number, typeLabel, scheduledAt))
     Mclaw.Notify(src, { position = Config.NotifyPosition,
         type        = 'success',
         title       = Mclaw.T('notify_hearing_scheduled_title'),
@@ -341,9 +346,6 @@ RegisterNetEvent('mclaw:server:prosecutor:dropCase', function(data)
     )
 
     Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'success', description = Mclaw.T('drop_ok') })
-    local suspect = Mclaw.GetPlayer(file.suspect_citizenid)
-    if suspect then
-        Mclaw.Notify(suspect.PlayerData.source, { position = Config.NotifyPosition, type = 'inform', description = Mclaw.T('drop_notify_suspect', file.file_number) })
-    end
+    Mclaw.NotifyCitizen(file.suspect_citizenid, 'verdict', Mclaw.T('suspect_drop_title'), Mclaw.T('drop_notify_suspect', file.file_number))
     pcall(Mclaw.BraceletDueFor, file.suspect_citizenid, 'Takipsizlik')
 end)

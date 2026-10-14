@@ -27,10 +27,7 @@ function Mclaw.CreateSentence(fileId, citizenid, minutes, fine, origin, reason)
         { fileId, citizenid, minutes, fine, origin or 'verdict', reason }
     )
 
-    local convict = Mclaw.GetPlayer(citizenid)
-    if convict then
-        notify(convict.PlayerData.source, 'inform', Mclaw.T('sentence_pending_convict', minutes, fine))
-    end
+    Mclaw.NotifyCitizen(citizenid, 'verdict', Mclaw.T('suspect_sentence_title'), Mclaw.T('sentence_pending_convict', minutes, fine))
     for _, pid in ipairs(GetPlayers()) do
         local P = Mclaw.GetPlayer(tonumber(pid))
         if isOnDutyPolice(P) then

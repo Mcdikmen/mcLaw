@@ -257,13 +257,7 @@ RegisterNetEvent('mclaw:server:referral:startInvestigation', function(reportId)
         type = 'success', title = Mclaw.T('start_ok_title'),
         description = Mclaw.T('start_ok_officer', file.file_number),
     })
-    local suspect = Mclaw.GetPlayer(file.suspect_citizenid)
-    if suspect then
-        Mclaw.Notify(suspect.PlayerData.source, { position = Config.NotifyPosition,
-            type = 'inform', title = Mclaw.T('start_ok_title'),
-            description = Mclaw.T('start_ok_suspect', file.file_number),
-        })
-    end
+    Mclaw.NotifyCitizen(file.suspect_citizenid, 'subpoena', Mclaw.T('start_ok_title'), Mclaw.T('start_ok_suspect', file.file_number))
 
     if prosecutorCid then
         MySQL.insert(

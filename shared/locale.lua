@@ -194,6 +194,16 @@ Mclaw.Locale = {
     drop_ok                            = 'Takipsizlik kararı verildi ve dosya kapatıldı.',
     drop_notify_suspect                = '%s numaralı soruşturmada takipsizlik kararı verildi. Bilekliğiniz varsa çıkarılacaktır.',
 
+    -- ── Notices to the suspect / convict ──────────────────────────────────────
+    suspect_indictment_title           = 'İddianame Düzenlendi',
+    suspect_indictment_desc            = '%s numaralı soruşturmanızda iddianame düzenlendi. Hakim duruşma tarihini belirleyecek.',
+    suspect_hearing_title              = 'Duruşma Planlandı',
+    suspect_hearing_desc               = '%s numaralı dosyanız için duruşma planlandı: %s — %s',
+    suspect_drop_title                 = 'Takipsizlik Kararı',
+    suspect_sentence_title             = 'Hüküm Kesinleşti',
+    suspect_bracelet_title             = 'Bileklik',
+    suspect_bracelet_due               = '%s numaralı soruşturmanız sona erdi. Bilekliğinizin çıkarılması için MRPD bileklik noktasında bir polis memuruna başvurun.',
+
     -- ── Log messages (stored in DB) ───────────────────────────────────────────
     log_investigation_from_petition    = 'Avukat dilekçesi üzerine soruşturma açıldı.',
     log_civil_from_petition            = 'Avukat dilekçesi üzerine hukuk davası açıldı: %s',

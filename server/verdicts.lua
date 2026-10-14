@@ -168,18 +168,10 @@ RegisterNetEvent('mclaw:server:judge:issueVerdict', function(data)
         notifyByCid(file.prosecutor_citizenid, notifPayload)
     end
 
-    -- Notify suspect
+    -- Notify suspect (online: now; offline: stored and delivered at login)
     if file.suspect_citizenid then
-        local suspectMsg = Mclaw.T('notify_verdict_suspect_desc', file.file_number, resultLabel)
-        MySQL.insert(
-            'INSERT INTO mclaw_notifications (citizenid, type, title, message, ref_type, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
-            { file.suspect_citizenid, 'verdict', Mclaw.T('notify_verdict_suspect_title'), suspectMsg, 'file', data.fileId }
-        )
-        notifyByCid(file.suspect_citizenid, {
-            type        = 'inform',
-            title       = Mclaw.T('notify_verdict_suspect_title'),
-            description = suspectMsg,
-        })
+        Mclaw.NotifyCitizen(file.suspect_citizenid, 'verdict', Mclaw.T('notify_verdict_suspect_title'),
+            Mclaw.T('notify_verdict_suspect_desc', file.file_number, resultLabel))
     end
 
     if data.result == 'acquitted' or data.result == 'dismissed' then
