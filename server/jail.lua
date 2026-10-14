@@ -26,7 +26,7 @@ RegisterNetEvent('mclaw:server:jail:submitDecision', function(data)
     local citizenid = Player.PlayerData.citizenid
 
     local decision = MySQL.single.await(
-        "SELECT id, file_id, proposed_jail_time, proposed_fine FROM mclaw_jail_decisions WHERE id = ? AND suspect_citizenid = ? AND decision = 'pending'",
+        "SELECT id, file_id, officer_citizenid, proposed_jail_time, proposed_fine FROM mclaw_jail_decisions WHERE id = ? AND suspect_citizenid = ? AND decision = 'pending'",
         { data.jailDecisionId, citizenid }
     )
 
@@ -40,14 +40,12 @@ RegisterNetEvent('mclaw:server:jail:submitDecision', function(data)
             "UPDATE mclaw_jail_decisions SET decision = 'accepted', decided_at = NOW() WHERE id = ?",
             { data.jailDecisionId }
         )
-        if decision.file_id then
-            MySQL.update(
-                "UPDATE mclaw_files SET status = 'closed', closed_at = NOW() WHERE id = ?",
-                { decision.file_id }
-            )
+        -- The file is opened now (after the decision) and closed right away: accepted.
+        local fileId, fileNumber = Mclaw.CreateReferralFile(decision.id)
+        if fileId then
+            MySQL.update("UPDATE mclaw_files SET status = 'closed', closed_at = NOW() WHERE id = ?", { fileId })
         end
-        local fileNumber = decision.file_id and MySQL.scalar.await('SELECT file_number FROM mclaw_files WHERE id = ?', { decision.file_id })
-        Mclaw.CreateSentence(decision.file_id, citizenid, decision.proposed_jail_time, decision.proposed_fine, 'accepted', fileNumber)
+        Mclaw.CreateSentence(fileId, citizenid, decision.proposed_jail_time, decision.proposed_fine, 'accepted', fileNumber)
         TriggerClientEvent('ox_lib:notify', src, {
             type        = 'success',
             description = Mclaw.T('jail_accepted_notify'),
@@ -62,7 +60,8 @@ RegisterNetEvent('mclaw:server:jail:submitDecision', function(data)
         )
         -- The file stays 'opened' with no prosecutor until the officer confirms
         -- the investigation (mclaw:server:referral:startInvestigation).
-        local fileNumber = decision.file_id and MySQL.scalar.await('SELECT file_number FROM mclaw_files WHERE id = ?', { decision.file_id }) or '-'
+        local _, fileNumber = Mclaw.CreateReferralFile(decision.id)
+        fileNumber = fileNumber or '-'
         local suspectName = Mclaw.GetCharName(citizenid) or citizenid
         TriggerClientEvent('mclaw:client:jail:contested', src, fileNumber)
 
@@ -78,8 +77,7 @@ RegisterNetEvent('mclaw:server:jail:submitDecision', function(data)
                 })
             end
         end
-        local openedBy = decision.file_id and MySQL.scalar.await('SELECT opened_by_citizenid FROM mclaw_files WHERE id = ?', { decision.file_id })
-        local openedByP = openedBy and Mclaw.GetPlayer(openedBy)
+        local openedByP = decision.officer_citizenid and Mclaw.GetPlayer(decision.officer_citizenid)
         if openedByP then tell(openedByP.PlayerData.source) end
         for _, pid in ipairs(GetPlayers()) do
             local P = Mclaw.GetPlayer(tonumber(pid))

@@ -58,7 +58,7 @@ local function openJailPanel(data)
     -- Loops so that "Vazgeç" on the process screen returns to this first screen.
     while true do
         local result = lib.alertDialog({
-            header  = 'Hapis — ' .. (data.fileNumber or 'Bilinmeyen Dosya'),
+            header  = 'Hapis — ' .. (data.fileNumber or 'Sevk Raporu'),
             content = '**Suçlamalar:**\n' .. chargeStr
                 .. '\n\n**Önerilen ceza:** '
                 .. (data.proposedJail or 0) .. ' dk hapis'

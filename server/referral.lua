@@ -91,64 +91,38 @@ RegisterNetEvent('mclaw:server:referral:submit', function(data)
     local sentence = Mclaw.CalculateSentence(data.charges)
 
     -- Insert referral report
-    local reportId = MySQL.insert.await(
-        'INSERT INTO mclaw_referral_reports (suspect_citizenid, officer_citizenid, narrative, charges) VALUES (?, ?, ?, ?)',
-        { suspectCid, officerCid, data.narrative, json.encode(data.charges) }
-    )
-
-    -- Generate file number
-    local year = tonumber(os.date('%Y'))
-    local seq  = getNextFileSequence(year)
-    local fileNumber = Mclaw.FormatFileNumber(year, seq)
-
-    -- The file starts WITHOUT a prosecutor (status 'opened'). The prosecutor is
-    -- assigned only when the officer presses "Soruşturmayı Başlat" after taking the
-    -- statement (mclaw:server:referral:startInvestigation). The referring officer is
-    -- recorded as the opener, so he is part of the file from the start.
-    local prosecutorCid, prosecutorSrc = nil, nil
-    local fileId = MySQL.insert.await(
-        'INSERT INTO mclaw_files (file_number, suspect_citizenid, opened_by_citizenid, opened_by_job, referral_report_id, status) VALUES (?, ?, ?, ?, ?, ?)',
-        { fileNumber, suspectCid, officerCid, Config.Jobs.police, reportId, Mclaw.FileStatus.OPENED }
-    )
-
-    -- Mark report processed
-    MySQL.update(
-        'UPDATE mclaw_referral_reports SET file_id = ?, status = "processed", processed_at = NOW() WHERE id = ?',
-        { fileId, reportId }
-    )
-
-    -- Insert file charges
-    for _, c in ipairs(data.charges) do
-        MySQL.insert('INSERT INTO mclaw_file_charges (file_id, charge_code) VALUES (?, ?)', { fileId, c.code })
-    end
-
-    -- Insert evidence (optional)
+    -- The file is NOT created yet: it is opened only after the suspect's decision
+    -- (Mclaw.CreateReferralFile, called from jail.lua). Until then the report keeps
+    -- the evidence payload in evidence_ids (JSON).
     local VALID_EVIDENCE_TYPES = { text = true, coordinate = true, item = true, screenshot = true }
+    local evidence = {}
     if data.evidence and type(data.evidence) == 'table' then
         for _, ev in ipairs(data.evidence) do
             if VALID_EVIDENCE_TYPES[ev.type] and ev.content and #tostring(ev.content) > 0 then
-                MySQL.insert(
-                    'INSERT INTO mclaw_evidence (file_id, added_by, type, content, label) VALUES (?, ?, ?, ?, ?)',
-                    { fileId, officerCid, ev.type, tostring(ev.content):sub(1, 512), ev.label and tostring(ev.label):sub(1, 128) or nil }
-                )
+                evidence[#evidence + 1] = {
+                    type    = ev.type,
+                    content = tostring(ev.content):sub(1, 512),
+                    label   = ev.label and tostring(ev.label):sub(1, 128) or nil,
+                }
             end
         end
     end
-
-    -- Create jail decision (pending)
-    local jailDecisionId = MySQL.insert.await(
-        'INSERT INTO mclaw_jail_decisions (suspect_citizenid, officer_citizenid, charges, proposed_jail_time, proposed_fine, file_id) VALUES (?, ?, ?, ?, ?, ?)',
-        { suspectCid, officerCid, json.encode(data.charges), sentence.jailTime, sentence.fine, fileId }
+    local reportId = MySQL.insert.await(
+        'INSERT INTO mclaw_referral_reports (suspect_citizenid, officer_citizenid, narrative, charges, evidence_ids) VALUES (?, ?, ?, ?, ?)',
+        { suspectCid, officerCid, data.narrative, json.encode(data.charges), json.encode(evidence) }
     )
 
-    -- Link jail decision back to file
-    MySQL.update('UPDATE mclaw_files SET jail_decision_id = ? WHERE id = ?', { jailDecisionId, fileId })
+    -- Create jail decision (pending), linked to the report
+    local jailDecisionId = MySQL.insert.await(
+        'INSERT INTO mclaw_jail_decisions (suspect_citizenid, officer_citizenid, charges, proposed_jail_time, proposed_fine, referral_report_id) VALUES (?, ?, ?, ?, ?, ?)',
+        { suspectCid, officerCid, json.encode(data.charges), sentence.jailTime, sentence.fine, reportId }
+    )
 
     -- Notify officer
     TriggerClientEvent('ox_lib:notify', src, {
         type        = 'success',
         title       = 'Rapor Gönderildi',
-        description = "Dosya açıldı: " .. fileNumber .. ". Şüpheli itiraz ederse ifadesini alıp MDT raporunu doldurun, sonra Raporlarım sekmesinden Soruşturmayı Başlat'a basın.",
+        description = "Rapor kaydedildi. Dosya, şüphelinin kararından sonra açılacak. Şüpheli yanınızdaysa penceresi açıldı; değilse gözaltı alanında /suclamaac yazın.",
     })
 
     -- Build charge label list for jail panel
@@ -160,7 +134,7 @@ RegisterNetEvent('mclaw:server:referral:submit', function(data)
 
     local panelData = {
         jailDecisionId = jailDecisionId,
-        fileNumber     = fileNumber,
+        fileNumber     = nil, -- the file does not exist yet
         charges        = chargeLabels,
         proposedJail   = sentence.jailTime,
         proposedFine   = sentence.fine,
@@ -188,10 +162,11 @@ RegisterNetEvent('mclaw:server:referral:submit', function(data)
                     'UPDATE mclaw_jail_decisions SET decision = "accepted", decided_at = NOW() WHERE id = ?',
                     { jailDecisionId }
                 )
-                MySQL.update(
-                    "UPDATE mclaw_files SET status = 'closed', closed_at = NOW() WHERE id = ?",
-                    { fileId }
-                )
+                local timeoutFileId, timeoutFileNumber = Mclaw.CreateReferralFile(jailDecisionId)
+                if timeoutFileId then
+                    MySQL.update("UPDATE mclaw_files SET status = 'closed', closed_at = NOW() WHERE id = ?", { timeoutFileId })
+                end
+                Mclaw.CreateSentence(timeoutFileId, suspectCid, sentence.jailTime, sentence.fine, 'accepted', timeoutFileNumber)
                 local sSource = findSource(suspectCid)
                 if sSource then
                     TriggerClientEvent('mclaw:client:jail:panelTimeout', sSource, { jailDecisionId = jailDecisionId })
@@ -200,6 +175,51 @@ RegisterNetEvent('mclaw:server:referral:submit', function(data)
         end)
     end
 end)
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Mclaw.CreateReferralFile(jailDecisionId) -> fileId, fileNumber
+-- Opens the file for a referral report AFTER the suspect has decided. The referring
+-- officer is recorded as the opener; no prosecutor is assigned here.
+-- ─────────────────────────────────────────────────────────────────────────────
+function Mclaw.CreateReferralFile(jailDecisionId)
+    local jd = MySQL.single.await(
+        'SELECT id, suspect_citizenid, officer_citizenid, referral_report_id, file_id FROM mclaw_jail_decisions WHERE id = ?',
+        { jailDecisionId }
+    )
+    if not jd then return nil, nil end
+    if jd.file_id then
+        return jd.file_id, MySQL.scalar.await('SELECT file_number FROM mclaw_files WHERE id = ?', { jd.file_id })
+    end
+
+    local report = jd.referral_report_id and MySQL.single.await(
+        'SELECT id, charges, evidence_ids FROM mclaw_referral_reports WHERE id = ?', { jd.referral_report_id }
+    )
+
+    local year = tonumber(os.date('%Y'))
+    local fileNumber = Mclaw.FormatFileNumber(year, getNextFileSequence(year))
+    local fileId = MySQL.insert.await(
+        'INSERT INTO mclaw_files (file_number, suspect_citizenid, opened_by_citizenid, opened_by_job, referral_report_id, jail_decision_id, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        { fileNumber, jd.suspect_citizenid, jd.officer_citizenid, Config.Jobs.police, jd.referral_report_id, jd.id, Mclaw.FileStatus.OPENED }
+    )
+
+    local charges = report and json.decode(report.charges) or {}
+    for _, c in ipairs(charges) do
+        MySQL.insert('INSERT INTO mclaw_file_charges (file_id, charge_code) VALUES (?, ?)', { fileId, c.code })
+    end
+    local evidence = report and report.evidence_ids and json.decode(report.evidence_ids) or {}
+    for _, ev in ipairs(evidence) do
+        MySQL.insert(
+            'INSERT INTO mclaw_evidence (file_id, added_by, type, content, label) VALUES (?, ?, ?, ?, ?)',
+            { fileId, jd.officer_citizenid, ev.type, ev.content, ev.label }
+        )
+    end
+
+    MySQL.update('UPDATE mclaw_jail_decisions SET file_id = ? WHERE id = ?', { fileId, jd.id })
+    if jd.referral_report_id then
+        MySQL.update('UPDATE mclaw_referral_reports SET file_id = ?, status = "processed", processed_at = NOW() WHERE id = ?', { fileId, jd.referral_report_id })
+    end
+    return fileId, fileNumber
+end
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- mclaw:server:referral:startInvestigation
@@ -303,6 +323,7 @@ RegisterNetEvent('mclaw:server:referral:withdraw', function(data)
     end
 
     MySQL.update("UPDATE mclaw_referral_reports SET status = 'rejected' WHERE id = ?", { data.reportId })
+    MySQL.update("DELETE FROM mclaw_jail_decisions WHERE referral_report_id = ? AND decision = 'pending'", { data.reportId })
     TriggerClientEvent('ox_lib:notify', src, { type = 'success', description = 'Rapor geri çekildi.' })
 end)
 
@@ -346,7 +367,7 @@ lib.callback.register('mclaw:cb:referral:getMyReports', function(source)
                  jd.decision
           FROM mclaw_referral_reports r
           LEFT JOIN mclaw_files f ON f.id = r.file_id
-          LEFT JOIN mclaw_jail_decisions jd ON jd.id = f.jail_decision_id
+          LEFT JOIN mclaw_jail_decisions jd ON jd.referral_report_id = r.id
           WHERE r.officer_citizenid = ?
           ORDER BY r.created_at DESC
           LIMIT 50]],

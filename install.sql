@@ -343,3 +343,6 @@ CREATE TABLE IF NOT EXISTS `mclaw_bracelets` (
     `removed_by`            VARCHAR(128) NULL,
     INDEX `idx_bracelet_cid_status` (`citizenid`, `status`)
 );
+
+-- County RP: the file is created AFTER the suspect's decision, so the decision points to its referral report.
+ALTER TABLE `mclaw_jail_decisions` ADD COLUMN IF NOT EXISTS `referral_report_id` INT NULL;
