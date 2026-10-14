@@ -69,10 +69,8 @@ RegisterNetEvent('mclaw:server:jail:submitDecision', function(data)
                 { decision.file_id }
             )
         end
-        TriggerClientEvent('ox_lib:notify', src, {
-            type        = 'inform',
-            description = 'İtirazınız kaydedildi. Adınıza bir dava dosyası açıldı.',
-        })
+        local contestedNumber = decision.file_id and MySQL.scalar.await('SELECT file_number FROM mclaw_files WHERE id = ?', { decision.file_id }) or '-'
+        TriggerClientEvent('mclaw:client:jail:contested', src, contestedNumber)
     end
 end)
 
@@ -127,6 +125,9 @@ RegisterNetEvent('mclaw:server:jail:openForTarget', function(targetId)
     if not officer or Mclaw.GetRole(officer) ~= Config.Jobs.police then return end
     if not target then
         return TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_prison_no_target') })
+    end
+    if not Mclaw.InPleaZone(GetEntityCoords(GetPlayerPed(src))) then
+        return TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_plea_not_in_zone') })
     end
     if #(GetEntityCoords(GetPlayerPed(src)) - GetEntityCoords(GetPlayerPed(targetId))) > 4.0 then
         return TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_prison_too_far') })

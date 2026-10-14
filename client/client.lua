@@ -47,6 +47,10 @@ local function detachTablet()
 end
 
 local function openPanel(activeTab)
+    if not Mclaw.CanOpenPanel() then
+        lib.notify({ type = 'error', description = Mclaw.T('err_panel_not_at_site') })
+        return
+    end
     local job = getJob()
 
     local stats    = lib.callback.await('mclaw:cb:dashboard:getStats', false) or {}

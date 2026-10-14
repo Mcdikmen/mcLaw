@@ -84,3 +84,35 @@ RegisterCommand(Config.Jail.openCommand, function()
     end
     TriggerServerEvent('mclaw:server:jail:openForTarget', GetPlayerServerId(playerId))
 end, false)
+
+-- The suspect contested the charges: if they are still in custody (MRPD cells
+-- area) they are uncuffed and released at the MRPD front, then the Fast RP /
+-- tracking device notice is shown in a centered box closed with a button.
+RegisterNetEvent('mclaw:client:jail:contested', function(fileNumber)
+    local QBCore = exports['qb-core']:GetCoreObject()
+    local ped = cache.ped
+
+    if Mclaw.InPleaZone(GetEntityCoords(ped)) then
+        DoScreenFadeOut(600)
+        while not IsScreenFadedOut() do Wait(10) end
+
+        local pd = QBCore.Functions.GetPlayerData()
+        if pd and pd.metadata and pd.metadata.ishandcuffed then
+            TriggerEvent('police:client:GetCuffed', -1) -- -1 = no cuffer, no animation
+            Wait(300)
+        end
+
+        local r = Config.Sites.release.coords
+        SetEntityCoords(ped, r.x, r.y, r.z - 0.98, false, false, false, false)
+        SetEntityHeading(ped, r.w)
+        Wait(500)
+        DoScreenFadeIn(800)
+    end
+
+    lib.alertDialog({
+        header   = Mclaw.T('jail_contested_header'),
+        content  = Mclaw.T('jail_contested_body', fileNumber or '-'),
+        centered = true,
+        labels   = { confirm = Mclaw.T('jail_contested_button') },
+    })
+end)

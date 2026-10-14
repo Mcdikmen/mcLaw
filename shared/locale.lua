@@ -137,6 +137,11 @@ Mclaw.Locale = {
     err_prison_not_at_intake           = 'Hükümlüyü hapishane girişinde teslim etmelisiniz.',
     err_prison_not_cuffed              = 'Hükümlü kelepçeli olmalıdır.',
     err_jail_no_pending                = 'Bu kişi için bekleyen suçlama kararı yok.',
+    err_panel_not_at_site              = 'Sevk raporu paneli yalnızca MRPD mugshot alanındaki hologramın yanında açılır.',
+    err_plea_not_in_zone               = 'Suçlama penceresi yalnızca MRPD gözaltı alanında açılabilir.',
+    jail_contested_header              = 'Fast RP',
+    jail_contested_body                = '**Fast RP geçildi ve bileğinize takip cihazı takıldı.**\n\nSoruşturma dosya numaranız: **%s**\n\nSoruşturmanız bitene kadar bileğinizden sizi sürekli devlet yetkilileri takip edecek; gerektiği zaman size ulaşıp mahkemeye veya yazılı bilgi vermeye davet edecektir.',
+    jail_contested_button              = 'Anladım',
     jail_panel_opened                  = 'Suçlama penceresi şüpheliye açıldı.',
 
     -- ── Log messages (stored in DB) ───────────────────────────────────────────

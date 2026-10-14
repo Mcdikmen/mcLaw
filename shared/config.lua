@@ -51,6 +51,39 @@ Config.Prison = {
 }
 
 -- ─────────────────────────────────────────────
+-- SITES (County RP, MRPD)
+-- referral:  the hologram spot (mugshot area). Police can open /mclaw (referral
+--            report panel) only within `radius` m of it.
+-- plea:      zones where a police officer can open the accept/contest panel
+--            for an arrested suspect with /suclamaac (distance measured from
+--            the officer). Radius is per zone.
+-- release:   a suspect who contests the charges is uncuffed and sent here.
+-- Coordinates are vector4 (x, y, z, heading); z is the ped position.
+-- ─────────────────────────────────────────────
+Config.Sites = {
+    referral = { coords = vector4(473.08, -1011.52, 26.27, 181.89), radius = 5.0, label = 'Sevk Raporu — /mclaw' },
+    plea = {
+        { coords = vector4(486.74, -1006.10, 26.27, 90.39), radius = 20.0 },  -- MRPD cells / mugshot side
+    },
+    -- where a suspect who CONTESTS the charges is released (MRPD front)
+    release = { coords = vector4(425.54, -982.22, 30.71, 87.39) },
+}
+
+Mclaw = Mclaw or {}
+
+-- IsNear(pos, site) — true if `pos` (vector3) is within site.radius of site.coords
+function Mclaw.IsNear(pos, site)
+    return #(vector3(pos.x, pos.y, pos.z) - vector3(site.coords.x, site.coords.y, site.coords.z)) <= site.radius
+end
+
+function Mclaw.InPleaZone(pos)
+    for _, z in ipairs(Config.Sites.plea) do
+        if Mclaw.IsNear(pos, z) then return true end
+    end
+    return false
+end
+
+-- ─────────────────────────────────────────────
 -- JOB NAMES
 -- Match these to the exact job names defined on your server.
 -- prosecutorCanDecide: allow senior prosecutor to issue verdicts when no judge is online
