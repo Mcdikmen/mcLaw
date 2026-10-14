@@ -123,6 +123,14 @@ lib.callback.register('mclaw:cb:prosecutor:getInvestigations', function(source)
     if not P or Mclaw.GetRole(P) ~= Config.Jobs.prosecutor then return {} end
 
     local cid  = P.PlayerData.citizenid
+
+    -- Referral files created while no prosecutor was online have no owner and
+    -- would be invisible to everyone; the first prosecutor who opens the list takes them.
+    MySQL.update.await(
+        "UPDATE mclaw_files SET prosecutor_citizenid = ?, status = 'prosecutor_review', updated_at = NOW() WHERE prosecutor_citizenid IS NULL AND status = 'awaiting_prosecutor' AND type = 'investigation' AND deleted_at IS NULL",
+        { cid }
+    )
+
     local rows = MySQL.query.await(
         "SELECT id, file_number, suspect_citizenid, status, notes, created_at FROM mclaw_files WHERE prosecutor_citizenid = ? AND type = 'investigation' AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 50",
         { cid }
