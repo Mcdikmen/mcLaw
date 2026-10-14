@@ -105,12 +105,12 @@ RegisterNetEvent('mclaw:client:jail:panelTimeout', function(data)
         pendingDecision = nil
         panelOpen       = false
     end
-    lib.notify({ type = 'inform', description = 'Süre doldu: suçlamalar otomatik olarak kabul edildi.' })
+    lib.notify({ position = Config.NotifyPosition, type = 'inform', description = 'Süre doldu: suçlamalar otomatik olarak kabul edildi.' })
 end)
 
 -- Confirmation after the contest was recorded (the officer takes the statement next).
 RegisterNetEvent('mclaw:client:jail:contested', function()
-    lib.notify({ type = 'inform', duration = 12000, description = Mclaw.T('contest_recorded') })
+    lib.notify({ position = Config.NotifyPosition, type = 'inform', duration = 12000, description = Mclaw.T('contest_recorded') })
 end)
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -129,7 +129,7 @@ AddEventHandler('QBCore:Client:OnPlayerLoaded', checkPendingOnSpawn)
 RegisterCommand(Config.Jail.openCommand, function()
     local playerId = lib.getClosestPlayer(GetEntityCoords(cache.ped), 4.0, false)
     if not playerId then
-        lib.notify({ type = 'error', description = Mclaw.T('err_prison_no_target') })
+        lib.notify({ position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_prison_no_target') })
         return
     end
     TriggerServerEvent('mclaw:server:jail:openForTarget', GetPlayerServerId(playerId))

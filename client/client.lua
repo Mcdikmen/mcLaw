@@ -48,7 +48,7 @@ end
 
 local function openPanel(activeTab)
     if not Mclaw.CanOpenPanel() then
-        lib.notify({ type = 'error', description = Mclaw.T('err_panel_not_at_site') })
+        lib.notify({ position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_panel_not_at_site') })
         return
     end
     local job = getJob()

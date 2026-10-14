@@ -9,7 +9,7 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 
 local function notify(src, kind, text)
-    TriggerClientEvent('ox_lib:notify', src, { type = kind, description = text })
+    TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = kind, description = text })
 end
 
 local function isOnDutyPolice(P)

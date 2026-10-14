@@ -4,7 +4,7 @@
 RegisterCommand(Config.Prison.listCommand, function()
     local list = lib.callback.await('mclaw:cb:prison:getPending', false) or {}
     if #list == 0 then
-        lib.notify({ type = 'inform', description = Mclaw.T('sentence_list_empty') })
+        lib.notify({ position = Config.NotifyPosition, type = 'inform', description = Mclaw.T('sentence_list_empty') })
         return
     end
     local options = {}
@@ -22,7 +22,7 @@ end, false)
 RegisterCommand(Config.Prison.deliverCommand, function()
     local playerId = lib.getClosestPlayer(GetEntityCoords(cache.ped), 3.0, false)
     if not playerId then
-        lib.notify({ type = 'error', description = Mclaw.T('err_prison_no_target') })
+        lib.notify({ position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_prison_no_target') })
         return
     end
     TriggerServerEvent('mclaw:server:prison:deliver', GetPlayerServerId(playerId))

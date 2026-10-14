@@ -7,6 +7,9 @@ Config = {}
 --   10 Stajyer Avukat, 11 Avukat, 12 Aday Savcı, 13 Savcı,
 --   14 Aday Hakim, 15 Hakim, 16 Başsavcı (boss, prosecutor role)
 -- ─────────────────────────────────────────────
+-- Where mcLaw notifications appear (ox_lib position). top-center stays clear of the HUD.
+Config.NotifyPosition = 'top-center'
+
 Config.Doj = {
     job   = 'doj',
     roles = {

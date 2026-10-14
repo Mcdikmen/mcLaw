@@ -31,7 +31,7 @@ RegisterNetEvent('mclaw:server:jail:submitDecision', function(data)
     )
 
     if not decision then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Bekleyen karar bulunamadı.' })
+        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = 'Bekleyen karar bulunamadı.' })
         return
     end
 
@@ -46,7 +46,7 @@ RegisterNetEvent('mclaw:server:jail:submitDecision', function(data)
             MySQL.update("UPDATE mclaw_files SET status = 'closed', closed_at = NOW() WHERE id = ?", { fileId })
         end
         Mclaw.CreateSentence(fileId, citizenid, decision.proposed_jail_time, decision.proposed_fine, 'accepted', fileNumber)
-        TriggerClientEvent('ox_lib:notify', src, {
+        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition,
             type        = 'success',
             description = Mclaw.T('jail_accepted_notify'),
         })
@@ -70,7 +70,7 @@ RegisterNetEvent('mclaw:server:jail:submitDecision', function(data)
         local function tell(officerSrc)
             if officerSrc and not told[officerSrc] then
                 told[officerSrc] = true
-                TriggerClientEvent('ox_lib:notify', officerSrc, {
+                TriggerClientEvent('ox_lib:notify', officerSrc, { position = Config.NotifyPosition,
                     type = 'inform', duration = 15000,
                     title = 'Şüpheli İtiraz Etti',
                     description = Mclaw.T('contest_notify_police', suspectName, fileNumber),
@@ -136,18 +136,18 @@ RegisterNetEvent('mclaw:server:jail:openForTarget', function(targetId)
     local target  = targetId and Mclaw.GetPlayer(targetId)
     if not officer or Mclaw.GetRole(officer) ~= Config.Jobs.police then return end
     if not target then
-        return TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_prison_no_target') })
+        return TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_prison_no_target') })
     end
     if not Mclaw.InPleaZone(GetEntityCoords(GetPlayerPed(src))) then
-        return TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_plea_not_in_zone') })
+        return TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_plea_not_in_zone') })
     end
     if #(GetEntityCoords(GetPlayerPed(src)) - GetEntityCoords(GetPlayerPed(targetId))) > 4.0 then
-        return TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_prison_too_far') })
+        return TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_prison_too_far') })
     end
     if not sendPendingPanel(targetId, target.PlayerData.citizenid) then
-        return TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_jail_no_pending') })
+        return TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_jail_no_pending') })
     end
-    TriggerClientEvent('ox_lib:notify', src, { type = 'success', description = Mclaw.T('jail_panel_opened') })
+    TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'success', description = Mclaw.T('jail_panel_opened') })
 end)
 
 -- Used by referral.lua right after a report is filed.

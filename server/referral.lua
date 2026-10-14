@@ -59,31 +59,31 @@ RegisterNetEvent('mclaw:server:referral:submit', function(data)
     local suspectCid = data.suspectCid and tostring(data.suspectCid):match('^%s*(.-)%s*$')
 
     if not suspectCid or suspectCid == '' then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Geçersiz şüpheli vatandaş numarası.' })
+        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = 'Geçersiz şüpheli vatandaş numarası.' })
         return
     end
 
     -- Verify the citizenid exists in the database
     local suspectExists = MySQL.scalar.await('SELECT 1 FROM players WHERE citizenid = ? LIMIT 1', { suspectCid })
     if not suspectExists then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Bu vatandaş numarasına ait oyuncu bulunamadı.' })
+        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = 'Bu vatandaş numarasına ait oyuncu bulunamadı.' })
         return
     end
 
     if not data.charges or #data.charges == 0 then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'En az bir suç gereklidir.' })
+        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = 'En az bir suç gereklidir.' })
         return
     end
 
     if not data.narrative or #data.narrative < 5 then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Olay anlatımı çok kısa.' })
+        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = 'Olay anlatımı çok kısa.' })
         return
     end
 
     -- Validate every charge code exists
     for _, c in ipairs(data.charges) do
         if not Mclaw.GetChargeByCode(c.code) then
-            TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Bilinmeyen suç kodu: ' .. tostring(c.code) })
+            TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = 'Bilinmeyen suç kodu: ' .. tostring(c.code) })
             return
         end
     end
@@ -119,7 +119,7 @@ RegisterNetEvent('mclaw:server:referral:submit', function(data)
     )
 
     -- Notify officer
-    TriggerClientEvent('ox_lib:notify', src, {
+    TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition,
         type        = 'success',
         title       = 'Rapor Gönderildi',
         description = "Rapor kaydedildi. Dosya, şüphelinin kararından sonra açılacak. Şüpheli yanınızdaysa penceresi açıldı; değilse gözaltı alanında /suclamaac yazın.",
@@ -241,7 +241,7 @@ RegisterNetEvent('mclaw:server:referral:startInvestigation', function(reportId)
         { reportId, Player.PlayerData.citizenid }
     )
     if not file or file.status ~= 'opened' or file.decision ~= 'rejected' then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_start_not_ready') })
+        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_start_not_ready') })
         return
     end
 
@@ -253,13 +253,13 @@ RegisterNetEvent('mclaw:server:referral:startInvestigation', function(reportId)
     )
     if not claimed or claimed < 1 then return end
 
-    TriggerClientEvent('ox_lib:notify', src, {
+    TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition,
         type = 'success', title = Mclaw.T('start_ok_title'),
         description = Mclaw.T('start_ok_officer', file.file_number),
     })
     local suspect = Mclaw.GetPlayer(file.suspect_citizenid)
     if suspect then
-        TriggerClientEvent('ox_lib:notify', suspect.PlayerData.source, {
+        TriggerClientEvent('ox_lib:notify', suspect.PlayerData.source, { position = Config.NotifyPosition,
             type = 'inform', title = Mclaw.T('start_ok_title'),
             description = Mclaw.T('start_ok_suspect', file.file_number),
         })
@@ -297,7 +297,7 @@ RegisterNetEvent('mclaw:server:referral:withdraw', function(data)
     if Mclaw.GetRole(Player) ~= Config.Jobs.police then return end
 
     if not Config.Jail.reportWithdrawTime or Config.Jail.reportWithdrawTime <= 0 then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Rapor geri çekme kapalı.' })
+        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = 'Rapor geri çekme kapalı.' })
         return
     end
 
@@ -308,7 +308,7 @@ RegisterNetEvent('mclaw:server:referral:withdraw', function(data)
     )
 
     if not report then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Rapor bulunamadı veya zaten işlendi.' })
+        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = 'Rapor bulunamadı veya zaten işlendi.' })
         return
     end
 
@@ -318,13 +318,13 @@ RegisterNetEvent('mclaw:server:referral:withdraw', function(data)
     )
 
     if not inWindow or inWindow == 0 then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Geri çekme süresi doldu.' })
+        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = 'Geri çekme süresi doldu.' })
         return
     end
 
     MySQL.update("UPDATE mclaw_referral_reports SET status = 'rejected' WHERE id = ?", { data.reportId })
     MySQL.update("DELETE FROM mclaw_jail_decisions WHERE referral_report_id = ? AND decision = 'pending'", { data.reportId })
-    TriggerClientEvent('ox_lib:notify', src, { type = 'success', description = 'Rapor geri çekildi.' })
+    TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'success', description = 'Rapor geri çekildi.' })
 end)
 
 -- ─────────────────────────────────────────────────────────────────────────────

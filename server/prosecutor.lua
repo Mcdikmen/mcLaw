@@ -69,19 +69,19 @@ RegisterNetEvent('mclaw:server:prosecutor:openInvestigation', function(data)
     if not P or Mclaw.GetRole(P) ~= Config.Jobs.prosecutor then return end
 
     if not data.suspectCid or not data.charges or #data.charges == 0 or not data.narrative or #data.narrative < 10 then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_missing_data') })
+        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_missing_data') })
         return
     end
 
     local suspectExists = MySQL.scalar.await('SELECT COUNT(*) FROM players WHERE citizenid = ?', { data.suspectCid })
     if not suspectExists or suspectExists == 0 then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_invalid_suspect_cid') })
+        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_invalid_suspect_cid') })
         return
     end
 
     for _, c in ipairs(data.charges) do
         if not Mclaw.GetChargeByCode(c.code) then
-            TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_invalid_charge_code', tostring(c.code)) })
+            TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_invalid_charge_code', tostring(c.code)) })
             return
         end
     end
@@ -107,7 +107,7 @@ RegisterNetEvent('mclaw:server:prosecutor:openInvestigation', function(data)
         { fileId, cid, Config.Jobs.prosecutor, data.narrative }
     )
 
-    TriggerClientEvent('ox_lib:notify', src, {
+    TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition,
         type        = 'success',
         title       = Mclaw.T('notify_investigation_opened_title'),
         description = Mclaw.T('notify_investigation_opened_desc', fileNumber),
@@ -187,7 +187,7 @@ RegisterNetEvent('mclaw:server:prosecutor:submitIndictment', function(data)
     )
 
     if not file then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_file_not_found_auth') })
+        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_file_not_found_auth') })
         return
     end
 
@@ -197,12 +197,12 @@ RegisterNetEvent('mclaw:server:prosecutor:submitIndictment', function(data)
         prosecutor_review    = true,
     }
     if not eligible[file.status] then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_file_not_eligible') })
+        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_file_not_eligible') })
         return
     end
 
     if data.hearingType ~= 'physical' and data.hearingType ~= 'written' then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_invalid_hearing_type') })
+        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_invalid_hearing_type') })
         return
     end
 
@@ -214,7 +214,7 @@ RegisterNetEvent('mclaw:server:prosecutor:submitIndictment', function(data)
         { newStatus, newType, data.notes ~= '' and data.notes or nil, data.fileId }
     )
 
-    TriggerClientEvent('ox_lib:notify', src, {
+    TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition,
         type        = 'success',
         title       = Mclaw.T('notify_indictment_prepared_title'),
         description = Mclaw.T('notify_indictment_prepared_desc', file.file_number),
@@ -255,7 +255,7 @@ RegisterNetEvent('mclaw:server:judge:acceptCase', function(data)
     if not P or Mclaw.GetRole(P) ~= Config.Jobs.judge then return end
 
     if not data.scheduledAt or data.scheduledAt == '' then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_hearing_date_required') })
+        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_hearing_date_required') })
         return
     end
 
@@ -267,7 +267,7 @@ RegisterNetEvent('mclaw:server:judge:acceptCase', function(data)
         { data.fileId }
     )
     if not file then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_file_not_indictment') })
+        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_file_not_indictment') })
         return
     end
 
@@ -286,7 +286,7 @@ RegisterNetEvent('mclaw:server:judge:acceptCase', function(data)
     )
 
     local typeLabel = hearingType == 'written' and Mclaw.T('hearing_type_written') or Mclaw.T('hearing_type_physical')
-    TriggerClientEvent('ox_lib:notify', src, {
+    TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition,
         type        = 'success',
         title       = Mclaw.T('notify_hearing_scheduled_title'),
         description = Mclaw.T('notify_hearing_scheduled_desc', file.file_number, typeLabel, scheduledAt),
@@ -330,7 +330,7 @@ RegisterNetEvent('mclaw:server:prosecutor:dropCase', function(data)
         { data.fileId, P.PlayerData.citizenid }
     )
     if not file then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_file_not_found_auth') })
+        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_file_not_found_auth') })
         return
     end
 
@@ -340,10 +340,10 @@ RegisterNetEvent('mclaw:server:prosecutor:dropCase', function(data)
         { note, file.id }
     )
 
-    TriggerClientEvent('ox_lib:notify', src, { type = 'success', description = Mclaw.T('drop_ok') })
+    TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'success', description = Mclaw.T('drop_ok') })
     local suspect = Mclaw.GetPlayer(file.suspect_citizenid)
     if suspect then
-        TriggerClientEvent('ox_lib:notify', suspect.PlayerData.source, { type = 'inform', description = Mclaw.T('drop_notify_suspect', file.file_number) })
+        TriggerClientEvent('ox_lib:notify', suspect.PlayerData.source, { position = Config.NotifyPosition, type = 'inform', description = Mclaw.T('drop_notify_suspect', file.file_number) })
     end
     pcall(Mclaw.BraceletDueFor, file.suspect_citizenid, 'Takipsizlik')
 end)

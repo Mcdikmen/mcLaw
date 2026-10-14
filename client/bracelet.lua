@@ -11,7 +11,7 @@ local cfg = Config.Bracelet
 local function closestTarget(maxDist)
     local playerId = lib.getClosestPlayer(GetEntityCoords(cache.ped), maxDist, false)
     if not playerId then
-        lib.notify({ type = 'error', description = Mclaw.T('err_prison_no_target') })
+        lib.notify({ position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_prison_no_target') })
         return nil
     end
     return GetPlayerServerId(playerId)
@@ -85,7 +85,7 @@ end
 RegisterCommand(cfg.listCommand, function()
     local list = lib.callback.await('mclaw:cb:bracelet:list', false) or {}
     if #list == 0 then
-        lib.notify({ type = 'inform', description = Mclaw.T('bracelet_menu_empty') })
+        lib.notify({ position = Config.NotifyPosition, type = 'inform', description = Mclaw.T('bracelet_menu_empty') })
         return
     end
     local options = {}
@@ -104,9 +104,9 @@ RegisterCommand(cfg.listCommand, function()
                 local loc = lib.callback.await('mclaw:cb:bracelet:locate', false, b.id)
                 if loc then
                     SetNewWaypoint(loc.x + 0.0, loc.y + 0.0)
-                    lib.notify({ type = 'success', description = Mclaw.T('bracelet_gps_set', b.name) })
+                    lib.notify({ position = Config.NotifyPosition, type = 'success', description = Mclaw.T('bracelet_gps_set', b.name) })
                 else
-                    lib.notify({ type = 'error', description = Mclaw.T('bracelet_gps_none') })
+                    lib.notify({ position = Config.NotifyPosition, type = 'error', description = Mclaw.T('bracelet_gps_none') })
                 end
             end,
         }

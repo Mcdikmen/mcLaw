@@ -232,15 +232,15 @@ RegisterNetEvent('mclaw:server:file:addDocument', function(data)
     if not allowed[job] then return end
 
     if not data.fileId or not data.title or not data.content or not data.docType then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_missing_data') })
+        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_missing_data') })
         return
     end
     if #data.title < 2 then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_title_too_short') })
+        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_title_too_short') })
         return
     end
     if #data.content < 5 then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_content_too_short') })
+        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_content_too_short') })
         return
     end
 
@@ -249,7 +249,7 @@ RegisterNetEvent('mclaw:server:file:addDocument', function(data)
         { data.fileId }
     )
     if not file then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_file_not_found_or_closed') })
+        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_file_not_found_or_closed') })
         return
     end
 
@@ -259,7 +259,7 @@ RegisterNetEvent('mclaw:server:file:addDocument', function(data)
         { data.fileId, cid, job, data.docType, data.title, data.content }
     )
 
-    TriggerClientEvent('ox_lib:notify', src, {
+    TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition,
         type        = 'success',
         description = Mclaw.T('notify_document_added'),
     })
@@ -282,7 +282,7 @@ RegisterNetEvent('mclaw:server:judge:closeFile', function(data)
         { data.fileId }
     )
     if not file then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_file_not_found_closed') })
+        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_file_not_found_closed') })
         return
     end
 
@@ -296,7 +296,7 @@ RegisterNetEvent('mclaw:server:judge:closeFile', function(data)
     local reasonSuffix = (data.reason and data.reason ~= '') and Mclaw.T('notify_file_closed_reason', data.reason) or ''
     local msg = Mclaw.T('notify_file_closed_desc', file.file_number) .. reasonSuffix
 
-    TriggerClientEvent('ox_lib:notify', src, { type = 'success', description = msg })
+    TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'success', description = msg })
 
     if file.prosecutor_citizenid then
         MySQL.insert(
