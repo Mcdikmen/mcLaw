@@ -14,8 +14,8 @@ end
 local function pickProsecutor()
     local candidates = {}
     for _, playerId in ipairs(GetPlayers()) do
-        local P = exports.qbx_core:GetPlayer(tonumber(playerId))
-        if P and P.PlayerData.job.name == Config.Jobs.prosecutor then
+        local P = Mclaw.GetPlayer(tonumber(playerId))
+        if P and Mclaw.GetRole(P) == Config.Jobs.prosecutor then
             local cid      = P.PlayerData.citizenid
             local active   = MySQL.scalar.await(
                 "SELECT COUNT(*) FROM mclaw_files WHERE prosecutor_citizenid = ? AND status NOT IN ('closed','archived','verdict_issued')",
@@ -32,7 +32,7 @@ end
 -- Returns the server source for a citizenid, or nil if offline.
 local function findSource(citizenid)
     for _, playerId in ipairs(GetPlayers()) do
-        local P = exports.qbx_core:GetPlayer(tonumber(playerId))
+        local P = Mclaw.GetPlayer(tonumber(playerId))
         if P and P.PlayerData.citizenid == citizenid then
             return tonumber(playerId)
         end
@@ -51,39 +51,39 @@ end
 -- ─────────────────────────────────────────────────────────────────────────────
 RegisterNetEvent('mclaw:server:referral:submit', function(data)
     local src    = source
-    local Player = exports.qbx_core:GetPlayer(src)
+    local Player = Mclaw.GetPlayer(src)
     if not Player then return end
-    if Player.PlayerData.job.name ~= Config.Jobs.police then return end
+    if Mclaw.GetRole(Player) ~= Config.Jobs.police then return end
 
     local officerCid = Player.PlayerData.citizenid
     local suspectCid = data.suspectCid and tostring(data.suspectCid):match('^%s*(.-)%s*$')
 
     if not suspectCid or suspectCid == '' then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Invalid suspect Citizen ID.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Geçersiz şüpheli vatandaş numarası.' })
         return
     end
 
     -- Verify the citizenid exists in the database
     local suspectExists = MySQL.scalar.await('SELECT 1 FROM players WHERE citizenid = ? LIMIT 1', { suspectCid })
     if not suspectExists then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'No player found with that Citizen ID.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Bu vatandaş numarasına ait oyuncu bulunamadı.' })
         return
     end
 
     if not data.charges or #data.charges == 0 then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'At least one charge is required.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'En az bir suç gereklidir.' })
         return
     end
 
     if not data.narrative or #data.narrative < 5 then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Narrative is too short.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Olay anlatımı çok kısa.' })
         return
     end
 
     -- Validate every charge code exists
     for _, c in ipairs(data.charges) do
         if not Mclaw.GetChargeByCode(c.code) then
-            TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Unknown charge code: ' .. tostring(c.code) })
+            TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Bilinmeyen suç kodu: ' .. tostring(c.code) })
             return
         end
     end
@@ -149,8 +149,8 @@ RegisterNetEvent('mclaw:server:referral:submit', function(data)
     -- Notify officer
     TriggerClientEvent('ox_lib:notify', src, {
         type        = 'success',
-        title       = 'Report Submitted',
-        description = 'File opened: ' .. fileNumber,
+        title       = 'Rapor Gönderildi',
+        description = 'Dosya açıldı: ' .. fileNumber,
     })
 
     -- Build charge label list for jail panel
@@ -202,13 +202,13 @@ RegisterNetEvent('mclaw:server:referral:submit', function(data)
     if prosecutorCid then
         MySQL.insert(
             'INSERT INTO mclaw_notifications (citizenid, type, title, message, ref_type, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
-            { prosecutorCid, 'subpoena', 'New File Assigned', 'You have been assigned to file ' .. fileNumber .. '.', 'file', fileId }
+            { prosecutorCid, 'subpoena', 'Yeni Dosya Atandı', fileNumber .. ' numaralı dosya size atandı.', 'file', fileId }
         )
         if prosecutorSrc then
             TriggerClientEvent('mclaw:client:notification:push', prosecutorSrc, {
                 type        = 'inform',
-                title       = 'New File Assigned',
-                description = 'File ' .. fileNumber .. ' has been assigned to you.',
+                title       = 'Yeni Dosya Atandı',
+                description = fileNumber .. ' numaralı dosya size atandı.',
             })
         else
             Mclaw.Webhook.Send('file.opened', {
@@ -233,12 +233,12 @@ end)
 -- ─────────────────────────────────────────────────────────────────────────────
 RegisterNetEvent('mclaw:server:referral:withdraw', function(data)
     local src    = source
-    local Player = exports.qbx_core:GetPlayer(src)
+    local Player = Mclaw.GetPlayer(src)
     if not Player then return end
-    if Player.PlayerData.job.name ~= Config.Jobs.police then return end
+    if Mclaw.GetRole(Player) ~= Config.Jobs.police then return end
 
     if not Config.Jail.reportWithdrawTime or Config.Jail.reportWithdrawTime <= 0 then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Report withdrawal is disabled.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Rapor geri çekme kapalı.' })
         return
     end
 
@@ -249,7 +249,7 @@ RegisterNetEvent('mclaw:server:referral:withdraw', function(data)
     )
 
     if not report then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Report not found or already processed.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Rapor bulunamadı veya zaten işlendi.' })
         return
     end
 
@@ -259,12 +259,12 @@ RegisterNetEvent('mclaw:server:referral:withdraw', function(data)
     )
 
     if not inWindow or inWindow == 0 then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Withdrawal window has expired.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Geri çekme süresi doldu.' })
         return
     end
 
     MySQL.update("UPDATE mclaw_referral_reports SET status = 'rejected' WHERE id = ?", { data.reportId })
-    TriggerClientEvent('ox_lib:notify', src, { type = 'success', description = 'Report withdrawn successfully.' })
+    TriggerClientEvent('ox_lib:notify', src, { type = 'success', description = 'Rapor geri çekildi.' })
 end)
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -272,6 +272,7 @@ end)
 -- Returns the merged charge list (Config + MDT if pullCharges is enabled).
 -- ─────────────────────────────────────────────────────────────────────────────
 lib.callback.register('mclaw:cb:referral:getChargeList', function(source)
+    Mclaw.RefreshCharges()
     if Config.Charges.useDatabase then
         local rows = MySQL.query.await('SELECT code, label, category, jail_time, fine_amount, severity FROM mclaw_charges_config WHERE is_active = 1 ORDER BY category, label', {})
         local list = {}
@@ -295,9 +296,9 @@ end)
 -- Returns referral reports submitted by this officer, newest first.
 -- ─────────────────────────────────────────────────────────────────────────────
 lib.callback.register('mclaw:cb:referral:getMyReports', function(source)
-    local Player = exports.qbx_core:GetPlayer(source)
+    local Player = Mclaw.GetPlayer(source)
     if not Player then return {} end
-    if Player.PlayerData.job.name ~= Config.Jobs.police then return {} end
+    if Mclaw.GetRole(Player) ~= Config.Jobs.police then return {} end
 
     local cid  = Player.PlayerData.citizenid
     local rows = MySQL.query.await(

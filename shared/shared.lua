@@ -293,3 +293,38 @@
 
       return { jailTime = totalJail, fine = totalFine }
   end
+
+-- =============================================================================
+-- QBCore compatibility layer (County RP)
+-- mcLaw was written for Qbox with separate judge/lawyer/prosecutor jobs.
+-- This server runs QBCore with ONE job ('doj') whose grade decides the role,
+-- so every job check in the resource goes through Mclaw.RoleOf / GetRole.
+-- =============================================================================
+
+-- RoleOf(jobName, grade) -> role name used by Config.Jobs ('judge', 'lawyer',
+-- 'prosecutor', 'police') or the raw job name for every other job.
+function Mclaw.RoleOf(jobName, grade)
+    if jobName == Config.Doj.job then
+        return Config.Doj.roles[tonumber(grade)] or Config.Doj.job
+    end
+    return jobName
+end
+
+if IsDuplicityVersion() then
+    local QBCore = exports['qb-core']:GetCoreObject()
+
+    -- GetPlayer(source | citizenid) -> QBCore player object or nil
+    function Mclaw.GetPlayer(id)
+        if type(id) == 'string' and not tonumber(id) then
+            return QBCore.Functions.GetPlayerByCitizenId(id)
+        end
+        return QBCore.Functions.GetPlayer(tonumber(id))
+    end
+
+    -- GetRole(player) -> role name (see Mclaw.RoleOf); nil if player is nil
+    function Mclaw.GetRole(P)
+        local job = P and P.PlayerData and P.PlayerData.job
+        if not job then return nil end
+        return Mclaw.RoleOf(job.name, job.grade and job.grade.level)
+    end
+end

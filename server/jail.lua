@@ -3,7 +3,7 @@
 --  so keep them in separate scopes or extract to a shared server utility later.)
 local function findOnlineSource(citizenid)
     for _, playerId in ipairs(GetPlayers()) do
-        local P = exports.qbx_core:GetPlayer(tonumber(playerId))
+        local P = Mclaw.GetPlayer(tonumber(playerId))
         if P and P.PlayerData.citizenid == citizenid then
             return tonumber(playerId)
         end
@@ -20,18 +20,18 @@ end
 -- ─────────────────────────────────────────────────────────────────────────────
 RegisterNetEvent('mclaw:server:jail:submitDecision', function(data)
     local src    = source
-    local Player = exports.qbx_core:GetPlayer(src)
+    local Player = Mclaw.GetPlayer(src)
     if not Player then return end
 
     local citizenid = Player.PlayerData.citizenid
 
     local decision = MySQL.single.await(
-        "SELECT id, file_id FROM mclaw_jail_decisions WHERE id = ? AND suspect_citizenid = ? AND decision = 'pending'",
+        "SELECT id, file_id, proposed_jail_time, proposed_fine FROM mclaw_jail_decisions WHERE id = ? AND suspect_citizenid = ? AND decision = 'pending'",
         { data.jailDecisionId, citizenid }
     )
 
     if not decision then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'No pending decision found.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Bekleyen karar bulunamadı.' })
         return
     end
 
@@ -46,9 +46,11 @@ RegisterNetEvent('mclaw:server:jail:submitDecision', function(data)
                 { decision.file_id }
             )
         end
+        local fileNumber = decision.file_id and MySQL.scalar.await('SELECT file_number FROM mclaw_files WHERE id = ?', { decision.file_id })
+        Mclaw.CreateSentence(decision.file_id, citizenid, decision.proposed_jail_time, decision.proposed_fine, 'accepted', fileNumber)
         TriggerClientEvent('ox_lib:notify', src, {
             type        = 'success',
-            description = 'You have accepted the charges. Your sentence begins.',
+            description = Mclaw.T('jail_accepted_notify'),
         })
     else
         MySQL.update(
@@ -69,7 +71,7 @@ RegisterNetEvent('mclaw:server:jail:submitDecision', function(data)
         end
         TriggerClientEvent('ox_lib:notify', src, {
             type        = 'inform',
-            description = 'Your objection has been recorded. A legal file has been opened on your behalf.',
+            description = 'İtirazınız kaydedildi. Adınıza bir dava dosyası açıldı.',
         })
     end
 end)
@@ -81,7 +83,7 @@ end)
 -- ─────────────────────────────────────────────────────────────────────────────
 RegisterNetEvent('mclaw:server:jail:checkPending', function()
     local src    = source
-    local Player = exports.qbx_core:GetPlayer(src)
+    local Player = Mclaw.GetPlayer(src)
     if not Player or not Config.Jail.reopenOnSpawn then return end
 
     local citizenid = Player.PlayerData.citizenid
@@ -122,13 +124,13 @@ end)
 -- ─────────────────────────────────────────────────────────────────────────────
 RegisterNetEvent('mclaw:server:jail:openPanel', function(data)
     local src    = source
-    local Player = exports.qbx_core:GetPlayer(src)
+    local Player = Mclaw.GetPlayer(src)
     if not Player then return end
-    if Player.PlayerData.job.name ~= Config.Jobs.police then return end
+    if Mclaw.GetRole(Player) ~= Config.Jobs.police then return end
 
     local targetSrc = findOnlineSource(data.suspectCitizenid)
     if not targetSrc then
-        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Suspect is not online.' })
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = 'Şüpheli çevrimiçi değil.' })
         return
     end
 

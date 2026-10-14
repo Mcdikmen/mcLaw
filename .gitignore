@@ -8,3 +8,5 @@ local
 *.rar
 *.tar.gz
 *.7z
+# --- Secrets ---
+config.secret.lua

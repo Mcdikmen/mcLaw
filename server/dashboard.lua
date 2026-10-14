@@ -4,10 +4,10 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 
 lib.callback.register('mclaw:cb:dashboard:getStats', function(source)
-    local P = exports.qbx_core:GetPlayer(source)
+    local P = Mclaw.GetPlayer(source)
     if not P then return {} end
 
-    local job = P.PlayerData.job.name
+    local job = Mclaw.GetRole(P)
     local cid = P.PlayerData.citizenid
 
     local activeFiles   = 0
@@ -66,7 +66,7 @@ end)
 -- Returns up to 20 matches: { citizenid, name }
 -- ─────────────────────────────────────────────────────────────────────────────
 lib.callback.register('mclaw:cb:citizens:search', function(source, query)
-    local P = exports.qbx_core:GetPlayer(source)
+    local P = Mclaw.GetPlayer(source)
     if not P then return {} end
 
     local allowed = {
@@ -75,7 +75,7 @@ lib.callback.register('mclaw:cb:citizens:search', function(source, query)
         [Config.Jobs.judge]      = true,
         [Config.Jobs.police]     = true,
     }
-    if not allowed[P.PlayerData.job.name] then return {} end
+    if not allowed[Mclaw.GetRole(P)] then return {} end
 
     if not query or #query < 2 then return {} end
 

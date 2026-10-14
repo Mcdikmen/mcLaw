@@ -6,10 +6,10 @@
 -- Returns the full content of a file: charges, hearing, documents, open log.
 -- Source must hold a legal job.
 lib.callback.register('mclaw:cb:file:getDetail', function(source, fileId)
-    local P = exports.qbx_core:GetPlayer(source)
+    local P = Mclaw.GetPlayer(source)
     if not P then return nil end
 
-    local job = P.PlayerData.job.name
+    local job = Mclaw.GetRole(P)
     local allowed = {
         [Config.Jobs.prosecutor] = true,
         [Config.Jobs.judge]      = true,
@@ -220,10 +220,10 @@ end)
 -- ─────────────────────────────────────────────────────────────────────────────
 RegisterNetEvent('mclaw:server:file:addDocument', function(data)
     local src = source
-    local P   = exports.qbx_core:GetPlayer(src)
+    local P   = Mclaw.GetPlayer(src)
     if not P then return end
 
-    local job = P.PlayerData.job.name
+    local job = Mclaw.GetRole(P)
     local allowed = {
         [Config.Jobs.prosecutor] = true,
         [Config.Jobs.judge]      = true,
@@ -274,8 +274,8 @@ end)
 -- ─────────────────────────────────────────────────────────────────────────────
 RegisterNetEvent('mclaw:server:judge:closeFile', function(data)
     local src = source
-    local P   = exports.qbx_core:GetPlayer(src)
-    if not P or P.PlayerData.job.name ~= Config.Jobs.judge then return end
+    local P   = Mclaw.GetPlayer(src)
+    if not P or Mclaw.GetRole(P) ~= Config.Jobs.judge then return end
 
     local file = MySQL.single.await(
         "SELECT id, file_number, prosecutor_citizenid FROM mclaw_files WHERE id = ? AND status NOT IN ('closed','archived','verdict_issued') AND deleted_at IS NULL",
@@ -302,7 +302,7 @@ RegisterNetEvent('mclaw:server:judge:closeFile', function(data)
             { file.prosecutor_citizenid, 'verdict', Mclaw.T('notify_file_closed_title'), msg, 'file', data.fileId }
         )
         for _, pid in ipairs(GetPlayers()) do
-            local PP = exports.qbx_core:GetPlayer(tonumber(pid))
+            local PP = Mclaw.GetPlayer(tonumber(pid))
             if PP and PP.PlayerData.citizenid == file.prosecutor_citizenid then
                 TriggerClientEvent('mclaw:client:notification:push', tonumber(pid), {
                     type = 'inform', title = Mclaw.T('notify_file_closed_title'), description = msg,

@@ -3,8 +3,8 @@
 -- ─────────────────────────────────────────────────────────────────────────────
 
 local function getJob()
-    local Player = exports.qbx_core:GetPlayerData()
-    return Player and Player.job and Player.job.name or 'civilian'
+    local Player = exports['qb-core']:GetCoreObject().Functions.GetPlayerData()
+    return Player and Player.job and Mclaw.RoleOf(Player.job.name, Player.job.grade and Player.job.grade.level) or 'civilian'
 end
 
 -- Tablet prop ve animasyon
@@ -114,7 +114,7 @@ end)
 -- ─────────────────────────────────────────────────────────────────────────────
 RegisterNUICallback('referral:submit', function(data, cb)
     if not data.suspectCid or not data.charges or not data.narrative then
-        cb({ ok = false, error = 'Missing data.' })
+        cb({ ok = false, error = 'Eksik veri.' })
         return
     end
 
@@ -354,7 +354,7 @@ RegisterNUICallback('judge:acceptCivilPetition', function(data, cb)
 end)
 
 RegisterNUICallback('judge:rejectCivilPetition', function(data, cb)
-    if not data.petitionId then cb({ ok = false, error = 'Missing data.' }); return end
+    if not data.petitionId then cb({ ok = false, error = 'Eksik veri.' }); return end
     TriggerServerEvent('mclaw:server:judge:rejectCivilPetition', {
         petitionId = data.petitionId,
         reason     = data.reason or '',
@@ -373,7 +373,7 @@ end)
 -- ─────────────────────────────────────────────────────────────────────────────
 RegisterNUICallback('verdict:issue', function(data, cb)
     if not data.fileId or not data.result then
-        cb({ ok = false, error = 'Missing data.' })
+        cb({ ok = false, error = 'Eksik veri.' })
         return
     end
     TriggerServerEvent('mclaw:server:judge:issueVerdict', {

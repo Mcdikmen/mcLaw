@@ -1,17 +1,53 @@
 Config = {}
 
 -- ─────────────────────────────────────────────
+-- DOJ ROLE MAPPING (County RP, QBCore)
+-- One QBCore job ('doj'); its grade decides which mcLaw role the player has.
+-- Grades come from qb-core/shared/jobs.lua:
+--   10 Stajyer Avukat, 11 Avukat, 12 Aday Savcı, 13 Savcı,
+--   14 Aday Hakim, 15 Hakim, 16 Başsavcı (boss, prosecutor role)
+-- ─────────────────────────────────────────────
+Config.Doj = {
+    job   = 'doj',
+    roles = {
+        [10] = 'lawyer',     [11] = 'lawyer',
+        [12] = 'prosecutor', [13] = 'prosecutor',
+        [14] = 'judge',      [15] = 'judge',
+        [16] = 'prosecutor',
+    },
+}
+
+-- ─────────────────────────────────────────────
 -- MDT INTEGRATION
 -- Which MDT resource is active on your server.
--- provider: 'ps-mdt' | 'qbx-mdt' | 'none'
+-- provider: 'codem-mdt' | 'none'
 --   'none'  → no MDT integration, charges come from Config.Charges only
 -- pullCharges: if true, MDT charge list is merged with Config.Charges
 -- writeWarrants: if true, arrest warrants are also inserted into MDT automatically
 -- ─────────────────────────────────────────────
 Config.MDT = {
-    provider      = 'ps-mdt',
+    provider      = 'codem-mdt',
     pullCharges   = true,
-    writeWarrants = true,
+    writeWarrants = false, -- mcLaw does not create warrants yet; codem-mdt has no warrant export
+}
+
+-- ─────────────────────────────────────────────
+-- PRISON / SENTENCE ENFORCEMENT (County RP)
+-- A guilty verdict (or accepted charges) never teleports anyone. It creates a
+-- pending sentence; an on-duty police officer must bring the convict to the
+-- prison intake and run /hapisteslim next to them.
+-- intake:       prison entrance (qb-prison Config.Locations.outside)
+-- intakeRadius: max distance (m) between officer and intake point
+-- requireCuffs: convict must be handcuffed when delivered
+-- fineSociety:  society that receives the court fine invoice (codem-billing)
+-- ─────────────────────────────────────────────
+Config.Prison = {
+    intake       = vector3(1848.13, 2586.05, 44.67),
+    intakeRadius = 60.0,
+    requireCuffs = true,
+    deliverCommand = 'hapisteslim',
+    listCommand    = 'hukumler',
+    fineSociety  = 'police',
 }
 
 -- ─────────────────────────────────────────────
@@ -78,8 +114,8 @@ Config.Compensation = {
 -- ─────────────────────────────────────────────
 Config.Webhook = {
     enabled    = true,
-    url        = 'https://discord.com/api/webhooks/1505654100438814761/0LaZydB70eJT4S2BeOnbCXJ2urimUpfcw9ovEVk_rg_Y_gw_nmz2KHy7-fICC8T-dyCN',
-    serverName = 'mcLaw Server',
+    url        = '',
+    serverName = 'County RP',
 
     roleMentions = {
         prosecutor = '',   -- Discord role ID, e.g. '123456789012345678'
@@ -100,43 +136,43 @@ Config.Webhook = {
     messages = {
         fileOpened = {
             color = 3447003,
-            title = '📁 New File Opened',
-            body  = '**{serverName}** — `{fileNumber}`\nSuspect: **{suspectName}**\n\n{prosecutorMention} awaiting assignment.',
+            title = '📁 Yeni Dosya Açıldı',
+            body  = '**{serverName}** — `{fileNumber}`\nŞüpheli: **{suspectName}**\n\n{prosecutorMention} atama bekleniyor.',
         },
         prosecutorAssigned = {
             color = 5763719,
-            title = '⚖️ Prosecutor Assigned',
-            body  = '**{serverName}** — `{fileNumber}`\n{prosecutorMention} has been assigned to this file.',
+            title = '⚖️ Savcı Atandı',
+            body  = '**{serverName}** — `{fileNumber}`\n{prosecutorMention} bu dosyaya atandı.',
         },
         verdictIssued = {
             color = 15548997,
-            title = '🔨 Verdict Issued',
-            body  = '**{serverName}** — `{fileNumber}`\nVerdict: **{verdictResult}**\nJail: {jailTime} min | Fine: ${fine}',
+            title = '🔨 Karar Verildi',
+            body  = '**{serverName}** — `{fileNumber}`\nKarar: **{verdictResult}**\nHapis: {jailTime} dk | Para cezası: ${fine}',
         },
         fileClosed = {
             color = 9807270,
-            title = '🗂️ File Closed',
-            body  = '**{serverName}** — `{fileNumber}`\nThis file has been closed.',
+            title = '🗂️ Dosya Kapatıldı',
+            body  = '**{serverName}** — `{fileNumber}`\nBu dosya kapatıldı.',
         },
         warrantCreated = {
             color = 15105570,
-            title = '🚨 Arrest Warrant Issued',
-            body  = '**{serverName}** — `{fileNumber}`\nAn arrest warrant has been issued for **{suspectName}**.',
+            title = '🚨 Tutuklama Emri Çıkarıldı',
+            body  = '**{serverName}** — `{fileNumber}`\n**{suspectName}** için tutuklama emri çıkarıldı.',
         },
         hearingScheduled = {
             color = 10181046,
-            title = '📅 Hearing Scheduled',
-            body  = '**{serverName}** — `{fileNumber}`\nHearing Date: **{hearingDate}**\n{judgeMention} {prosecutorMention}',
+            title = '📅 Duruşma Planlandı',
+            body  = '**{serverName}** — `{fileNumber}`\nDuruşma Tarihi: **{hearingDate}**\n{judgeMention} {prosecutorMention}',
         },
         compensationPaid = {
             color = 5763719,
-            title = '💰 Compensation Paid',
-            body  = '**{serverName}** — `{fileNumber}`\n**{suspectName}** received compensation: ${fine}',
+            title = '💰 Tazminat Ödendi',
+            body  = '**{serverName}** — `{fileNumber}`\n**{suspectName}** tazminat aldı: ${fine}',
         },
         auctionOpened = {
             color = 16776960,
-            title = '🏷️ State Auction Opened',
-            body  = '**{serverName}** — A new state auction has been listed.',
+            title = '🏷️ Devlet İhalesi Açıldı',
+            body  = '**{serverName}** — Yeni bir devlet ihalesi listelendi.',
         },
     },
 }
@@ -174,7 +210,7 @@ Config.Confiscation = {
 -- padWidth: how many digits the sequence number is padded to
 -- ─────────────────────────────────────────────
 Config.FileNumber = {
-    prefix   = 'MCL',
+    prefix   = 'DOS',
     padWidth = 5,
 }
 
@@ -193,16 +229,16 @@ Config.InvestigationNumber = {
 -- Add as many entries as you need — no code changes required.
 -- ─────────────────────────────────────────────
 Config.DocTypes = {
-    { value = 'petition',          label = 'Petition',             jobs = { 'lawyer' } },
-    { value = 'motion',            label = 'Motion',               jobs = { 'lawyer' } },
-    { value = 'defense_brief',     label = 'Defense Brief',        jobs = { 'lawyer' } },
-    { value = 'prosecution_note',  label = 'Prosecution Note',     jobs = { 'prosecutor' } },
-    { value = 'indictment_detail', label = 'Indictment Attachment',jobs = { 'prosecutor' } },
-    { value = 'evidence_summary',  label = 'Evidence Summary',     jobs = { 'prosecutor' } },
-    { value = 'judge_order',       label = 'Judge Order',          jobs = { 'judge' } },
-    { value = 'court_note',        label = 'Court Note',           jobs = { 'judge' } },
-    { value = 'interim_ruling',    label = 'Interim Ruling',       jobs = { 'judge' } },
-    { value = 'police_report',     label = 'Police Report',        jobs = { 'police' } },
+    { value = 'petition',          label = 'Dilekçe',               jobs = { 'lawyer' } },
+    { value = 'motion',            label = 'Talep',                   jobs = { 'lawyer' } },
+    { value = 'defense_brief',     label = 'Savunma Dilekçesi',      jobs = { 'lawyer' } },
+    { value = 'prosecution_note',  label = 'Savcılık Notu',   jobs = { 'prosecutor' } },
+    { value = 'indictment_detail', label = 'İddianame Eki',jobs = { 'prosecutor' } },
+    { value = 'evidence_summary',  label = 'Delil Özeti',   jobs = { 'prosecutor' } },
+    { value = 'judge_order',       label = 'Hakim Emri',        jobs = { 'judge' } },
+    { value = 'court_note',        label = 'Mahkeme Notu',         jobs = { 'judge' } },
+    { value = 'interim_ruling',    label = 'Ara Karar',     jobs = { 'judge' } },
+    { value = 'police_report',     label = 'Polis Raporu',      jobs = { 'police' } },
 }
 
 -- ─────────────────────────────────────────────
@@ -216,40 +252,45 @@ Config.DocTypes = {
 -- fine:     default fine in $ (0 = no fine)
 -- severity: 1 = minor | 2 = moderate | 3 = severe
 -- ─────────────────────────────────────────────
+-- Fines are placeholders: they must be calibrated with the server economy
+-- (starting capital is $500). jailTime is in minutes (real prison time).
+-- Entries from codem-mdt's penal list (mmdt_fines) are appended automatically
+-- on the server (see server/charges.lua).
 Config.Charges = {
     useDatabase = false,
     list = {
-        {
-            code     = 'armed_assault',
-            label    = 'Armed Assault',
-            category = 'violence',
-            jailTime = 60,
-            fine     = 5000,
-            severity = 3,
-        },
-        {
-            code     = 'theft',
-            label    = 'Theft',
-            category = 'property',
-            jailTime = 20,
-            fine     = 2000,
-            severity = 1,
-        },
-        {
-            code     = 'drug_possession',
-            label    = 'Drug Possession',
-            category = 'drug',
-            jailTime = 30,
-            fine     = 3000,
-            severity = 2,
-        },
-        {
-            code     = 'speeding',
-            label    = 'Speeding',
-            category = 'traffic',
-            jailTime = 0,
-            fine     = 500,
-            severity = 1,
-        },
+        -- Şiddet
+        { code = 'assault',           label = 'Darp',                              category = 'violence', jailTime = 15, fine = 500,  severity = 1 },
+        { code = 'armed_assault',     label = 'Silahlı Saldırı',                   category = 'violence', jailTime = 60, fine = 2500, severity = 3 },
+        { code = 'attempted_murder',  label = 'Kasten Öldürmeye Teşebbüs',         category = 'violence', jailTime = 120, fine = 5000, severity = 3 },
+        { code = 'murder',            label = 'Kasten Öldürme',                    category = 'violence', jailTime = 180, fine = 10000, severity = 3 },
+        { code = 'kidnapping',        label = 'Kişiyi Hürriyetinden Yoksun Kılma', category = 'violence', jailTime = 90, fine = 3500, severity = 3 },
+        { code = 'threat',            label = 'Tehdit',                            category = 'violence', jailTime = 10, fine = 400,  severity = 1 },
+        { code = 'resisting_arrest',  label = 'Gözaltına Direnme',                 category = 'violence', jailTime = 20, fine = 600,  severity = 1 },
+        { code = 'assault_officer',   label = 'Kamu Görevlisine Saldırı',          category = 'violence', jailTime = 60, fine = 2000, severity = 3 },
+        -- Mülkiyet
+        { code = 'theft',             label = 'Hırsızlık',                         category = 'property', jailTime = 20, fine = 600,  severity = 1 },
+        { code = 'vehicle_theft',     label = 'Araç Hırsızlığı',                   category = 'property', jailTime = 40, fine = 1500, severity = 2 },
+        { code = 'robbery',           label = 'Gasp',                              category = 'property', jailTime = 60, fine = 2500, severity = 3 },
+        { code = 'armed_robbery',     label = 'Silahlı Soygun',                    category = 'property', jailTime = 120, fine = 5000, severity = 3 },
+        { code = 'burglary',          label = 'Konuta Hırsızlık / Hırsız Girişi',  category = 'property', jailTime = 45, fine = 1500, severity = 2 },
+        { code = 'vandalism',         label = 'Mala Zarar Verme',                  category = 'property', jailTime = 10, fine = 400,  severity = 1 },
+        { code = 'fraud',             label = 'Dolandırıcılık',                    category = 'property', jailTime = 30, fine = 2000, severity = 2 },
+        -- Uyuşturucu
+        { code = 'drug_possession',   label = 'Uyuşturucu Bulundurma',             category = 'drug',     jailTime = 30, fine = 1000, severity = 2 },
+        { code = 'drug_dealing',      label = 'Uyuşturucu Satışı',                 category = 'drug',     jailTime = 90, fine = 3500, severity = 3 },
+        { code = 'drug_trafficking',  label = 'Uyuşturucu Kaçakçılığı',            category = 'drug',     jailTime = 150, fine = 6000, severity = 3 },
+        -- Trafik
+        { code = 'speeding',          label = 'Hız İhlali',                        category = 'traffic',  jailTime = 0,  fine = 250,  severity = 1 },
+        { code = 'reckless_driving',  label = 'Tehlikeli Sürüş',                   category = 'traffic',  jailTime = 10, fine = 500,  severity = 1 },
+        { code = 'evading_police',    label = 'Polisten Kaçma',                    category = 'traffic',  jailTime = 30, fine = 1500, severity = 2 },
+        { code = 'hit_and_run',       label = 'Kazaya Karışıp Kaçma',              category = 'traffic',  jailTime = 20, fine = 1000, severity = 2 },
+        { code = 'no_license',        label = 'Ehliyetsiz Araç Kullanma',          category = 'traffic',  jailTime = 0,  fine = 500,  severity = 1 },
+        -- Diğer
+        { code = 'illegal_weapon',    label = 'Ruhsatsız Silah Bulundurma',        category = 'other',    jailTime = 40, fine = 2000, severity = 2 },
+        { code = 'false_report',      label = 'Asılsız İhbar',                     category = 'other',    jailTime = 10, fine = 400,  severity = 1 },
+        { code = 'bribery',           label = 'Rüşvet',                            category = 'other',    jailTime = 60, fine = 3000, severity = 3 },
+        { code = 'obstruction',       label = 'Adaletin Yerine Gelmesini Engelleme', category = 'other',  jailTime = 30, fine = 1000, severity = 2 },
+        { code = 'trespassing',       label = 'Mülke İzinsiz Girme',               category = 'other',    jailTime = 5,  fine = 300,  severity = 1 },
     },
 }

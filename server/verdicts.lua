@@ -6,7 +6,7 @@
 -- ── Helper: notify a player by citizenid if online ───────────────────────────
 local function notifyByCid(cid, payload)
     for _, pid in ipairs(GetPlayers()) do
-        local P = exports.qbx_core:GetPlayer(tonumber(pid))
+        local P = Mclaw.GetPlayer(tonumber(pid))
         if P and P.PlayerData.citizenid == cid then
             TriggerClientEvent('mclaw:client:notification:push', tonumber(pid), payload)
             return
@@ -17,8 +17,8 @@ end
 -- ── mclaw:cb:verdict:getEligibleFiles ────────────────────────────────────────
 -- Returns hearing_scheduled files assigned to the requesting judge.
 lib.callback.register('mclaw:cb:verdict:getEligibleFiles', function(source)
-    local P = exports.qbx_core:GetPlayer(source)
-    if not P or P.PlayerData.job.name ~= Config.Jobs.judge then return {} end
+    local P = Mclaw.GetPlayer(source)
+    if not P or Mclaw.GetRole(P) ~= Config.Jobs.judge then return {} end
 
     local cid  = P.PlayerData.citizenid
     local rows = MySQL.query.await(
@@ -78,8 +78,8 @@ end)
 -- data.reasoning     (string?)  optional reasoning text
 RegisterNetEvent('mclaw:server:judge:issueVerdict', function(data)
     local src = source
-    local P   = exports.qbx_core:GetPlayer(src)
-    if not P or P.PlayerData.job.name ~= Config.Jobs.judge then return end
+    local P   = Mclaw.GetPlayer(src)
+    if not P or Mclaw.GetRole(P) ~= Config.Jobs.judge then return end
 
     local validResults = { guilty = true, acquitted = true, dismissed = true }
     if not data.fileId or not data.result or not validResults[data.result] then
@@ -182,6 +182,20 @@ RegisterNetEvent('mclaw:server:judge:issueVerdict', function(data)
         })
     end
 
+    Mclaw.Webhook.Send('file.verdict_issued', {
+        fileNumber       = file.file_number,
+        suspectName      = Mclaw.GetCharName(file.suspect_citizenid),
+        suspectCitizenid = file.suspect_citizenid,
+        verdictResult    = resultLabel,
+        jailTime         = totalJail,
+        fine             = totalFine,
+    })
+
+    -- Guilty: queue the sentence; police must deliver the convict to prison
+    if data.result == 'guilty' then
+        Mclaw.CreateSentence(file.id, file.suspect_citizenid, totalJail, totalFine, 'verdict', file.file_number)
+    end
+
     -- Compensation for acquitted players
     if data.result == 'acquitted' and Config.Compensation and Config.Compensation.enabled then
         local amount = 0
@@ -193,9 +207,9 @@ RegisterNetEvent('mclaw:server:judge:issueVerdict', function(data)
         if amount > 0 then
             MySQL.insert(
                 'INSERT INTO mclaw_compensation (verdict_id, citizenid, amount, reason, paid) VALUES ((SELECT id FROM mclaw_verdicts WHERE file_id = ? ORDER BY id DESC LIMIT 1), ?, ?, ?, 0)',
-                { data.fileId, file.suspect_citizenid, amount, 'Acquittal compensation — ' .. file.file_number }
+                { data.fileId, file.suspect_citizenid, amount, 'Beraat tazminatı — ' .. file.file_number }
             )
-            local suspectPlayer = exports.qbx_core:GetPlayer(file.suspect_citizenid)
+            local suspectPlayer = Mclaw.GetPlayer(file.suspect_citizenid)
             if suspectPlayer then
                 local account = Config.Compensation.account or 'bank'
                 suspectPlayer.Functions.AddMoney(account, amount, 'mclaw-acquittal-compensation')

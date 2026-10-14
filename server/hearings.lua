@@ -7,10 +7,10 @@
 --   Judge  → all hearings they preside over
 --   Lawyer → hearings for files where they have an active power of attorney
 lib.callback.register('mclaw:cb:hearings:getList', function(source)
-    local P = exports.qbx_core:GetPlayer(source)
+    local P = Mclaw.GetPlayer(source)
     if not P then return {} end
 
-    local job = P.PlayerData.job.name
+    local job = Mclaw.GetRole(P)
     local cid = P.PlayerData.citizenid
     local rows
 

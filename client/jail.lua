@@ -13,17 +13,17 @@ local function openJailPanel(data)
 
     local chargeStr = #(data.charges or {}) > 0
         and ('• ' .. table.concat(data.charges, '\n• '))
-        or  'No charges listed.'
+        or  'Suç listelenmedi.'
 
     local result = lib.alertDialog({
-        header  = 'Jail — ' .. (data.fileNumber or 'Unknown File'),
-        content = '**Charges:**\n' .. chargeStr
-            .. '\n\n**Proposed sentence:** '
-            .. (data.proposedJail or 0) .. ' min jail'
-            .. (data.proposedFine  > 0 and (', $' .. data.proposedFine .. ' fine') or '')
-            .. '\n\nDo you accept these charges?',
+        header  = 'Hapis — ' .. (data.fileNumber or 'Bilinmeyen Dosya'),
+        content = '**Suçlamalar:**\n' .. chargeStr
+            .. '\n\n**Önerilen ceza:** '
+            .. (data.proposedJail or 0) .. ' dk hapis'
+            .. (data.proposedFine  > 0 and (', $' .. data.proposedFine .. ' para cezası') or '')
+            .. '\n\nBu suçlamaları kabul ediyor musunuz?',
         cancel = true,
-        labels = { confirm = 'Accept charges', cancel = 'Contest (I am innocent)' },
+        labels = { confirm = 'Suçlamaları kabul ediyorum', cancel = 'İtiraz ediyorum (masumum)' },
     })
 
     panelOpen = false
@@ -60,7 +60,7 @@ RegisterNetEvent('mclaw:client:jail:panelTimeout', function(data)
         pendingDecision = nil
         panelOpen       = false
     end
-    lib.notify({ type = 'inform', description = 'Time expired: charges have been automatically accepted.' })
+    lib.notify({ type = 'inform', description = 'Süre doldu: suçlamalar otomatik olarak kabul edildi.' })
 end)
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -74,5 +74,3 @@ end
 
 AddEventHandler('QBCore:Client:OnPlayerLoaded', checkPendingOnSpawn)
 
--- Qbox fires this when the player data is fully ready
-AddEventHandler('qbx_core:playerLoaded', checkPendingOnSpawn)

@@ -5,10 +5,10 @@
 -- mclaw:cb:prosecutor:getFiles
 -- Returns up to 50 most recent files assigned to the requesting prosecutor or judge.
 lib.callback.register('mclaw:cb:prosecutor:getFiles', function(source)
-    local P = exports.qbx_core:GetPlayer(source)
+    local P = Mclaw.GetPlayer(source)
     if not P then return {} end
 
-    local job = P.PlayerData.job.name
+    local job = Mclaw.GetRole(P)
     local cid = P.PlayerData.citizenid
 
     local rows
@@ -65,8 +65,8 @@ end)
 -- ─────────────────────────────────────────────────────────────────────────────
 RegisterNetEvent('mclaw:server:prosecutor:openInvestigation', function(data)
     local src = source
-    local P   = exports.qbx_core:GetPlayer(src)
-    if not P or P.PlayerData.job.name ~= Config.Jobs.prosecutor then return end
+    local P   = Mclaw.GetPlayer(src)
+    if not P or Mclaw.GetRole(P) ~= Config.Jobs.prosecutor then return end
 
     if not data.suspectCid or not data.charges or #data.charges == 0 or not data.narrative or #data.narrative < 10 then
         TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_missing_data') })
@@ -119,8 +119,8 @@ end)
 -- Savcının kendi soruşturmalarını listeler (type = 'investigation').
 -- ─────────────────────────────────────────────────────────────────────────────
 lib.callback.register('mclaw:cb:prosecutor:getInvestigations', function(source)
-    local P = exports.qbx_core:GetPlayer(source)
-    if not P or P.PlayerData.job.name ~= Config.Jobs.prosecutor then return {} end
+    local P = Mclaw.GetPlayer(source)
+    if not P or Mclaw.GetRole(P) ~= Config.Jobs.prosecutor then return {} end
 
     local cid  = P.PlayerData.citizenid
     local rows = MySQL.query.await(
@@ -168,9 +168,9 @@ end)
 -- ─────────────────────────────────────────────────────────────────────────────
 RegisterNetEvent('mclaw:server:prosecutor:submitIndictment', function(data)
     local src = source
-    local P   = exports.qbx_core:GetPlayer(src)
+    local P   = Mclaw.GetPlayer(src)
     if not P then return end
-    if P.PlayerData.job.name ~= Config.Jobs.prosecutor then return end
+    if Mclaw.GetRole(P) ~= Config.Jobs.prosecutor then return end
 
     local cid  = P.PlayerData.citizenid
     local file = MySQL.single.await(
@@ -218,7 +218,7 @@ RegisterNetEvent('mclaw:server:prosecutor:submitIndictment', function(data)
             { file.judge_citizenid, 'hearing', Mclaw.T('notify_indictment_ready_title'), Mclaw.T('notify_indictment_prepared_desc', file.file_number), 'file', data.fileId }
         )
         for _, pid in ipairs(GetPlayers()) do
-            local JP = exports.qbx_core:GetPlayer(tonumber(pid))
+            local JP = Mclaw.GetPlayer(tonumber(pid))
             if JP and JP.PlayerData.citizenid == file.judge_citizenid then
                 TriggerClientEvent('mclaw:client:notification:push', tonumber(pid), {
                     type        = 'inform',
@@ -243,8 +243,8 @@ end)
 -- ─────────────────────────────────────────────────────────────────────────────
 RegisterNetEvent('mclaw:server:judge:acceptCase', function(data)
     local src = source
-    local P   = exports.qbx_core:GetPlayer(src)
-    if not P or P.PlayerData.job.name ~= Config.Jobs.judge then return end
+    local P   = Mclaw.GetPlayer(src)
+    if not P or Mclaw.GetRole(P) ~= Config.Jobs.judge then return end
 
     if not data.scheduledAt or data.scheduledAt == '' then
         TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_hearing_date_required') })
@@ -291,7 +291,7 @@ RegisterNetEvent('mclaw:server:judge:acceptCase', function(data)
             { file.prosecutor_citizenid, 'hearing', Mclaw.T('notify_hearing_scheduled_title'), msg, 'file', data.fileId }
         )
         for _, pid in ipairs(GetPlayers()) do
-            local PP = exports.qbx_core:GetPlayer(tonumber(pid))
+            local PP = Mclaw.GetPlayer(tonumber(pid))
             if PP and PP.PlayerData.citizenid == file.prosecutor_citizenid then
                 TriggerClientEvent('mclaw:client:notification:push', tonumber(pid), {
                     type        = 'success',

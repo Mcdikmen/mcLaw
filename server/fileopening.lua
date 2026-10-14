@@ -7,7 +7,7 @@
 
 local function findSource(citizenid)
     for _, pid in ipairs(GetPlayers()) do
-        local P = exports.qbx_core:GetPlayer(tonumber(pid))
+        local P = Mclaw.GetPlayer(tonumber(pid))
         if P and P.PlayerData.citizenid == citizenid then
             return tonumber(pid)
         end
@@ -32,10 +32,10 @@ end
 -- ─────────────────────────────────────────────────────────────────────────────
 RegisterNetEvent('mclaw:server:fileopening:openFile', function(data)
     local src = source
-    local P   = exports.qbx_core:GetPlayer(src)
+    local P   = Mclaw.GetPlayer(src)
     if not P then return end
 
-    local job = P.PlayerData.job.name
+    local job = Mclaw.GetRole(P)
     if job ~= Config.Jobs.judge then return end
 
     local cid = P.PlayerData.citizenid
@@ -98,8 +98,8 @@ RegisterNetEvent('mclaw:server:fileopening:openFile', function(data)
 
     if fileStatus == 'pending_approval' then
         for _, pid in ipairs(GetPlayers()) do
-            local JP = exports.qbx_core:GetPlayer(tonumber(pid))
-            if JP and JP.PlayerData.job.name == Config.Jobs.judge then
+            local JP = Mclaw.GetPlayer(tonumber(pid))
+            if JP and Mclaw.GetRole(JP) == Config.Jobs.judge then
                 TriggerClientEvent('mclaw:client:notification:push', tonumber(pid), {
                     type        = 'inform',
                     title       = Mclaw.T('notify_file_pending_approval_title'),
@@ -119,8 +119,8 @@ end)
 -- Returns all files in pending_approval status for judge review.
 -- ─────────────────────────────────────────────────────────────────────────────
 lib.callback.register('mclaw:cb:judge:getPendingApprovals', function(source)
-    local P = exports.qbx_core:GetPlayer(source)
-    if not P or P.PlayerData.job.name ~= Config.Jobs.judge then return {} end
+    local P = Mclaw.GetPlayer(source)
+    if not P or Mclaw.GetRole(P) ~= Config.Jobs.judge then return {} end
 
     local rows = MySQL.query.await(
         "SELECT id, file_number, suspect_citizenid, opened_by_citizenid, opened_by_job, notes, created_at FROM mclaw_files WHERE status = 'pending_approval' AND deleted_at IS NULL ORDER BY created_at ASC LIMIT 50",
@@ -173,8 +173,8 @@ end)
 -- ─────────────────────────────────────────────────────────────────────────────
 RegisterNetEvent('mclaw:server:judge:approveFile', function(data)
     local src = source
-    local P   = exports.qbx_core:GetPlayer(src)
-    if not P or P.PlayerData.job.name ~= Config.Jobs.judge then return end
+    local P   = Mclaw.GetPlayer(src)
+    if not P or Mclaw.GetRole(P) ~= Config.Jobs.judge then return end
 
     local cid  = P.PlayerData.citizenid
     local file = MySQL.single.await(
@@ -225,8 +225,8 @@ end)
 -- ─────────────────────────────────────────────────────────────────────────────
 RegisterNetEvent('mclaw:server:judge:rejectFile', function(data)
     local src = source
-    local P   = exports.qbx_core:GetPlayer(src)
-    if not P or P.PlayerData.job.name ~= Config.Jobs.judge then return end
+    local P   = Mclaw.GetPlayer(src)
+    if not P or Mclaw.GetRole(P) ~= Config.Jobs.judge then return end
 
     local cid  = P.PlayerData.citizenid
     local file = MySQL.single.await(

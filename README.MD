@@ -1,50 +1,54 @@
-# mcLaw - Judicial Management System (DOJ) for FiveM
+# mcLaw — Adalet (DOJ) Yönetim Sistemi
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
-![Framework](https://img.shields.io/badge/framework-Qbox-green.svg)
-![Dependency](https://img.shields.io/badge/dependency-ox__lib-red.svg)
-![Completed](https://img.shields.io/badge/Completed-5%25-orange)
-![Repo](https://img.shields.io/badge/github-mcLaw-blue?logo=github)
+FiveM için uçtan uca adalet sistemi: sevk raporu, soruşturma, iddianame, duruşma, karar, dilekçe ve hükmün infazı.
+County RP için **QBCore** sürümüdür (arayüz ve metinler tamamen Türkçe). Orijinal Qbox sürümü deponun ilk commit'lerindedir.
 
-This is an end-to-end judicial management system designed for Qbox. It provides a complete legal infrastructure for your server, allowing legal professionals to manage the entire litigation process—from opening investigation files and sending official subpoenas to conducting court hearings and managing prison sentencing.
+## Özellikler
 
-## Features
+- **Sevk raporu (polis):** şüpheli, suçlar, olay anlatımı, kanıt. Şüpheli suçlamayı kabul edebilir veya itiraz edebilir.
+- **Soruşturma / dosya açma:** savcı, hakim ve avukat dosya açar; hakim onayı akışı.
+- **İddianame ve duruşma:** yüz yüze veya yazılı yargılama.
+- **Karar:** mahkûmiyet, beraat, davanın düşmesi; suç başına ceza değişikliği; beraat tazminatı.
+- **Dilekçe:** avukat → savcılık (ceza) veya hakim (hukuk).
+- **Hükmün infazı (qb-prison):** karar kesinleşince kimse ışınlanmaz. Hüküm "infaz bekliyor" olur; görevdeki bir polis hükümlüyü
+  hapishane girişine götürüp `/hapisteslim` yazar. Hapis qb-prison'a, MDT durumu codem-mdt'ye, para cezası codem-billing faturasına gider.
+  Bekleyen hükümler `/hukumler` ile listelenir.
+- **Suç listesi:** `shared/config.lua` içindeki Türkçe liste + codem-mdt'nin `mmdt_fines` tablosu (otomatik birleştirilir).
+- **Discord webhook:** dosya açıldı, karar verildi vb. (URL `config.secret.lua` içinde, depoya girmez).
 
-- Case Management: Create and track comprehensive lawsuits with detailed status updates.
-- Investigation Files: Build criminal cases by attaching evidence, suspect profiles, and witness statements.
-- Subpoena System: Send official legal notifications and summons directly to players.
-- Court Room Tools: Integrated tools for judges to manage hearings, deliberate, and issue final verdicts.
-- Sentencing and Imprisonment: Automated system for processing jail time and fines directly through the judicial interface.
-- Qbox Native: Fully optimized for the Qbox Project ecosystem, utilizing modern group and permission systems.
-- OxLib Integration: High-quality UI elements including context menus, input dialogs, and progress bars.
-- Persistence: All legal records, files, and warrants are securely stored via oxmysql.
-- Performance: Highly optimized code ensuring 0.00ms idle resmon.
+## Roller (tek `doj` işi, rütbeye göre)
 
-## Dependencies
+| Rütbe (grade) | Rol |
+|---|---|
+| 10-11 | avukat |
+| 12-13 | savcı |
+| 14-15 | hakim |
+| 16 (Başsavcı) | savcı |
 
-Ensure you have the following resources installed:
+Eşleşme `Config.Doj.roles` içindedir. Polis rolü `police` işidir.
 
-- [Qbox Core](https://github.com/Qbox-Project/qbx_core)
-- [ox_lib](https://github.com/overextended/ox_lib)
-- [oxmysql](https://github.com/overextended/oxmysql)
+## Bağımlılıklar
 
-## Installation
+`qb-core`, `ox_lib`, `oxmysql` — isteğe bağlı: `qb-prison`, `qb-policejob`, `codem-mdt`, `codem-billing`.
 
-1. Download the resource and place it in your resources folder.
-2. Rename the folder **mcLaw-main** to **mcLaw** (ensure no brackets).
-3. Import the provided install.sql file into your database (if applicable).
-4. Add the following line to your server.cfg:
-   ```cfg
-   ensure mcLaw
+## Kurulum
 
-## Support
+1. `install.sql` dosyasını veritabanında çalıştırın (tablolar `mclaw_*`, hepsi `IF NOT EXISTS`).
+2. `config.secret.example.lua` dosyasını `config.secret.lua` olarak kopyalayın ve webhook URL'sini yazın.
+3. `server.cfg` içinde `ensure mcLaw` (klasör `[other]` gibi bir gruptaysa ayrıca gerekmez).
+4. `qb-core/shared/jobs.lua` içinde `doj` işi tanımlı olmalı (grade 10-16).
 
-- Discord: *mcdikmen*
+## Komutlar
 
-- Issues: Create a ticket on the GitHub Issues page.
+`/mclaw` (panel), `/mclaw_report` ve `/referral` (sevk raporu), `/hukumler` (polis: bekleyen hükümler),
+`/hapisteslim` (polis: hükümlüyü hapishane girişinde teslim et).
 
-## License
+## Bilinen eksikler
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+- Tutuklama emri sekmesi henüz boş; codem-mdt'nin tutuklama emri için dışa açık bir fonksiyonu yok.
+- Para cezaları ve süreler yer tutucudur (ekonomi kalibrasyonuna bağlı).
+- Vekâletname ve müvekkil sekmeleri yapım aşamasında.
 
-© 2026 Mcdikmen. All rights reserved.
+## Lisans
+
+MIT — bkz. [LICENSE](LICENSE). © 2026 Mcdikmen.

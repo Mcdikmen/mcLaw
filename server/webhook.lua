@@ -17,12 +17,13 @@ local eventKeyMap = {
 -- Returns a "<@ID>" mention string, or "" if not found.
 local function resolveDiscordMention(citizenid)
     if not citizenid or citizenid == '' then return '' end
-    local result = MySQL.scalar.await(
-        'SELECT u.discord FROM players p JOIN users u ON u.userId = p.userId WHERE p.citizenid = ? LIMIT 1',
-        { citizenid }
-    )
-    if result and result ~= '' then
-        return '<@' .. result .. '>'
+    -- QBCore has no `users` table: the Discord id comes from the online
+    -- player's identifiers. Offline staff fall back to the role mention.
+    local P = Mclaw.GetPlayer(citizenid)
+    if not P then return '' end
+    local discord = GetPlayerIdentifierByType(P.PlayerData.source, 'discord')
+    if discord and discord ~= '' then
+        return '<@' .. discord:gsub('^discord:', '') .. '>'
     end
     return ''
 end

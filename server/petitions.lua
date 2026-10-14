@@ -6,7 +6,7 @@
 
 local function findSource(citizenid)
     for _, pid in ipairs(GetPlayers()) do
-        local P = exports.qbx_core:GetPlayer(tonumber(pid))
+        local P = Mclaw.GetPlayer(tonumber(pid))
         if P and P.PlayerData.citizenid == citizenid then
             return tonumber(pid)
         end
@@ -20,8 +20,8 @@ end
 -- ─────────────────────────────────────────────────────────────────────────────
 RegisterNetEvent('mclaw:server:lawyer:sendPetition', function(data)
     local src = source
-    local P   = exports.qbx_core:GetPlayer(src)
-    if not P or P.PlayerData.job.name ~= Config.Jobs.lawyer then return end
+    local P   = Mclaw.GetPlayer(src)
+    if not P or Mclaw.GetRole(P) ~= Config.Jobs.lawyer then return end
 
     if not data.petitionType or not data.plaintiffCid or not data.subject or not data.description then
         TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_missing_data') })
@@ -88,8 +88,8 @@ RegisterNetEvent('mclaw:server:lawyer:sendPetition', function(data)
     })
 
     for _, pid in ipairs(GetPlayers()) do
-        local RP = exports.qbx_core:GetPlayer(tonumber(pid))
-        if RP and RP.PlayerData.job.name == recipientJob then
+        local RP = Mclaw.GetPlayer(tonumber(pid))
+        if RP and Mclaw.GetRole(RP) == recipientJob then
             TriggerClientEvent('mclaw:client:notification:push', tonumber(pid), {
                 type        = 'inform',
                 title       = Mclaw.T('notify_new_petition_title'),
@@ -104,8 +104,8 @@ end)
 -- Avukatın gönderdiği dilekçeleri listeler.
 -- ─────────────────────────────────────────────────────────────────────────────
 lib.callback.register('mclaw:cb:lawyer:getMyPetitions', function(source)
-    local P = exports.qbx_core:GetPlayer(source)
-    if not P or P.PlayerData.job.name ~= Config.Jobs.lawyer then return {} end
+    local P = Mclaw.GetPlayer(source)
+    if not P or Mclaw.GetRole(P) ~= Config.Jobs.lawyer then return {} end
 
     local cid  = P.PlayerData.citizenid
     local rows = MySQL.query.await(
@@ -143,8 +143,8 @@ end)
 -- Savcıya gelen ceza dilekçeleri.
 -- ─────────────────────────────────────────────────────────────────────────────
 lib.callback.register('mclaw:cb:prosecutor:getIncomingPetitions', function(source)
-    local P = exports.qbx_core:GetPlayer(source)
-    if not P or P.PlayerData.job.name ~= Config.Jobs.prosecutor then return {} end
+    local P = Mclaw.GetPlayer(source)
+    if not P or Mclaw.GetRole(P) ~= Config.Jobs.prosecutor then return {} end
 
     local rows = MySQL.query.await(
         "SELECT id, type, attorney_citizenid, plaintiff_citizenid, charges, subject, description, status, reject_reason, attachments, created_at FROM mclaw_petitions WHERE recipient_job = 'prosecutor' AND status = 'pending' ORDER BY created_at ASC LIMIT 50",
@@ -197,8 +197,8 @@ end)
 -- Hakime gelen hukuk dilekçeleri.
 -- ─────────────────────────────────────────────────────────────────────────────
 lib.callback.register('mclaw:cb:judge:getIncomingPetitions', function(source)
-    local P = exports.qbx_core:GetPlayer(source)
-    if not P or P.PlayerData.job.name ~= Config.Jobs.judge then return {} end
+    local P = Mclaw.GetPlayer(source)
+    if not P or Mclaw.GetRole(P) ~= Config.Jobs.judge then return {} end
 
     local rows = MySQL.query.await(
         "SELECT id, type, attorney_citizenid, plaintiff_citizenid, subject, description, status, reject_reason, attachments, created_at FROM mclaw_petitions WHERE recipient_job = 'judge' AND status = 'pending' ORDER BY created_at ASC LIMIT 50",
@@ -235,8 +235,8 @@ end)
 -- ─────────────────────────────────────────────────────────────────────────────
 RegisterNetEvent('mclaw:server:prosecutor:acceptPetition', function(data)
     local src = source
-    local P   = exports.qbx_core:GetPlayer(src)
-    if not P or P.PlayerData.job.name ~= Config.Jobs.prosecutor then return end
+    local P   = Mclaw.GetPlayer(src)
+    if not P or Mclaw.GetRole(P) ~= Config.Jobs.prosecutor then return end
 
     local cid = P.PlayerData.citizenid
     local petition = MySQL.single.await(
@@ -303,8 +303,8 @@ end)
 -- ─────────────────────────────────────────────────────────────────────────────
 RegisterNetEvent('mclaw:server:prosecutor:rejectPetition', function(data)
     local src = source
-    local P   = exports.qbx_core:GetPlayer(src)
-    if not P or P.PlayerData.job.name ~= Config.Jobs.prosecutor then return end
+    local P   = Mclaw.GetPlayer(src)
+    if not P or Mclaw.GetRole(P) ~= Config.Jobs.prosecutor then return end
 
     local petition = MySQL.single.await(
         "SELECT id, attorney_citizenid FROM mclaw_petitions WHERE id = ? AND status = 'pending' AND recipient_job = 'prosecutor'",
@@ -328,7 +328,7 @@ RegisterNetEvent('mclaw:server:prosecutor:rejectPetition', function(data)
         TriggerClientEvent('mclaw:client:notification:push', attorneySrc, {
             type        = 'error',
             title       = Mclaw.T('notify_your_petition_rejected_title'),
-            description = 'Prosecution has rejected your petition.' .. reason,
+            description = 'Savcılık dilekçenizi reddetti.' .. reason,
         })
     end
 end)
@@ -339,8 +339,8 @@ end)
 -- ─────────────────────────────────────────────────────────────────────────────
 RegisterNetEvent('mclaw:server:judge:acceptCivilPetition', function(data)
     local src = source
-    local P   = exports.qbx_core:GetPlayer(src)
-    if not P or P.PlayerData.job.name ~= Config.Jobs.judge then return end
+    local P   = Mclaw.GetPlayer(src)
+    if not P or Mclaw.GetRole(P) ~= Config.Jobs.judge then return end
 
     local cid = P.PlayerData.citizenid
     local petition = MySQL.single.await(
@@ -392,8 +392,8 @@ end)
 -- ─────────────────────────────────────────────────────────────────────────────
 RegisterNetEvent('mclaw:server:judge:rejectCivilPetition', function(data)
     local src = source
-    local P   = exports.qbx_core:GetPlayer(src)
-    if not P or P.PlayerData.job.name ~= Config.Jobs.judge then return end
+    local P   = Mclaw.GetPlayer(src)
+    if not P or Mclaw.GetRole(P) ~= Config.Jobs.judge then return end
 
     local petition = MySQL.single.await(
         "SELECT id, attorney_citizenid FROM mclaw_petitions WHERE id = ? AND status = 'pending' AND recipient_job = 'judge'",
@@ -417,7 +417,7 @@ RegisterNetEvent('mclaw:server:judge:rejectCivilPetition', function(data)
         TriggerClientEvent('mclaw:client:notification:push', attorneySrc, {
             type        = 'error',
             title       = Mclaw.T('notify_your_petition_rejected_title'),
-            description = 'Judge has rejected your petition.' .. reason,
+            description = 'Hakim dilekçenizi reddetti.' .. reason,
         })
     end
 end)

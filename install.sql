@@ -296,3 +296,23 @@ CREATE INDEX IF NOT EXISTS `idx_petitions_recipient_status`  ON `mclaw_petitions
 CREATE INDEX IF NOT EXISTS `idx_petitions_attorney`          ON `mclaw_petitions` (`attorney_citizenid`);
 CREATE INDEX IF NOT EXISTS `idx_attorneys_attorney_active`   ON `mclaw_attorneys` (`attorney_citizenid`, `is_active`);
 CREATE INDEX IF NOT EXISTS `idx_file_open_logs_file`         ON `mclaw_file_open_logs` (`file_id`);
+
+-- ─────────────────────────────────────────────
+-- County RP addition: pending sentences (hüküm infazı).
+-- A guilty verdict / accepted charges creates a 'pending' row; a police officer
+-- must physically deliver the convict to the prison intake to serve it.
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `mclaw_sentences` (
+    `id`                    INT AUTO_INCREMENT PRIMARY KEY,
+    `file_id`               INT NULL,
+    `citizenid`             VARCHAR(64) NOT NULL,
+    `jail_minutes`          INT NOT NULL DEFAULT 0,
+    `fine`                  INT NOT NULL DEFAULT 0,
+    `origin`                ENUM('verdict','accepted') NOT NULL DEFAULT 'verdict',
+    `reason`                VARCHAR(255) NULL,
+    `status`                ENUM('pending','served','cancelled') NOT NULL DEFAULT 'pending',
+    `served_by_citizenid`   VARCHAR(64) NULL,
+    `created_at`            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `served_at`             TIMESTAMP NULL,
+    INDEX `idx_sentence_cid_status` (`citizenid`, `status`)
+);
