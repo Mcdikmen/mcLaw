@@ -24,21 +24,21 @@ RegisterNetEvent('mclaw:server:lawyer:sendPetition', function(data)
     if not P or Mclaw.GetRole(P) ~= Config.Jobs.lawyer then return end
 
     if not data.petitionType or not data.plaintiffCid or not data.subject or not data.description then
-        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_missing_data') })
+        Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_missing_data') })
         return
     end
     if #data.subject < 3 then
-        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_subject_too_short') })
+        Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_subject_too_short') })
         return
     end
     if #data.description < 10 then
-        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_description_too_short') })
+        Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_description_too_short') })
         return
     end
 
     local plaintiffExists = MySQL.scalar.await('SELECT COUNT(*) FROM players WHERE citizenid = ?', { data.plaintiffCid })
     if not plaintiffExists or plaintiffExists == 0 then
-        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_invalid_client_cid') })
+        Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_invalid_client_cid') })
         return
     end
 
@@ -48,14 +48,14 @@ RegisterNetEvent('mclaw:server:lawyer:sendPetition', function(data)
     elseif data.petitionType == 'civil' then
         recipientJob = Config.Jobs.judge
     else
-        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_invalid_petition_type') })
+        Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_invalid_petition_type') })
         return
     end
 
     local chargesJson = nil
     if data.petitionType == 'criminal' then
         if not data.charges or #data.charges == 0 then
-            TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_criminal_needs_charge') })
+            Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_criminal_needs_charge') })
             return
         end
         chargesJson = json.encode(data.charges)
@@ -81,7 +81,7 @@ RegisterNetEvent('mclaw:server:lawyer:sendPetition', function(data)
 
     local submittedDesc = data.petitionType == 'criminal' and Mclaw.T('notify_petition_submitted_criminal') or Mclaw.T('notify_petition_submitted_civil')
     local typeLabel = data.petitionType == 'criminal' and 'criminal case' or 'civil case'
-    TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition,
+    Mclaw.Notify(src, { position = Config.NotifyPosition,
         type        = 'success',
         title       = Mclaw.T('notify_petition_submitted_title'),
         description = submittedDesc,
@@ -90,7 +90,7 @@ RegisterNetEvent('mclaw:server:lawyer:sendPetition', function(data)
     for _, pid in ipairs(GetPlayers()) do
         local RP = Mclaw.GetPlayer(tonumber(pid))
         if RP and Mclaw.GetRole(RP) == recipientJob then
-            TriggerClientEvent('mclaw:client:notification:push', tonumber(pid), {
+            Mclaw.Notify(tonumber(pid), {
                 type        = 'inform',
                 title       = Mclaw.T('notify_new_petition_title'),
                 description = Mclaw.T('notify_new_petition_desc', typeLabel),
@@ -244,7 +244,7 @@ RegisterNetEvent('mclaw:server:prosecutor:acceptPetition', function(data)
         { data.petitionId }
     )
     if not petition then
-        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_petition_not_found') })
+        Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_petition_not_found') })
         return
     end
 
@@ -282,7 +282,7 @@ RegisterNetEvent('mclaw:server:prosecutor:acceptPetition', function(data)
         { fileId, petition.id }
     )
 
-    TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition,
+    Mclaw.Notify(src, { position = Config.NotifyPosition,
         type        = 'success',
         title       = Mclaw.T('notify_investigation_opened_title'),
         description = Mclaw.T('notify_investigation_opened_desc', fileNumber),
@@ -290,7 +290,7 @@ RegisterNetEvent('mclaw:server:prosecutor:acceptPetition', function(data)
 
     local attorneySrc = findSource(petition.attorney_citizenid)
     if attorneySrc then
-        TriggerClientEvent('mclaw:client:notification:push', attorneySrc, {
+        Mclaw.Notify(attorneySrc, {
             type        = 'success',
             title       = Mclaw.T('notify_petition_accepted_title'),
             description = Mclaw.T('notify_prosecution_opened_inv', fileNumber),
@@ -311,7 +311,7 @@ RegisterNetEvent('mclaw:server:prosecutor:rejectPetition', function(data)
         { data.petitionId }
     )
     if not petition then
-        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_petition_not_found') })
+        Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_petition_not_found') })
         return
     end
 
@@ -320,12 +320,12 @@ RegisterNetEvent('mclaw:server:prosecutor:rejectPetition', function(data)
         { data.reason or nil, petition.id }
     )
 
-    TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'inform', description = Mclaw.T('notify_petition_rejected_desc') })
+    Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'inform', description = Mclaw.T('notify_petition_rejected_desc') })
 
     local attorneySrc = findSource(petition.attorney_citizenid)
     if attorneySrc then
         local reason = (data.reason and data.reason ~= '') and Mclaw.T('notify_petition_rejected_reason', data.reason) or ''
-        TriggerClientEvent('mclaw:client:notification:push', attorneySrc, {
+        Mclaw.Notify(attorneySrc, {
             type        = 'error',
             title       = Mclaw.T('notify_your_petition_rejected_title'),
             description = 'Savcılık dilekçenizi reddetti.' .. reason,
@@ -348,7 +348,7 @@ RegisterNetEvent('mclaw:server:judge:acceptCivilPetition', function(data)
         { data.petitionId }
     )
     if not petition then
-        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_petition_not_found') })
+        Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_petition_not_found') })
         return
     end
 
@@ -371,7 +371,7 @@ RegisterNetEvent('mclaw:server:judge:acceptCivilPetition', function(data)
         { fileId, petition.id }
     )
 
-    TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition,
+    Mclaw.Notify(src, { position = Config.NotifyPosition,
         type        = 'success',
         title       = Mclaw.T('notify_civil_opened_title'),
         description = Mclaw.T('notify_civil_opened_desc', fileNumber),
@@ -379,7 +379,7 @@ RegisterNetEvent('mclaw:server:judge:acceptCivilPetition', function(data)
 
     local attorneySrc = findSource(petition.attorney_citizenid)
     if attorneySrc then
-        TriggerClientEvent('mclaw:client:notification:push', attorneySrc, {
+        Mclaw.Notify(attorneySrc, {
             type        = 'success',
             title       = Mclaw.T('notify_petition_accepted_title'),
             description = Mclaw.T('notify_judge_opened_civil', fileNumber),
@@ -400,7 +400,7 @@ RegisterNetEvent('mclaw:server:judge:rejectCivilPetition', function(data)
         { data.petitionId }
     )
     if not petition then
-        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_petition_not_found') })
+        Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_petition_not_found') })
         return
     end
 
@@ -409,12 +409,12 @@ RegisterNetEvent('mclaw:server:judge:rejectCivilPetition', function(data)
         { data.reason or nil, petition.id }
     )
 
-    TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'inform', description = Mclaw.T('notify_petition_rejected_desc') })
+    Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'inform', description = Mclaw.T('notify_petition_rejected_desc') })
 
     local attorneySrc = findSource(petition.attorney_citizenid)
     if attorneySrc then
         local reason = (data.reason and data.reason ~= '') and Mclaw.T('notify_petition_rejected_reason', data.reason) or ''
-        TriggerClientEvent('mclaw:client:notification:push', attorneySrc, {
+        Mclaw.Notify(attorneySrc, {
             type        = 'error',
             title       = Mclaw.T('notify_your_petition_rejected_title'),
             description = 'Hakim dilekçenizi reddetti.' .. reason,

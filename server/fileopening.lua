@@ -45,24 +45,24 @@ RegisterNetEvent('mclaw:server:fileopening:openFile', function(data)
         'SELECT COUNT(*) FROM players WHERE citizenid = ?', { data.suspectCid }
     )
     if not suspectExists or suspectExists == 0 then
-        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_invalid_suspect_cid') })
+        Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_invalid_suspect_cid') })
         return
     end
 
     if not data.charges or #data.charges == 0 then
-        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_no_charges_selected') })
+        Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_no_charges_selected') })
         return
     end
 
     for _, c in ipairs(data.charges) do
         if not Mclaw.GetChargeByCode(c.code) then
-            TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_invalid_charge_code', tostring(c.code)) })
+            Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_invalid_charge_code', tostring(c.code)) })
             return
         end
     end
 
     if not data.narrative or #data.narrative < 10 then
-        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_narrative_too_short') })
+        Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_narrative_too_short') })
         return
     end
 
@@ -90,7 +90,7 @@ RegisterNetEvent('mclaw:server:fileopening:openFile', function(data)
     )
 
     local statusNote = fileStatus == 'pending_approval' and (' — ' .. Mclaw.T('notify_file_pending_note')) or (' — ' .. Mclaw.T('notify_file_opened_note'))
-    TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition,
+    Mclaw.Notify(src, { position = Config.NotifyPosition,
         type        = 'success',
         title       = Mclaw.T('notify_file_created_title'),
         description = fileNumber .. statusNote,
@@ -100,7 +100,7 @@ RegisterNetEvent('mclaw:server:fileopening:openFile', function(data)
         for _, pid in ipairs(GetPlayers()) do
             local JP = Mclaw.GetPlayer(tonumber(pid))
             if JP and Mclaw.GetRole(JP) == Config.Jobs.judge then
-                TriggerClientEvent('mclaw:client:notification:push', tonumber(pid), {
+                Mclaw.Notify(tonumber(pid), {
                     type        = 'inform',
                     title       = Mclaw.T('notify_file_pending_approval_title'),
                     description = Mclaw.T('notify_file_pending_approval_desc', fileNumber),
@@ -182,7 +182,7 @@ RegisterNetEvent('mclaw:server:judge:approveFile', function(data)
         { data.fileId }
     )
     if not file then
-        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_file_not_found_approval') })
+        Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_file_not_found_approval') })
         return
     end
 
@@ -195,7 +195,7 @@ RegisterNetEvent('mclaw:server:judge:approveFile', function(data)
         { data.fileId, 'approved', cid, Config.Jobs.judge, data.notes ~= '' and data.notes or nil }
     )
 
-    TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition,
+    Mclaw.Notify(src, { position = Config.NotifyPosition,
         type        = 'success',
         title       = Mclaw.T('notify_file_approved_title'),
         description = Mclaw.T('notify_file_approved_desc', file.file_number),
@@ -204,7 +204,7 @@ RegisterNetEvent('mclaw:server:judge:approveFile', function(data)
     if file.opened_by_citizenid then
         local openerSrc = findSource(file.opened_by_citizenid)
         if openerSrc then
-            TriggerClientEvent('mclaw:client:notification:push', openerSrc, {
+            Mclaw.Notify(openerSrc, {
                 type        = 'success',
                 title       = Mclaw.T('notify_your_file_approved_title'),
                 description = Mclaw.T('notify_your_file_approved_desc', file.file_number),
@@ -234,7 +234,7 @@ RegisterNetEvent('mclaw:server:judge:rejectFile', function(data)
         { data.fileId }
     )
     if not file then
-        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_file_not_found_rejection') })
+        Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_file_not_found_rejection') })
         return
     end
 
@@ -247,7 +247,7 @@ RegisterNetEvent('mclaw:server:judge:rejectFile', function(data)
         { data.fileId, 'rejected', cid, Config.Jobs.judge, data.reason ~= '' and data.reason or nil }
     )
 
-    TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition,
+    Mclaw.Notify(src, { position = Config.NotifyPosition,
         type        = 'inform',
         title       = Mclaw.T('notify_file_rejected_title'),
         description = Mclaw.T('notify_file_rejected_desc', file.file_number),
@@ -257,7 +257,7 @@ RegisterNetEvent('mclaw:server:judge:rejectFile', function(data)
         local reason = (data.reason and data.reason ~= '') and Mclaw.T('notify_file_closed_reason', data.reason) or ''
         local openerSrc = findSource(file.opened_by_citizenid)
         if openerSrc then
-            TriggerClientEvent('mclaw:client:notification:push', openerSrc, {
+            Mclaw.Notify(openerSrc, {
                 type        = 'error',
                 title       = Mclaw.T('notify_your_file_rejected_title'),
                 description = Mclaw.T('notify_your_file_rejected_desc', file.file_number) .. reason,

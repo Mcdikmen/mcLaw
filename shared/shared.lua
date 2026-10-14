@@ -321,6 +321,34 @@ if IsDuplicityVersion() then
         return QBCore.Functions.GetPlayer(tonumber(id))
     end
 
+    -- Sms(src, text): the same text as an lb-phone SMS from Config.Sms.sender. Silent no-op if
+    -- the phone is not running or the player has no equipped phone.
+    function Mclaw.Sms(src, text)
+        if not (Config.Sms and Config.Sms.enabled) then return end
+        if GetResourceState('lb-phone') ~= 'started' then return end
+        local okNumber, number = pcall(function() return exports['lb-phone']:GetEquippedPhoneNumber(src) end)
+        if not okNumber or not number then return end
+        local sent = pcall(function() exports['lb-phone']:SendMessage(Config.Sms.sender, number, text) end)
+        if not sent then
+            pcall(function()
+                exports['lb-phone']:SendNotification(number, { app = 'Messages', title = Config.Sms.sender, content = text })
+            end)
+        end
+    end
+
+    -- Notify(src, data): on-screen ox_lib notification + SMS copy (not for errors).
+    -- data = { type, title, description, duration, position }
+    function Mclaw.Notify(src, data)
+        data = data or {}
+        data.position = data.position or Config.NotifyPosition
+        TriggerClientEvent('ox_lib:notify', src, data)
+        if data.type ~= 'error' and data.description then
+            local text = data.description
+            if data.title and data.title ~= '' then text = data.title .. ': ' .. text end
+            Mclaw.Sms(src, (text:gsub('%*%*', '')))
+        end
+    end
+
     -- GetRole(player) -> role name (see Mclaw.RoleOf); nil if player is nil
     function Mclaw.GetRole(P)
         local job = P and P.PlayerData and P.PlayerData.job

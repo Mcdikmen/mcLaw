@@ -31,7 +31,7 @@ RegisterNetEvent('mclaw:server:jail:submitDecision', function(data)
     )
 
     if not decision then
-        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = 'Bekleyen karar bulunamadı.' })
+        Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = 'Bekleyen karar bulunamadı.' })
         return
     end
 
@@ -46,7 +46,7 @@ RegisterNetEvent('mclaw:server:jail:submitDecision', function(data)
             MySQL.update("UPDATE mclaw_files SET status = 'closed', closed_at = NOW() WHERE id = ?", { fileId })
         end
         Mclaw.CreateSentence(fileId, citizenid, decision.proposed_jail_time, decision.proposed_fine, 'accepted', fileNumber)
-        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition,
+        Mclaw.Notify(src, { position = Config.NotifyPosition,
             type        = 'success',
             description = Mclaw.T('jail_accepted_notify'),
         })
@@ -70,7 +70,7 @@ RegisterNetEvent('mclaw:server:jail:submitDecision', function(data)
         local function tell(officerSrc)
             if officerSrc and not told[officerSrc] then
                 told[officerSrc] = true
-                TriggerClientEvent('ox_lib:notify', officerSrc, { position = Config.NotifyPosition,
+                Mclaw.Notify(officerSrc, { position = Config.NotifyPosition,
                     type = 'inform', duration = 15000,
                     title = 'Şüpheli İtiraz Etti',
                     description = Mclaw.T('contest_notify_police', suspectName, fileNumber),

@@ -8,7 +8,7 @@ local function notifyByCid(cid, payload)
     for _, pid in ipairs(GetPlayers()) do
         local P = Mclaw.GetPlayer(tonumber(pid))
         if P and P.PlayerData.citizenid == cid then
-            TriggerClientEvent('mclaw:client:notification:push', tonumber(pid), payload)
+            Mclaw.Notify(tonumber(pid), payload)
             return
         end
     end
@@ -83,7 +83,7 @@ RegisterNetEvent('mclaw:server:judge:issueVerdict', function(data)
 
     local validResults = { guilty = true, acquitted = true, dismissed = true }
     if not data.fileId or not data.result or not validResults[data.result] then
-        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_missing_data') })
+        Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_missing_data') })
         return
     end
 
@@ -95,7 +95,7 @@ RegisterNetEvent('mclaw:server:judge:issueVerdict', function(data)
         { data.fileId, cid }
     )
     if not file then
-        TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_file_not_hearing') })
+        Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_file_not_hearing') })
         return
     end
 
@@ -147,7 +147,7 @@ RegisterNetEvent('mclaw:server:judge:issueVerdict', function(data)
     )
 
     -- Notify judge (self)
-    TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition,
+    Mclaw.Notify(src, { position = Config.NotifyPosition,
         type        = 'success',
         title       = Mclaw.T('notify_verdict_issued_title'),
         description = Mclaw.T('notify_verdict_issued_desc', file.file_number, resultLabel, tostring(totalJail), tostring(totalFine)),

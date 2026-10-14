@@ -11,7 +11,7 @@
 local cfg = Config.Bracelet
 
 local function notify(src, kind, text, title)
-    TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = kind, description = text, title = title })
+    Mclaw.Notify(src, { position = Config.NotifyPosition, type = kind, description = text, title = title })
 end
 
 local function isDutyPolice(P)

@@ -10,6 +10,13 @@ Config = {}
 -- Where mcLaw notifications appear (ox_lib position). top-center stays clear of the HUD.
 Config.NotifyPosition = 'top-center'
 
+-- lb-phone SMS copy of every mcLaw notification (errors are not sent). The sender shows up as
+-- a contact name in the Messages app. Players without an equipped phone only get the on-screen one.
+Config.Sms = {
+    enabled = true,
+    sender  = 'DOJ',
+}
+
 Config.Doj = {
     job   = 'doj',
     roles = {
