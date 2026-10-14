@@ -12,7 +12,7 @@ end
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Contest flow: long process screen → two confirmations + final choice.
--- Returns 'reject' | 'accept' | nil (dismissed: the decision stays pending).
+-- Returns 'reject' | 'accept' | 'back' (Vazgeç / closed: return to the first screen).
 -- ─────────────────────────────────────────────────────────────────────────────
 local function runContestFlow()
     local proceed = lib.alertDialog({
@@ -23,7 +23,7 @@ local function runContestFlow()
         size     = 'lg',
         labels   = { confirm = Mclaw.T('contest_continue'), cancel = Mclaw.T('contest_cancel') },
     })
-    if proceed ~= 'confirm' then return nil end
+    if proceed ~= 'confirm' then return 'back' end
 
     local input = lib.inputDialog(Mclaw.T('contest_process_header'), {
         { type = 'checkbox', label = Mclaw.T('contest_ack1'), required = true },
@@ -36,7 +36,7 @@ local function runContestFlow()
             },
         },
     })
-    if not input or not input[1] or not input[2] then return nil end
+    if not input or not input[1] or not input[2] then return 'back' end
     return input[3]
 end
 
@@ -52,30 +52,44 @@ local function openJailPanel(data)
     pendingDecision = data
 
     local chargeStr = #(data.charges or {}) > 0
-        and ('• ' .. table.concat(data.charges, '\n• '))
+        and ('• ' .. table.concat(data.charges, '
+• '))
         or  'Suç listelenmedi.'
 
-    local result = lib.alertDialog({
-        header  = 'Hapis — ' .. (data.fileNumber or 'Bilinmeyen Dosya'),
-        content = '**Suçlamalar:**\n' .. chargeStr
-            .. '\n\n**Önerilen ceza:** '
-            .. (data.proposedJail or 0) .. ' dk hapis'
-            .. (data.proposedFine  > 0 and (', $' .. data.proposedFine .. ' para cezası') or '')
-            .. '\n\nBu suçlamaları kabul ediyor musunuz?',
-        cancel = true,
-        labels = { confirm = 'Suçlamaları kabul ediyorum', cancel = 'İtiraz ediyorum (masumum)' },
-    })
+    -- Loops so that "Vazgeç" on the process screen returns to this first screen.
+    while true do
+        local result = lib.alertDialog({
+            header  = 'Hapis — ' .. (data.fileNumber or 'Bilinmeyen Dosya'),
+            content = '**Suçlamalar:**
+' .. chargeStr
+                .. '
 
-    if result == 'confirm' then
-        submit(data.jailDecisionId, true, false)
-    elseif result == 'cancel' then
-        local final = runContestFlow()
-        if final == 'reject' then
-            submit(data.jailDecisionId, false, true)
-        elseif final == 'accept' then
+**Önerilen ceza:** '
+                .. (data.proposedJail or 0) .. ' dk hapis'
+                .. (data.proposedFine  > 0 and (', $' .. data.proposedFine .. ' para cezası') or '')
+                .. '
+
+Bu suçlamaları kabul ediyor musunuz?',
+            cancel = true,
+            labels = { confirm = 'Suçlamaları kabul ediyorum', cancel = 'İtiraz ediyorum (masumum)' },
+        })
+
+        if result == 'confirm' then
             submit(data.jailDecisionId, true, false)
+            break
+        elseif result == 'cancel' then
+            local final = runContestFlow()
+            if final == 'reject' then
+                submit(data.jailDecisionId, false, true)
+                break
+            elseif final == 'accept' then
+                submit(data.jailDecisionId, true, false)
+                break
+            end
+            -- 'back': show the first screen again
+        else
+            break -- closed with Escape: decision stays pending (police can reopen with /suclamaac)
         end
-        -- nil: dismissed, decision stays pending (police can reopen with /suclamaac)
     end
 
     panelOpen = false
