@@ -182,7 +182,16 @@ RegisterNetEvent('mclaw:server:judge:issueVerdict', function(data)
         })
     end
 
-    Mclaw.Webhook.Send('file.verdict_issued', {
+    -- Guilty: queue the sentence; police must deliver the convict to prison.
+    -- Done first and guarded so a notification/webhook problem can never skip it.
+    if data.result == 'guilty' then
+        local okSentence, err = pcall(Mclaw.CreateSentence, file.id, file.suspect_citizenid, totalJail, totalFine, 'verdict', file.file_number)
+        if not okSentence then
+            print('[mcLaw] CreateSentence failed for file ' .. tostring(file.file_number) .. ': ' .. tostring(err))
+        end
+    end
+
+    local okHook, hookErr = pcall(Mclaw.Webhook.Send, 'file.verdict_issued', {
         fileNumber       = file.file_number,
         suspectName      = Mclaw.GetCharName(file.suspect_citizenid),
         suspectCitizenid = file.suspect_citizenid,
@@ -190,11 +199,7 @@ RegisterNetEvent('mclaw:server:judge:issueVerdict', function(data)
         jailTime         = totalJail,
         fine             = totalFine,
     })
-
-    -- Guilty: queue the sentence; police must deliver the convict to prison
-    if data.result == 'guilty' then
-        Mclaw.CreateSentence(file.id, file.suspect_citizenid, totalJail, totalFine, 'verdict', file.file_number)
-    end
+    if not okHook then print('[mcLaw] webhook failed: ' .. tostring(hookErr)) end
 
     -- Compensation for acquitted players
     if data.result == 'acquitted' and Config.Compensation and Config.Compensation.enabled then
