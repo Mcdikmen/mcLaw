@@ -121,6 +121,7 @@ RegisterNetEvent('mclaw:server:prison:deliver', function(targetId)
     end
 
     if minutes > 0 then
+        Mclaw.BraceletRemoveFor(target.PlayerData.citizenid, 'hapis')
         local now = os.date('*t')
         if now.day == 31 then now.day = 30 end
         target.Functions.SetMetaData('injail', minutes)

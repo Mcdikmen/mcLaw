@@ -182,6 +182,10 @@ RegisterNetEvent('mclaw:server:judge:issueVerdict', function(data)
         })
     end
 
+    if data.result == 'acquitted' or data.result == 'dismissed' then
+        pcall(Mclaw.BraceletDueFor, file.suspect_citizenid, Mclaw.T('verdict_result_' .. data.result))
+    end
+
     -- Guilty: queue the sentence; police must deliver the convict to prison.
     -- Done first and guarded so a notification/webhook problem can never skip it.
     if data.result == 'guilty' then

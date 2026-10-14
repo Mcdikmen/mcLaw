@@ -311,3 +311,39 @@ RegisterNetEvent('mclaw:server:judge:acceptCase', function(data)
         end
     end
 end)
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- mclaw:server:prosecutor:dropCase  ("Takipsizlik")
+-- The prosecutor decides there is no ground to prosecute: the file is closed, the
+-- suspect is told, the suspect's bracelet (if any) is marked for removal.
+--
+-- data.fileId  (number)   id of the file
+-- data.reason  (string?)  optional reasoning
+-- ─────────────────────────────────────────────────────────────────────────────
+RegisterNetEvent('mclaw:server:prosecutor:dropCase', function(data)
+    local src = source
+    local P   = Mclaw.GetPlayer(src)
+    if not P or Mclaw.GetRole(P) ~= Config.Jobs.prosecutor then return end
+
+    local file = MySQL.single.await(
+        "SELECT id, file_number, suspect_citizenid, opened_by_citizenid FROM mclaw_files WHERE id = ? AND prosecutor_citizenid = ? AND status NOT IN ('closed','archived','verdict_issued') AND deleted_at IS NULL",
+        { data.fileId, P.PlayerData.citizenid }
+    )
+    if not file then
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_file_not_found_auth') })
+        return
+    end
+
+    local note = 'Takipsizlik' .. ((data.reason and data.reason ~= '') and (': ' .. data.reason) or '')
+    MySQL.update.await(
+        "UPDATE mclaw_files SET status = 'closed', closed_at = NOW(), updated_at = NOW(), notes = CONCAT(COALESCE(notes, ''), CASE WHEN notes IS NULL OR notes = '' THEN '' ELSE ' | ' END, ?) WHERE id = ?",
+        { note, file.id }
+    )
+
+    TriggerClientEvent('ox_lib:notify', src, { type = 'success', description = Mclaw.T('drop_ok') })
+    local suspect = Mclaw.GetPlayer(file.suspect_citizenid)
+    if suspect then
+        TriggerClientEvent('ox_lib:notify', suspect.PlayerData.source, { type = 'inform', description = Mclaw.T('drop_notify_suspect', file.file_number) })
+    end
+    pcall(Mclaw.BraceletDueFor, file.suspect_citizenid, 'Takipsizlik')
+end)

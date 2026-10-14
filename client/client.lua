@@ -216,6 +216,21 @@ RegisterNUICallback('file:addDocument', function(data, cb)
     cb({ ok = true })
 end)
 
+RegisterNUICallback('referral:startInvestigation', function(data, cb)
+    if not data.reportId then cb({ ok = false, error = 'Eksik veri.' }); return end
+    TriggerServerEvent('mclaw:server:referral:startInvestigation', data.reportId)
+    cb({ ok = true })
+end)
+
+RegisterNUICallback('prosecutor:dropCase', function(data, cb)
+    if not data.fileId then cb({ ok = false, error = 'Eksik veri.' }); return end
+    TriggerServerEvent('mclaw:server:prosecutor:dropCase', {
+        fileId = data.fileId,
+        reason = data.reason or '',
+    })
+    cb({ ok = true })
+end)
+
 RegisterNUICallback('judge:closeFile', function(data, cb)
     if not data.fileId then cb({ ok = false, error = 'Eksik veri.' }); return end
     TriggerServerEvent('mclaw:server:judge:closeFile', {

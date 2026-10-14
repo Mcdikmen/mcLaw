@@ -757,7 +757,9 @@ function renderFileDetail(file) {
 
     var closeBtn   = document.getElementById('filedetail-close-btn');
     var closePanel = document.getElementById('filedetail-close-panel');
-    var canClose   = currentJob === 'judge' && file.status !== 'closed' && file.status !== 'archived' && file.status !== 'verdict_issued';
+    var canClose   = (currentJob === 'judge' || currentJob === 'prosecutor') && file.status !== 'closed' && file.status !== 'archived' && file.status !== 'verdict_issued';
+    closeBtn.textContent = currentJob === 'prosecutor' ? 'Takipsizlik Kararı' : 'Dosyayı Kapat';
+    document.getElementById('filedetail-close-confirm').textContent = closeConfirmLabel();
     if (canClose) { closeBtn.classList.remove('hidden'); } else { closeBtn.classList.add('hidden'); }
     closePanel.classList.add('hidden');
     closeBtn.setAttribute('data-id', file.id);
@@ -1191,6 +1193,8 @@ document.getElementById('filedetail-back').addEventListener('click', function() 
     activateTab(previousTab);
 });
 
+function closeConfirmLabel() { return currentJob === 'prosecutor' ? 'Takipsizlik Kararını Onayla' : 'Dosyayı Kapat'; }
+
 // Close file — show panel
 document.getElementById('filedetail-close-btn').addEventListener('click', function() {
     document.getElementById('filedetail-close-panel').classList.remove('hidden');
@@ -1207,18 +1211,18 @@ document.getElementById('filedetail-close-confirm').addEventListener('click', fu
     var reason = document.getElementById('filedetail-close-reason').value.trim();
     var fid    = parseInt(document.getElementById('filedetail-close-btn').getAttribute('data-id'), 10);
     btn.disabled = true; btn.textContent = 'Kapatılıyor…';
-    fetch('https://mclaw/judge:closeFile', {
+    fetch('https://mclaw/' + (currentJob === 'prosecutor' ? 'prosecutor:dropCase' : 'judge:closeFile'), {
         method: 'POST',
         body: JSON.stringify({ fileId: fid, reason: reason }),
     }).then(function(res) { return res.json(); }).then(function(result) {
-        btn.disabled = false; btn.textContent = 'Dosyayı Kapat';
+        btn.disabled = false; btn.textContent = closeConfirmLabel();
         if (result && result.ok) {
             document.getElementById('filedetail-close-panel').classList.add('hidden');
             var badge = document.getElementById('filedetail-status');
             badge.className = 'file-status status-gray';
             badge.textContent = 'Kapalı';
         }
-    }).catch(function() { btn.disabled = false; btn.textContent = 'Dosyayı Kapat'; });
+    }).catch(function() { btn.disabled = false; btn.textContent = closeConfirmLabel(); });
 });
 
 // -- Investigation open (prosecutor)
@@ -1639,6 +1643,14 @@ function renderHearingList() {
 var REPORT_STATUS_LABELS = { pending: 'Bekliyor', processed: 'İşlendi', rejected: 'Geri Çekildi' };
 var REPORT_STATUS_COLORS = { pending: 'status-yellow', processed: 'status-green', rejected: 'status-red' };
 
+// Where the referral currently stands, from the suspect's decision and the file status.
+function reportProcess(r) {
+    if (r.decision === 'accepted') return 'Şüpheli suçlamaları kabul etti';
+    if (r.decision === 'rejected' && r.file_status === 'opened') return 'İtiraz etti — ifade alınıyor, soruşturma başlatılmayı bekliyor';
+    if (r.decision === 'rejected') return 'Soruşturma başlatıldı';
+    return 'Şüphelinin kararı bekleniyor';
+}
+
 function renderMyReports() {
     var listEl  = document.getElementById('myreports-list');
     var emptyEl = document.getElementById('myreports-empty');
@@ -1662,8 +1674,36 @@ function renderMyReports() {
             '<div class="file-card-body">' +
                 '<div><strong>Şüpheli:</strong> ' + escHtml(r.suspect_citizenid) + '</div>' +
                 '<div><strong>Gönderim:</strong> ' + Mclaw_FormatDate(r.created_at) + '</div>' +
+                '<div><strong>Süreç:</strong> ' + escHtml(reportProcess(r)) + '</div>' +
                 (r.narrative ? '<div style="margin-top:4px;color:#aaa;font-size:12px;">' + escHtml(r.narrative.substring(0, 120)) + (r.narrative.length > 120 ? '…' : '') + '</div>' : '') +
             '</div>';
+        var actions = document.createElement('div');
+        actions.style.cssText = 'display:flex;gap:8px;margin-top:10px;';
+        if (r.file_id) {
+            var viewBtn = document.createElement('button');
+            viewBtn.className = 'btn-secondary';
+            viewBtn.style.cssText = 'font-size:12px;';
+            viewBtn.textContent = 'Dosyayı Görüntüle →';
+            viewBtn.addEventListener('click', function() { openFileDetail(r.file_id, 'myreports'); });
+            actions.appendChild(viewBtn);
+        }
+        if (r.decision === 'rejected' && r.file_status === 'opened') {
+            var startBtn = document.createElement('button');
+            startBtn.className = 'btn-primary';
+            startBtn.style.cssText = 'font-size:12px;';
+            startBtn.textContent = 'Soruşturmayı Başlat';
+            startBtn.addEventListener('click', function() {
+                startBtn.disabled = true; startBtn.textContent = 'Başlatılıyor…';
+                fetch('https://mclaw/referral:startInvestigation', {
+                    method: 'POST',
+                    body: JSON.stringify({ reportId: r.id }),
+                }).then(function() {
+                    setTimeout(function() { activateTab('myreports'); }, 800);
+                }).catch(function() { startBtn.disabled = false; startBtn.textContent = 'Soruşturmayı Başlat'; });
+            });
+            actions.appendChild(startBtn);
+        }
+        card.appendChild(actions);
         listEl.appendChild(card);
     });
 }

@@ -1,10 +1,50 @@
 local pendingDecision = nil   -- holds panel data while awaiting player input
 local panelOpen       = false -- prevents overlapping panel calls
 
+local function submit(jailDecisionId, accepted, acknowledged)
+    pendingDecision = nil
+    TriggerServerEvent('mclaw:server:jail:submitDecision', {
+        jailDecisionId = jailDecisionId,
+        accepted       = accepted,
+        acknowledged   = acknowledged,
+    })
+end
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Contest flow: long process screen → two confirmations + final choice.
+-- Returns 'reject' | 'accept' | nil (dismissed: the decision stays pending).
+-- ─────────────────────────────────────────────────────────────────────────────
+local function runContestFlow()
+    local proceed = lib.alertDialog({
+        header   = Mclaw.T('contest_process_header'),
+        content  = Mclaw.T('contest_process_text'),
+        centered = true,
+        cancel   = true,
+        size     = 'lg',
+        labels   = { confirm = Mclaw.T('contest_continue'), cancel = Mclaw.T('contest_cancel') },
+    })
+    if proceed ~= 'confirm' then return nil end
+
+    local input = lib.inputDialog(Mclaw.T('contest_process_header'), {
+        { type = 'checkbox', label = Mclaw.T('contest_ack1'), required = true },
+        { type = 'checkbox', label = Mclaw.T('contest_ack2'), required = true },
+        {
+            type = 'select', label = Mclaw.T('contest_final_label'), required = true,
+            options = {
+                { value = 'reject', label = Mclaw.T('contest_final_reject') },
+                { value = 'accept', label = Mclaw.T('contest_final_accept') },
+            },
+        },
+    })
+    if not input or not input[1] or not input[2] then return nil end
+    return input[3]
+end
+
 -- ─────────────────────────────────────────────────────────────────────────────
 -- openJailPanel
--- Shows the jail decision dialog. If the player closes it without choosing,
--- pendingDecision stays set so it can be re-shown on the next spawn.
+-- First screen: accept the charges right away, or contest them. Contesting leads
+-- to the long process screen above, where the final decision is made. If the
+-- player closes anything without choosing, pendingDecision stays set.
 -- ─────────────────────────────────────────────────────────────────────────────
 local function openJailPanel(data)
     if panelOpen then return end
@@ -26,22 +66,19 @@ local function openJailPanel(data)
         labels = { confirm = 'Suçlamaları kabul ediyorum', cancel = 'İtiraz ediyorum (masumum)' },
     })
 
-    panelOpen = false
-
     if result == 'confirm' then
-        pendingDecision = nil
-        TriggerServerEvent('mclaw:server:jail:submitDecision', {
-            jailDecisionId = data.jailDecisionId,
-            accepted       = true,
-        })
+        submit(data.jailDecisionId, true, false)
     elseif result == 'cancel' then
-        pendingDecision = nil
-        TriggerServerEvent('mclaw:server:jail:submitDecision', {
-            jailDecisionId = data.jailDecisionId,
-            accepted       = false,
-        })
+        local final = runContestFlow()
+        if final == 'reject' then
+            submit(data.jailDecisionId, false, true)
+        elseif final == 'accept' then
+            submit(data.jailDecisionId, true, false)
+        end
+        -- nil: dismissed, decision stays pending (police can reopen with /suclamaac)
     end
-    -- nil result = dismissed with Escape → pendingDecision stays, panel reopens on spawn
+
+    panelOpen = false
 end
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -63,8 +100,14 @@ RegisterNetEvent('mclaw:client:jail:panelTimeout', function(data)
     lib.notify({ type = 'inform', description = 'Süre doldu: suçlamalar otomatik olarak kabul edildi.' })
 end)
 
+-- Confirmation after the contest was recorded (the officer takes the statement next).
+RegisterNetEvent('mclaw:client:jail:contested', function()
+    lib.notify({ type = 'inform', duration = 12000, description = Mclaw.T('contest_recorded') })
+end)
+
 -- ─────────────────────────────────────────────────────────────────────────────
--- On player loaded: ask server if there is a pending jail decision to re-show.
+-- On player loaded: ask server if there is a pending jail decision to re-show
+-- (only if Config.Jail.reopenOnSpawn is enabled; off by default).
 -- ─────────────────────────────────────────────────────────────────────────────
 local function checkPendingOnSpawn()
     if Config.Jail.reopenOnSpawn then
@@ -73,7 +116,6 @@ local function checkPendingOnSpawn()
 end
 
 AddEventHandler('QBCore:Client:OnPlayerLoaded', checkPendingOnSpawn)
-
 
 -- /suclamaac : police — open the accept/contest panel for the nearest arrested suspect
 RegisterCommand(Config.Jail.openCommand, function()
@@ -84,35 +126,3 @@ RegisterCommand(Config.Jail.openCommand, function()
     end
     TriggerServerEvent('mclaw:server:jail:openForTarget', GetPlayerServerId(playerId))
 end, false)
-
--- The suspect contested the charges: if they are still in custody (MRPD cells
--- area) they are uncuffed and released at the MRPD front, then the Fast RP /
--- tracking device notice is shown in a centered box closed with a button.
-RegisterNetEvent('mclaw:client:jail:contested', function(fileNumber)
-    local QBCore = exports['qb-core']:GetCoreObject()
-    local ped = cache.ped
-
-    if Mclaw.InPleaZone(GetEntityCoords(ped)) then
-        DoScreenFadeOut(600)
-        while not IsScreenFadedOut() do Wait(10) end
-
-        local pd = QBCore.Functions.GetPlayerData()
-        if pd and pd.metadata and pd.metadata.ishandcuffed then
-            TriggerEvent('police:client:GetCuffed', -1) -- -1 = no cuffer, no animation
-            Wait(300)
-        end
-
-        local r = Config.Sites.release.coords
-        SetEntityCoords(ped, r.x, r.y, r.z - 0.98, false, false, false, false)
-        SetEntityHeading(ped, r.w)
-        Wait(500)
-        DoScreenFadeIn(800)
-    end
-
-    lib.alertDialog({
-        header   = Mclaw.T('jail_contested_header'),
-        content  = Mclaw.T('jail_contested_body', fileNumber or '-'),
-        centered = true,
-        labels   = { confirm = Mclaw.T('jail_contested_button') },
-    })
-end)

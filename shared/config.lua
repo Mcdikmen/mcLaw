@@ -69,6 +69,23 @@ Config.Sites = {
     release = { coords = vector4(425.54, -982.22, 30.71, 87.39) },
 }
 
+-- ─────────────────────────────────────────────
+-- BRACELET (County RP)
+-- A suspect who contests the charges gets an ankle bracelet at the `site`
+-- (police only, /kelepcetak). Battery lasts `batteryMinutes` ONLINE minutes
+-- (4320 = 3 days); police replace it with /bataryadegistir within
+-- `batteryDistance` m of the wearer. Removal: /kelepcecikar at the same site.
+-- ─────────────────────────────────────────────
+Config.Bracelet = {
+    site            = { coords = vector4(472.03, -1002.58, 26.27, 269.21), radius = 6.0 },
+    batteryMinutes  = 4320,
+    batteryDistance = 3.0,
+    attachCommand   = 'kelepcetak',
+    removeCommand   = 'kelepcecikar',
+    listCommand     = 'kelepceler',
+    batteryCommand  = 'bataryadegistir',
+}
+
 Mclaw = Mclaw or {}
 
 -- IsNear(pos, site) — true if `pos` (vector3) is within site.radius of site.coords

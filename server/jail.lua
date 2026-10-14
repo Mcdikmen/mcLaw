@@ -53,24 +53,38 @@ RegisterNetEvent('mclaw:server:jail:submitDecision', function(data)
             description = Mclaw.T('jail_accepted_notify'),
         })
     else
+        -- Contesting requires the explicit acknowledgement screen (both checkboxes + final choice).
+        if not data.acknowledged then return end
+
         MySQL.update(
             "UPDATE mclaw_jail_decisions SET decision = 'rejected', decided_at = NOW() WHERE id = ?",
             { data.jailDecisionId }
         )
-        -- File stays open; status moves to awaiting_prosecutor if not already assigned
-        if decision.file_id then
-            MySQL.update(
-                [[UPDATE mclaw_files
-                  SET status = CASE
-                      WHEN prosecutor_citizenid IS NULL THEN 'awaiting_prosecutor'
-                      ELSE status
-                  END
-                  WHERE id = ? AND status = 'opened']],
-                { decision.file_id }
-            )
+        -- The file stays 'opened' with no prosecutor until the officer confirms
+        -- the investigation (mclaw:server:referral:startInvestigation).
+        local fileNumber = decision.file_id and MySQL.scalar.await('SELECT file_number FROM mclaw_files WHERE id = ?', { decision.file_id }) or '-'
+        local suspectName = Mclaw.GetCharName(citizenid) or citizenid
+        TriggerClientEvent('mclaw:client:jail:contested', src, fileNumber)
+
+        -- Tell the referring officer first, then every on-duty police officer
+        local told = {}
+        local function tell(officerSrc)
+            if officerSrc and not told[officerSrc] then
+                told[officerSrc] = true
+                TriggerClientEvent('ox_lib:notify', officerSrc, {
+                    type = 'inform', duration = 15000,
+                    title = 'Şüpheli İtiraz Etti',
+                    description = Mclaw.T('contest_notify_police', suspectName, fileNumber),
+                })
+            end
         end
-        local contestedNumber = decision.file_id and MySQL.scalar.await('SELECT file_number FROM mclaw_files WHERE id = ?', { decision.file_id }) or '-'
-        TriggerClientEvent('mclaw:client:jail:contested', src, contestedNumber)
+        local openedBy = decision.file_id and MySQL.scalar.await('SELECT opened_by_citizenid FROM mclaw_files WHERE id = ?', { decision.file_id })
+        local openedByP = openedBy and Mclaw.GetPlayer(openedBy)
+        if openedByP then tell(openedByP.PlayerData.source) end
+        for _, pid in ipairs(GetPlayers()) do
+            local P = Mclaw.GetPlayer(tonumber(pid))
+            if P and Mclaw.GetRole(P) == Config.Jobs.police and P.PlayerData.job.onduty then tell(tonumber(pid)) end
+        end
     end
 end)
 

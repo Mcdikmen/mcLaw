@@ -316,3 +316,30 @@ CREATE TABLE IF NOT EXISTS `mclaw_sentences` (
     `served_at`             TIMESTAMP NULL,
     INDEX `idx_sentence_cid_status` (`citizenid`, `status`)
 );
+
+-- ─────────────────────────────────────────────
+-- County RP addition: ankle bracelets for suspects who contest the charges.
+-- Battery counts down 1 minute per ONLINE minute (4320 = 3 days); police can
+-- replace the battery (/bataryadegistir). status: active | removal_due | removed.
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS `mclaw_bracelets` (
+    `id`                    INT AUTO_INCREMENT PRIMARY KEY,
+    `citizenid`             VARCHAR(64) NOT NULL,
+    `file_id`               INT NULL,
+    `file_number`           VARCHAR(32) NULL,
+    `attached_by_citizenid` VARCHAR(64) NULL,
+    `attached_by_name`      VARCHAR(128) NULL,
+    `battery_minutes`       INT NOT NULL DEFAULT 4320,
+    `battery_changed_by`    VARCHAR(128) NULL,
+    `battery_changed_at`    TIMESTAMP NULL,
+    `status`                ENUM('active','removal_due','removed') NOT NULL DEFAULT 'active',
+    `removal_reason`        VARCHAR(255) NULL,
+    `last_x`                FLOAT NULL,
+    `last_y`                FLOAT NULL,
+    `last_z`                FLOAT NULL,
+    `last_seen`             TIMESTAMP NULL,
+    `attached_at`           TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `removed_at`            TIMESTAMP NULL,
+    `removed_by`            VARCHAR(128) NULL,
+    INDEX `idx_bracelet_cid_status` (`citizenid`, `status`)
+);

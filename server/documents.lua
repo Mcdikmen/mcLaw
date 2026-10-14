@@ -278,7 +278,7 @@ RegisterNetEvent('mclaw:server:judge:closeFile', function(data)
     if not P or Mclaw.GetRole(P) ~= Config.Jobs.judge then return end
 
     local file = MySQL.single.await(
-        "SELECT id, file_number, prosecutor_citizenid FROM mclaw_files WHERE id = ? AND status NOT IN ('closed','archived','verdict_issued') AND deleted_at IS NULL",
+        "SELECT id, file_number, prosecutor_citizenid, suspect_citizenid FROM mclaw_files WHERE id = ? AND status NOT IN ('closed','archived','verdict_issued') AND deleted_at IS NULL",
         { data.fileId }
     )
     if not file then
@@ -290,6 +290,8 @@ RegisterNetEvent('mclaw:server:judge:closeFile', function(data)
         "UPDATE mclaw_files SET status = 'closed', closed_at = NOW(), updated_at = NOW() WHERE id = ?",
         { data.fileId }
     )
+
+    pcall(Mclaw.BraceletDueFor, file.suspect_citizenid, Mclaw.T('notify_file_closed_title'))
 
     local reasonSuffix = (data.reason and data.reason ~= '') and Mclaw.T('notify_file_closed_reason', data.reason) or ''
     local msg = Mclaw.T('notify_file_closed_desc', file.file_number) .. reasonSuffix

@@ -101,16 +101,14 @@ RegisterNetEvent('mclaw:server:referral:submit', function(data)
     local seq  = getNextFileSequence(year)
     local fileNumber = Mclaw.FormatFileNumber(year, seq)
 
-    -- Pick prosecutor
-    local prosecutorCid, prosecutorSrc = pickProsecutor()
-    local fileStatus = prosecutorCid
-        and Mclaw.FileStatus.PROSECUTOR_REVIEW
-        or  Mclaw.FileStatus.AWAITING_PROSECUTOR
-
-    -- Insert file
+    -- The file starts WITHOUT a prosecutor (status 'opened'). The prosecutor is
+    -- assigned only when the officer presses "Soruşturmayı Başlat" after taking the
+    -- statement (mclaw:server:referral:startInvestigation). The referring officer is
+    -- recorded as the opener, so he is part of the file from the start.
+    local prosecutorCid, prosecutorSrc = nil, nil
     local fileId = MySQL.insert.await(
-        'INSERT INTO mclaw_files (file_number, suspect_citizenid, prosecutor_citizenid, referral_report_id, status) VALUES (?, ?, ?, ?, ?)',
-        { fileNumber, suspectCid, prosecutorCid, reportId, fileStatus }
+        'INSERT INTO mclaw_files (file_number, suspect_citizenid, opened_by_citizenid, opened_by_job, referral_report_id, status) VALUES (?, ?, ?, ?, ?, ?)',
+        { fileNumber, suspectCid, officerCid, Config.Jobs.police, reportId, Mclaw.FileStatus.OPENED }
     )
 
     -- Mark report processed
@@ -150,7 +148,7 @@ RegisterNetEvent('mclaw:server:referral:submit', function(data)
     TriggerClientEvent('ox_lib:notify', src, {
         type        = 'success',
         title       = 'Rapor Gönderildi',
-        description = 'Dosya açıldı: ' .. fileNumber,
+        description = "Dosya açıldı: " .. fileNumber .. ". Şüpheli itiraz ederse ifadesini alıp MDT raporunu doldurun, sonra Raporlarım sekmesinden Soruşturmayı Başlat'a basın.",
     })
 
     -- Build charge label list for jail panel
@@ -201,32 +199,69 @@ RegisterNetEvent('mclaw:server:referral:submit', function(data)
             end
         end)
     end
+end)
 
-    -- Notify prosecutor
+-- ─────────────────────────────────────────────────────────────────────────────
+-- mclaw:server:referral:startInvestigation
+-- The officer, after taking the contesting suspect's statement and filling the MDT
+-- report, starts the investigation: a prosecutor is assigned and notified; the
+-- officer and the suspect are told the file number.
+-- ─────────────────────────────────────────────────────────────────────────────
+RegisterNetEvent('mclaw:server:referral:startInvestigation', function(reportId)
+    local src    = source
+    local Player = Mclaw.GetPlayer(src)
+    if not Player or Mclaw.GetRole(Player) ~= Config.Jobs.police then return end
+
+    local file = MySQL.single.await(
+        [[SELECT f.id, f.file_number, f.suspect_citizenid, f.status, jd.decision
+          FROM mclaw_referral_reports r
+          JOIN mclaw_files f ON f.id = r.file_id
+          LEFT JOIN mclaw_jail_decisions jd ON jd.id = f.jail_decision_id
+          WHERE r.id = ? AND r.officer_citizenid = ?]],
+        { reportId, Player.PlayerData.citizenid }
+    )
+    if not file or file.status ~= 'opened' or file.decision ~= 'rejected' then
+        TriggerClientEvent('ox_lib:notify', src, { type = 'error', description = Mclaw.T('err_start_not_ready') })
+        return
+    end
+
+    local prosecutorCid, prosecutorSrc = pickProsecutor()
+    local newStatus = prosecutorCid and Mclaw.FileStatus.PROSECUTOR_REVIEW or Mclaw.FileStatus.AWAITING_PROSECUTOR
+    local claimed = MySQL.update.await(
+        "UPDATE mclaw_files SET prosecutor_citizenid = ?, status = ?, updated_at = NOW() WHERE id = ? AND status = 'opened'",
+        { prosecutorCid, newStatus, file.id }
+    )
+    if not claimed or claimed < 1 then return end
+
+    TriggerClientEvent('ox_lib:notify', src, {
+        type = 'success', title = Mclaw.T('start_ok_title'),
+        description = Mclaw.T('start_ok_officer', file.file_number),
+    })
+    local suspect = Mclaw.GetPlayer(file.suspect_citizenid)
+    if suspect then
+        TriggerClientEvent('ox_lib:notify', suspect.PlayerData.source, {
+            type = 'inform', title = Mclaw.T('start_ok_title'),
+            description = Mclaw.T('start_ok_suspect', file.file_number),
+        })
+    end
+
     if prosecutorCid then
         MySQL.insert(
             'INSERT INTO mclaw_notifications (citizenid, type, title, message, ref_type, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
-            { prosecutorCid, 'subpoena', 'Yeni Dosya Atandı', fileNumber .. ' numaralı dosya size atandı.', 'file', fileId }
+            { prosecutorCid, 'subpoena', 'Yeni Dosya Atandı', file.file_number .. ' numaralı dosya size atandı.', 'file', file.id }
         )
         if prosecutorSrc then
             TriggerClientEvent('mclaw:client:notification:push', prosecutorSrc, {
-                type        = 'inform',
-                title       = 'Yeni Dosya Atandı',
-                description = fileNumber .. ' numaralı dosya size atandı.',
-            })
-        else
-            Mclaw.Webhook.Send('file.opened', {
-                fileNumber          = fileNumber,
-                suspectName         = suspectCid,
-                prosecutorCitizenid = prosecutorCid,
+                type = 'inform', title = 'Yeni Dosya Atandı',
+                description = file.file_number .. ' numaralı dosya size atandı.',
             })
         end
-    else
-        Mclaw.Webhook.Send('file.opened', {
-            fileNumber  = fileNumber,
-            suspectName = suspectCid,
-        })
     end
+    pcall(Mclaw.Webhook.Send, 'file.opened', {
+        fileNumber          = file.file_number,
+        suspectName         = Mclaw.GetCharName(file.suspect_citizenid) or file.suspect_citizenid,
+        prosecutorCitizenid = prosecutorCid,
+    })
 end)
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -307,9 +342,11 @@ lib.callback.register('mclaw:cb:referral:getMyReports', function(source)
     local cid  = Player.PlayerData.citizenid
     local rows = MySQL.query.await(
         [[SELECT r.id, r.suspect_citizenid, r.narrative, r.status, r.created_at,
-                 f.file_number
+                 f.id AS file_id, f.file_number, f.status AS file_status, f.prosecutor_citizenid,
+                 jd.decision
           FROM mclaw_referral_reports r
           LEFT JOIN mclaw_files f ON f.id = r.file_id
+          LEFT JOIN mclaw_jail_decisions jd ON jd.id = f.jail_decision_id
           WHERE r.officer_citizenid = ?
           ORDER BY r.created_at DESC
           LIMIT 50]],
