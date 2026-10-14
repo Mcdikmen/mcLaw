@@ -297,7 +297,7 @@ RegisterNetEvent('mclaw:server:referral:withdraw', function(data)
 
     local officerCid = Player.PlayerData.citizenid
     local report     = MySQL.single.await(
-        "SELECT id FROM mclaw_referral_reports WHERE id = ? AND officer_citizenid = ? AND status = 'pending'",
+        "SELECT id, suspect_citizenid FROM mclaw_referral_reports WHERE id = ? AND officer_citizenid = ? AND status = 'pending'",
         { data.reportId, officerCid }
     )
 
@@ -319,6 +319,7 @@ RegisterNetEvent('mclaw:server:referral:withdraw', function(data)
     MySQL.update("UPDATE mclaw_referral_reports SET status = 'rejected' WHERE id = ?", { data.reportId })
     MySQL.update("DELETE FROM mclaw_jail_decisions WHERE referral_report_id = ? AND decision = 'pending'", { data.reportId })
     Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'success', description = 'Rapor geri çekildi.' })
+    Mclaw.NotifyCitizen(report.suspect_citizenid, 'subpoena', Mclaw.T('suspect_withdrawn_title'), Mclaw.T('suspect_withdrawn_desc'))
 end)
 
 -- ─────────────────────────────────────────────────────────────────────────────

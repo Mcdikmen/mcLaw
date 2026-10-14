@@ -287,6 +287,7 @@ RegisterNetEvent('mclaw:server:prosecutor:acceptPetition', function(data)
         title       = Mclaw.T('notify_investigation_opened_title'),
         description = Mclaw.T('notify_investigation_opened_desc', fileNumber),
     })
+    Mclaw.NotifyCitizen(petition.plaintiff_citizenid, 'subpoena', Mclaw.T('start_ok_title'), Mclaw.T('start_ok_suspect', fileNumber))
 
     local attorneySrc = findSource(petition.attorney_citizenid)
     if attorneySrc then

@@ -112,6 +112,7 @@ RegisterNetEvent('mclaw:server:prosecutor:openInvestigation', function(data)
         title       = Mclaw.T('notify_investigation_opened_title'),
         description = Mclaw.T('notify_investigation_opened_desc', fileNumber),
     })
+    Mclaw.NotifyCitizen(data.suspectCid, 'subpoena', Mclaw.T('start_ok_title'), Mclaw.T('start_ok_suspect', fileNumber))
 end)
 
 -- ─────────────────────────────────────────────────────────────────────────────

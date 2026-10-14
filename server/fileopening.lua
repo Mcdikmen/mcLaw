@@ -89,6 +89,8 @@ RegisterNetEvent('mclaw:server:fileopening:openFile', function(data)
         { fileId, 'opened', cid, job, data.narrative }
     )
 
+    Mclaw.NotifyCitizen(data.suspectCid, 'subpoena', Mclaw.T('start_ok_title'), Mclaw.T('start_ok_suspect', fileNumber))
+
     local statusNote = fileStatus == 'pending_approval' and (' — ' .. Mclaw.T('notify_file_pending_note')) or (' — ' .. Mclaw.T('notify_file_opened_note'))
     Mclaw.Notify(src, { position = Config.NotifyPosition,
         type        = 'success',
@@ -178,7 +180,7 @@ RegisterNetEvent('mclaw:server:judge:approveFile', function(data)
 
     local cid  = P.PlayerData.citizenid
     local file = MySQL.single.await(
-        "SELECT id, file_number, opened_by_citizenid FROM mclaw_files WHERE id = ? AND status = 'pending_approval' AND deleted_at IS NULL",
+        "SELECT id, file_number, opened_by_citizenid, suspect_citizenid FROM mclaw_files WHERE id = ? AND status = 'pending_approval' AND deleted_at IS NULL",
         { data.fileId }
     )
     if not file then
@@ -190,6 +192,8 @@ RegisterNetEvent('mclaw:server:judge:approveFile', function(data)
         "UPDATE mclaw_files SET status = 'opened', judge_citizenid = ?, updated_at = NOW() WHERE id = ?",
         { cid, data.fileId }
     )
+    Mclaw.NotifyCitizen(file.suspect_citizenid, 'subpoena', Mclaw.T('start_ok_title'), Mclaw.T('start_ok_suspect', file.file_number))
+
     MySQL.insert(
         'INSERT INTO mclaw_file_open_logs (file_id, action, actioned_by_citizenid, actioned_by_job, notes) VALUES (?, ?, ?, ?, ?)',
         { data.fileId, 'approved', cid, Config.Jobs.judge, data.notes ~= '' and data.notes or nil }

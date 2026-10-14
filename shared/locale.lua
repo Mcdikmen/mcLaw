@@ -201,6 +201,8 @@ Mclaw.Locale = {
     suspect_hearing_desc               = '%s numaralı dosyanız için duruşma planlandı: %s — %s',
     suspect_drop_title                 = 'Takipsizlik Kararı',
     suspect_sentence_title             = 'Hüküm Kesinleşti',
+    suspect_withdrawn_title            = 'Sevk Raporu Geri Çekildi',
+    suspect_withdrawn_desc             = 'Hakkınızda düzenlenen sevk raporu polis tarafından geri çekildi; işlem yapılmayacak.',
     suspect_bracelet_title             = 'Bileklik',
     suspect_bracelet_due               = '%s numaralı soruşturmanız sona erdi. Bilekliğinizin çıkarılması için MRPD bileklik noktasında bir polis memuruna başvurun.',
 
