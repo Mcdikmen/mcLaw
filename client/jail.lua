@@ -52,24 +52,18 @@ local function openJailPanel(data)
     pendingDecision = data
 
     local chargeStr = #(data.charges or {}) > 0
-        and ('• ' .. table.concat(data.charges, '
-• '))
+        and ('• ' .. table.concat(data.charges, '\n• '))
         or  'Suç listelenmedi.'
 
     -- Loops so that "Vazgeç" on the process screen returns to this first screen.
     while true do
         local result = lib.alertDialog({
             header  = 'Hapis — ' .. (data.fileNumber or 'Bilinmeyen Dosya'),
-            content = '**Suçlamalar:**
-' .. chargeStr
-                .. '
-
-**Önerilen ceza:** '
+            content = '**Suçlamalar:**\n' .. chargeStr
+                .. '\n\n**Önerilen ceza:** '
                 .. (data.proposedJail or 0) .. ' dk hapis'
                 .. (data.proposedFine  > 0 and (', $' .. data.proposedFine .. ' para cezası') or '')
-                .. '
-
-Bu suçlamaları kabul ediyor musunuz?',
+                .. '\n\nBu suçlamaları kabul ediyor musunuz?',
             cancel = true,
             labels = { confirm = 'Suçlamaları kabul ediyorum', cancel = 'İtiraz ediyorum (masumum)' },
         })
