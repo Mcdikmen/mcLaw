@@ -53,3 +53,14 @@ CreateThread(function()
         Wait(wait)
     end
 end)
+
+-- /mclawsites : diagnostic — role and distance to each hologram (any player)
+RegisterCommand('mclawsites', function()
+    local pos = GetEntityCoords(cache.ped)
+    local function d(site) local c = site.coords; return ('%.1f m'):format(#(pos - vector3(c.x, c.y, c.z))) end
+    lib.notify({
+        position = Config.NotifyPosition, duration = 12000, type = 'inform',
+        description = ('Rol: %s | Sevk: %s | Bileklik: %s | Görünür mesafe: %s m'):format(
+            tostring(myRole()), d(Config.Sites.referral), d(Config.Bracelet.site), tostring(Config.Bracelet.site.viewDistance)),
+    })
+end, false)
