@@ -80,7 +80,7 @@ Config.Sites = {
 -- `batteryDistance` m of the wearer. Removal: /kelepcecikar at the same site.
 -- ─────────────────────────────────────────────
 Config.Bracelet = {
-    site            = { coords = vector4(472.03, -1002.58, 26.27, 269.21), radius = 6.0 },
+    site            = { coords = vector4(472.03, -1002.58, 26.27, 269.21), radius = 6.0, viewDistance = 7.0, label = 'Bileklik — /kelepcetak  /kelepcecikar' },
     batteryMinutes  = 4320,
     batteryDistance = 3.0,
     attachCommand   = 'kelepcetak',
