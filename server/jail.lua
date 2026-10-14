@@ -63,7 +63,10 @@ RegisterNetEvent('mclaw:server:jail:submitDecision', function(data)
         local _, fileNumber = Mclaw.CreateReferralFile(decision.id)
         fileNumber = fileNumber or '-'
         local suspectName = Mclaw.GetCharName(citizenid) or citizenid
-        TriggerClientEvent('mclaw:client:jail:contested', src, fileNumber)
+        Mclaw.Notify(src, {
+            type = 'inform', duration = 12000,
+            description = Mclaw.T('contest_recorded') .. ' (' .. fileNumber .. ')',
+        })
 
         -- Tell the referring officer first, then every on-duty police officer
         local told = {}

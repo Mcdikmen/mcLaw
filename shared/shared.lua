@@ -325,15 +325,20 @@ if IsDuplicityVersion() then
     -- the phone is not running or the player has no equipped phone.
     function Mclaw.Sms(src, text)
         if not (Config.Sms and Config.Sms.enabled) then return end
-        if GetResourceState('lb-phone') ~= 'started' then return end
-        local okNumber, number = pcall(function() return exports['lb-phone']:GetEquippedPhoneNumber(src) end)
-        if not okNumber or not number then return end
-        local sent = pcall(function() exports['lb-phone']:SendMessage(Config.Sms.sender, number, text) end)
-        if not sent then
-            pcall(function()
-                exports['lb-phone']:SendNotification(number, { app = 'Messages', title = Config.Sms.sender, content = text })
-            end)
+        local function dbg(msg)
+            if Config.Sms.debug then print(('^3[mcLaw SMS] src %s: %s^7'):format(tostring(src), msg)) end
         end
+        if GetResourceState('lb-phone') ~= 'started' then return dbg('lb-phone is not started') end
+        local okNumber, number = pcall(function() return exports['lb-phone']:GetEquippedPhoneNumber(src) end)
+        if not okNumber then return dbg('GetEquippedPhoneNumber failed: ' .. tostring(number)) end
+        if not number then return dbg('no equipped phone number (no phone item / not loaded)') end
+        local sent, err = pcall(function() exports['lb-phone']:SendMessage(Config.Sms.sender, number, text) end)
+        if sent then return dbg('SMS sent to ' .. tostring(number)) end
+        dbg('SendMessage failed (' .. tostring(err) .. '), trying SendNotification')
+        local ok2, err2 = pcall(function()
+            exports['lb-phone']:SendNotification(number, { app = 'Messages', title = Config.Sms.sender, content = text })
+        end)
+        if not ok2 then dbg('SendNotification failed: ' .. tostring(err2)) end
     end
 
     -- Notify(src, data): on-screen ox_lib notification + SMS copy (not for errors).

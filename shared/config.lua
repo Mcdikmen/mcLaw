@@ -15,6 +15,7 @@ Config.NotifyPosition = 'top-center'
 Config.Sms = {
     enabled = true,
     sender  = 'DOJ',
+    debug   = true, -- prints in the server console why an SMS was (not) sent; set false once it works
 }
 
 Config.Doj = {
