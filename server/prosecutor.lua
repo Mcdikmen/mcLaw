@@ -290,8 +290,11 @@ RegisterNetEvent('mclaw:server:judge:acceptCase', function(data)
     )
 
     local typeLabel = hearingType == 'written' and Mclaw.T('hearing_type_written') or Mclaw.T('hearing_type_physical')
+    -- the suspect gets the number, the hearing type and the date/time (dd.mm.yyyy hh:mm) - nothing about the case itself
+    local y, mo, d, hm = scheduledAt:match('^(%d+)-(%d+)-(%d+) (%d+:%d+)')
+    local when = y and ('%s.%s.%s %s'):format(d, mo, y, hm) or scheduledAt
     Mclaw.NotifyCitizen(file.suspect_citizenid, 'hearing', Mclaw.T('suspect_hearing_title'),
-        Mclaw.T('suspect_hearing_desc', file.file_number, typeLabel, scheduledAt))
+        Mclaw.T('suspect_hearing_desc', file.file_number, typeLabel, when))
     Mclaw.Notify(src, { position = Config.NotifyPosition,
         type        = 'success',
         title       = Mclaw.T('notify_hearing_scheduled_title'),
