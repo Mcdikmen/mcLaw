@@ -54,25 +54,13 @@ RegisterNetEvent('mclaw:client:bracelet:consent', function(fileNumber)
     TriggerServerEvent('mclaw:server:bracelet:consent', input ~= nil and input[1] == true and input[2] == true)
 end)
 
--- After the bracelet is fitted the suspect is uncuffed and released at the MRPD front.
+-- After the bracelet is fitted the handcuffs come off (no teleport: the suspect walks out).
 RegisterNetEvent('mclaw:client:bracelet:release', function()
     local QBCore = exports['qb-core']:GetCoreObject()
-    local ped = cache.ped
-
-    DoScreenFadeOut(600)
-    while not IsScreenFadedOut() do Wait(10) end
-
     local pd = QBCore.Functions.GetPlayerData()
     if pd and pd.metadata and pd.metadata.ishandcuffed then
         TriggerEvent('police:client:GetCuffed', -1) -- -1 = no cuffer, no animation
-        Wait(300)
     end
-
-    local r = Config.Sites.release.coords
-    SetEntityCoords(ped, r.x, r.y, r.z - 0.98, false, false, false, false)
-    SetEntityHeading(ped, r.w)
-    Wait(500)
-    DoScreenFadeIn(800)
 end)
 
 local function formatBattery(minutes)

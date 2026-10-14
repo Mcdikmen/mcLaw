@@ -60,7 +60,6 @@ Config.Prison = {
 -- plea:      zones where a police officer can open the accept/contest panel
 --            automatically for a suspect with a pending decision who is
 --            inside the zone. Radius is per zone.
--- release:   a suspect who contests the charges is uncuffed and sent here.
 -- Coordinates are vector4 (x, y, z, heading); z is the ped position.
 -- ─────────────────────────────────────────────
 Config.Sites = {
@@ -68,8 +67,6 @@ Config.Sites = {
     plea = {
         { coords = vector4(486.74, -1006.10, 26.27, 90.39), radius = 20.0 },  -- MRPD cells / mugshot side
     },
-    -- where a suspect who CONTESTS the charges is released (MRPD front)
-    release = { coords = vector4(425.54, -982.22, 30.71, 87.39) },
 }
 
 -- ─────────────────────────────────────────────
