@@ -28,26 +28,34 @@ RegisterCommand(Config.Prison.deliverCommand, function()
     TriggerServerEvent('mclaw:server:prison:deliver', GetPlayerServerId(playerId))
 end, false)
 
--- Remaining prison time: persistent text at the bottom of the screen while the
+-- Remaining prison time: drawn directly on screen (bottom center) while the
 -- player is jailed. qb-prison keeps `metadata.injail` (minutes) up to date.
+-- Drawn with natives instead of ox_lib textUI so other scripts cannot hide it.
+local jailLeft = 0
+
 CreateThread(function()
     local QBCore = exports['qb-core']:GetCoreObject()
-    local shown = nil
     while true do
-        local pd   = QBCore.Functions.GetPlayerData()
-        local left = pd and pd.metadata and tonumber(pd.metadata.injail) or 0
-        if left > 0 then
-            if shown ~= left then
-                lib.showTextUI(Mclaw.T('prison_time_left', left), { position = 'bottom-center' })
-                shown = left
-            end
-            Wait(2000)
+        local pd = QBCore.Functions.GetPlayerData()
+        jailLeft = pd and pd.metadata and tonumber(pd.metadata.injail) or 0
+        Wait(2000)
+    end
+end)
+
+CreateThread(function()
+    while true do
+        if jailLeft > 0 then
+            SetTextFont(4)
+            SetTextScale(0.0, 0.5)
+            SetTextColour(255, 255, 255, 235)
+            SetTextOutline()
+            SetTextCentre(true)
+            BeginTextCommandDisplayText('STRING')
+            AddTextComponentSubstringPlayerName(Mclaw.T('prison_time_left', jailLeft))
+            EndTextCommandDisplayText(0.5, 0.93)
+            Wait(0)
         else
-            if shown then
-                lib.hideTextUI()
-                shown = nil
-            end
-            Wait(5000)
+            Wait(1000)
         end
     end
 end)
