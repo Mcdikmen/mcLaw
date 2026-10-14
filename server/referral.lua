@@ -122,7 +122,7 @@ RegisterNetEvent('mclaw:server:referral:submit', function(data)
     TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition,
         type        = 'success',
         title       = 'Rapor Gönderildi',
-        description = "Rapor kaydedildi. Dosya, şüphelinin kararından sonra açılacak. Şüpheli yanınızdaysa penceresi açıldı; değilse gözaltı alanında /suclamaac yazın.",
+        description = "Rapor kaydedildi. Dosya, şüphelinin kararından sonra açılacak. Şüpheli yanınızdaysa penceresi açıldı; değilse gözaltı alanına getirilince kendiliğinden açılır.",
     })
 
     -- Build charge label list for jail panel
@@ -141,7 +141,7 @@ RegisterNetEvent('mclaw:server:referral:submit', function(data)
     }
 
     -- Plea panel only when the suspect is right next to the officer. Otherwise the
-    -- officer arrests them first and opens it with /suclamaac.
+    -- otherwise it opens when they are brought into the cells zone.
     local suspectSrc = findSource(suspectCid)
     if suspectSrc then
         local near = #(GetEntityCoords(GetPlayerPed(src)) - GetEntityCoords(GetPlayerPed(suspectSrc))) <= (Config.Jail.panelDistance or 10.0)

@@ -89,8 +89,8 @@ end)
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Pending plea panel
 -- The accept/contest panel is shown to the suspect only when a police officer
--- is with them (referral submitted next to the suspect, or the officer runs
--- /suclamaac after arresting them). Nothing pops up remotely.
+-- is with them (referral submitted next to the suspect) or they are brought into
+-- the MRPD cells zone. Nothing pops up remotely.
 -- ─────────────────────────────────────────────────────────────────────────────
 local function sendPendingPanel(targetSrc, citizenid)
     local pending = MySQL.single.await(
@@ -128,26 +128,25 @@ RegisterNetEvent('mclaw:server:jail:checkPending', function()
     sendPendingPanel(src, Player.PlayerData.citizenid)
 end)
 
--- Police opens the plea panel for the nearest suspect (/suclamaac).
-RegisterNetEvent('mclaw:server:jail:openForTarget', function(targetId)
-    local src     = source
-    targetId      = tonumber(targetId)
-    local officer = Mclaw.GetPlayer(src)
-    local target  = targetId and Mclaw.GetPlayer(targetId)
-    if not officer or Mclaw.GetRole(officer) ~= Config.Jobs.police then return end
-    if not target then
-        return TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_prison_no_target') })
+-- A suspect with a pending decision who is brought into the MRPD cells zone gets the
+-- plea panel automatically (no command). Re-shown at most every 2 minutes if dismissed.
+local lastShown = {}
+CreateThread(function()
+    while true do
+        Wait(10000)
+        local rows = MySQL.query.await("SELECT DISTINCT suspect_citizenid FROM mclaw_jail_decisions WHERE decision = 'pending'")
+        for _, r in ipairs(rows or {}) do
+            local P = Mclaw.GetPlayer(r.suspect_citizenid)
+            if P then
+                local src = P.PlayerData.source
+                local last = lastShown[r.suspect_citizenid]
+                if Mclaw.InPleaZone(GetEntityCoords(GetPlayerPed(src))) and (not last or os.time() - last > 120) then
+                    lastShown[r.suspect_citizenid] = os.time()
+                    sendPendingPanel(src, r.suspect_citizenid)
+                end
+            end
+        end
     end
-    if not Mclaw.InPleaZone(GetEntityCoords(GetPlayerPed(src))) then
-        return TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_plea_not_in_zone') })
-    end
-    if #(GetEntityCoords(GetPlayerPed(src)) - GetEntityCoords(GetPlayerPed(targetId))) > 4.0 then
-        return TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_prison_too_far') })
-    end
-    if not sendPendingPanel(targetId, target.PlayerData.citizenid) then
-        return TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_jail_no_pending') })
-    end
-    TriggerClientEvent('ox_lib:notify', src, { position = Config.NotifyPosition, type = 'success', description = Mclaw.T('jail_panel_opened') })
 end)
 
 -- Used by referral.lua right after a report is filed.

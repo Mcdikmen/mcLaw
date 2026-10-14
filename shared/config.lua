@@ -58,8 +58,8 @@ Config.Prison = {
 -- referral:  the hologram spot (mugshot area). Police can open /mclaw (referral
 --            report panel) only within `radius` m of it.
 -- plea:      zones where a police officer can open the accept/contest panel
---            for an arrested suspect with /suclamaac (distance measured from
---            the officer). Radius is per zone.
+--            automatically for a suspect with a pending decision who is
+--            inside the zone. Radius is per zone.
 -- release:   a suspect who contests the charges is uncuffed and sent here.
 -- Coordinates are vector4 (x, y, z, heading); z is the ped position.
 -- ─────────────────────────────────────────────
@@ -131,9 +131,8 @@ Config.Jobs = {
 -- ─────────────────────────────────────────────
 Config.Jail = {
     autoAcceptTimeout  = 0,
-    reopenOnSpawn      = false, -- plea panel is opened by police (nearby or /suclamaac), not on login
+    reopenOnSpawn      = false, -- plea panel is opened when the suspect is near the officer or inside the MRPD cells zone, not on login
     panelDistance      = 10.0,  -- max distance (m) officer-suspect for the panel to open right after the report
-    openCommand        = 'suclamaac',
     reportWithdrawTime = 300,
 }
 

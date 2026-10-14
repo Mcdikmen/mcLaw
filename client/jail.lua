@@ -82,7 +82,7 @@ local function openJailPanel(data)
             end
             -- 'back': show the first screen again
         else
-            break -- closed with Escape: decision stays pending (police can reopen with /suclamaac)
+            break -- closed with Escape: decision stays pending (it reopens when they are in the cells zone)
         end
     end
 
@@ -124,13 +124,3 @@ local function checkPendingOnSpawn()
 end
 
 AddEventHandler('QBCore:Client:OnPlayerLoaded', checkPendingOnSpawn)
-
--- /suclamaac : police — open the accept/contest panel for the nearest arrested suspect
-RegisterCommand(Config.Jail.openCommand, function()
-    local playerId = lib.getClosestPlayer(GetEntityCoords(cache.ped), 4.0, false)
-    if not playerId then
-        lib.notify({ position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_prison_no_target') })
-        return
-    end
-    TriggerServerEvent('mclaw:server:jail:openForTarget', GetPlayerServerId(playerId))
-end, false)
