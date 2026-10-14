@@ -61,7 +61,7 @@ Config.Prison = {
 -- Coordinates are vector4 (x, y, z, heading); z is the ped position.
 -- ─────────────────────────────────────────────
 Config.Sites = {
-    referral = { coords = vector4(473.08, -1011.52, 26.27, 181.89), radius = 5.0, label = 'Sevk Raporu — /mclaw' },
+    referral = { coords = vector4(473.08, -1011.52, 26.27, 181.89), radius = 5.0, viewDistance = 7.0, label = 'Sevk Raporu — /mclaw' },
     plea = {
         { coords = vector4(486.74, -1006.10, 26.27, 90.39), radius = 20.0 },  -- MRPD cells / mugshot side
     },

@@ -38,7 +38,7 @@ CreateThread(function()
         local wait = 1000
         if myRole() == Config.Jobs.police then
             local dist = #(GetEntityCoords(cache.ped) - vector3(c.x, c.y, c.z))
-            if dist < 25.0 then
+            if dist < (site.viewDistance or 7.0) then
                 wait = 0
                 -- ring on the ground (ped z is ~1.0 above the floor)
                 DrawMarker(1, c.x, c.y, c.z - 0.98, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
