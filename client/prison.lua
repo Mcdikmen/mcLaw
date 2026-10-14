@@ -27,3 +27,27 @@ RegisterCommand(Config.Prison.deliverCommand, function()
     end
     TriggerServerEvent('mclaw:server:prison:deliver', GetPlayerServerId(playerId))
 end, false)
+
+-- Remaining prison time: persistent text at the bottom of the screen while the
+-- player is jailed. qb-prison keeps `metadata.injail` (minutes) up to date.
+CreateThread(function()
+    local QBCore = exports['qb-core']:GetCoreObject()
+    local shown = nil
+    while true do
+        local pd   = QBCore.Functions.GetPlayerData()
+        local left = pd and pd.metadata and tonumber(pd.metadata.injail) or 0
+        if left > 0 then
+            if shown ~= left then
+                lib.showTextUI(Mclaw.T('prison_time_left', left), { position = 'bottom-center' })
+                shown = left
+            end
+            Wait(2000)
+        else
+            if shown then
+                lib.hideTextUI()
+                shown = nil
+            end
+            Wait(5000)
+        end
+    end
+end)

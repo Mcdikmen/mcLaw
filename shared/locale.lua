@@ -125,6 +125,7 @@ Mclaw.Locale = {
     sentence_fine_label                = 'Mahkeme para cezası — %s',
     sentence_served_officer            = 'Hüküm infaz edildi: %s dk hapis, $%s para cezası faturası.',
     sentence_served_convict            = 'Cezanız başladı: %s dk.',
+    prison_time_left                  = 'Kalan hapis süresi: %s dk',
     sentence_list_title                = 'İnfaz Bekleyen Hükümler',
     sentence_list_empty                = 'İnfaz bekleyen hüküm yok.',
     sentence_list_row                  = '%s — %s dk hapis, $%s para cezası',
