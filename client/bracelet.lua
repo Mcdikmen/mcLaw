@@ -2,7 +2,6 @@
 -- Ankle bracelets — client side
 --   /kelepcetak      police at the MRPD bracelet site: fit the nearest suspect
 --   /kelepcecikar    police at the site: remove the nearest wearer's bracelet
---   /bataryadegistir police within 3 m of the wearer: replace the battery
 --   /kelepceler      police: list of wearers (click = GPS waypoint)
 -- ─────────────────────────────────────────────────────────────────────────────
 
@@ -25,11 +24,6 @@ end, false)
 RegisterCommand(cfg.removeCommand, function()
     local target = closestTarget(4.0)
     if target then TriggerServerEvent('mclaw:server:bracelet:remove', target) end
-end, false)
-
-RegisterCommand(cfg.batteryCommand, function()
-    local target = closestTarget(cfg.batteryDistance + 0.5)
-    if target then TriggerServerEvent('mclaw:server:bracelet:battery', target) end
 end, false)
 
 -- The suspect's consent screen: long text, then two required confirmations.
@@ -63,13 +57,6 @@ RegisterNetEvent('mclaw:client:bracelet:release', function()
     end
 end)
 
-local function formatBattery(minutes)
-    local d = math.floor(minutes / 1440)
-    local h = math.floor((minutes % 1440) / 60)
-    local m = minutes % 60
-    return ('%dg %ds %ddk'):format(d, h, m)
-end
-
 RegisterCommand(cfg.listCommand, function()
     local list = lib.callback.await('mclaw:cb:bracelet:list', false) or {}
     if #list == 0 then
@@ -81,12 +68,10 @@ RegisterCommand(cfg.listCommand, function()
         local state = Mclaw.T('bracelet_state_active')
         if b.status == 'removal_due' then
             state = Mclaw.T('bracelet_state_due')
-        elseif b.battery <= 0 then
-            state = Mclaw.T('bracelet_state_dead')
         end
         options[#options + 1] = {
             title       = b.name,
-            description = Mclaw.T('bracelet_menu_row', b.file or '-', b.by, formatBattery(b.battery), state,
+            description = Mclaw.T('bracelet_menu_row', b.file or '-', b.by, state,
                 b.online and Mclaw.T('bracelet_online') or Mclaw.T('bracelet_offline')),
             onSelect    = function()
                 local loc = lib.callback.await('mclaw:cb:bracelet:locate', false, b.id)

@@ -3,9 +3,11 @@
 --
 -- A suspect who contests the charges is fitted with a bracelet at the MRPD
 -- bracelet site by an on-duty officer (/kelepcetak). The suspect must confirm
--- two statements on their own screen first. The battery lasts 3 days of ONLINE
--- time; officers replace it with /bataryadegistir. /kelepceler lists wearers and
--- can set a GPS waypoint. /kelepcecikar removes it at the same site.
+-- two statements on their own screen first. There is no time limit: the bracelet
+-- stays on until the investigation ends (non-prosecution, closed file, acquittal /
+-- dismissal) and the wearer is marked 'removal_due'. /kelepceler lists wearers and
+-- can set a GPS waypoint. /kelepcecikar removes it at the MRPD site, and the wearer
+-- can also have it removed at the MRPD ID desk NPC once it is 'removal_due'.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 local cfg = Config.Bracelet
@@ -99,39 +101,15 @@ RegisterNetEvent('mclaw:server:bracelet:consent', function(accepted)
     if activeBracelet(suspect.PlayerData.citizenid) then return end
 
     MySQL.insert.await(
-        'INSERT INTO mclaw_bracelets (citizenid, file_id, file_number, attached_by_citizenid, attached_by_name, battery_minutes) VALUES (?, ?, ?, ?, ?, ?)',
+        'INSERT INTO mclaw_bracelets (citizenid, file_id, file_number, attached_by_citizenid, attached_by_name) VALUES (?, ?, ?, ?, ?)',
         { suspect.PlayerData.citizenid, req.fileId, req.fileNumber,
-          officer and officer.PlayerData.citizenid or nil, officer and officerName(officer) or nil, cfg.batteryMinutes }
+          officer and officer.PlayerData.citizenid or nil, officer and officerName(officer) or nil }
     )
 
     local name = Mclaw.GetCharName(suspect.PlayerData.citizenid) or suspect.PlayerData.citizenid
     if officer then notify(req.officer, 'success', Mclaw.T('bracelet_attached_officer', name, req.fileNumber)) end
     notify(src, 'inform', Mclaw.T('bracelet_attached_suspect', req.fileNumber))
     TriggerClientEvent('mclaw:client:bracelet:release', src)
-end)
-
--- ── Battery replacement ──────────────────────────────────────────────────────
-RegisterNetEvent('mclaw:server:bracelet:battery', function(targetId)
-    local src = source
-    targetId  = tonumber(targetId)
-    local officer = Mclaw.GetPlayer(src)
-    local target  = targetId and Mclaw.GetPlayer(targetId)
-    if not isDutyPolice(officer) then return notify(src, 'error', Mclaw.T('err_bracelet_not_police')) end
-    if not target then return notify(src, 'error', Mclaw.T('err_prison_no_target')) end
-    if #(GetEntityCoords(GetPlayerPed(src)) - GetEntityCoords(GetPlayerPed(targetId))) > cfg.batteryDistance then
-        return notify(src, 'error', Mclaw.T('err_prison_too_far'))
-    end
-
-    local b = activeBracelet(target.PlayerData.citizenid)
-    if not b then return notify(src, 'error', Mclaw.T('err_bracelet_none')) end
-
-    MySQL.update.await(
-        'UPDATE mclaw_bracelets SET battery_minutes = ?, battery_changed_by = ?, battery_changed_at = NOW() WHERE id = ?',
-        { cfg.batteryMinutes, officerName(officer), b.id }
-    )
-    local name = Mclaw.GetCharName(target.PlayerData.citizenid) or target.PlayerData.citizenid
-    notify(src, 'success', Mclaw.T('bracelet_battery_officer', name))
-    notify(targetId, 'inform', Mclaw.T('bracelet_battery_suspect'))
 end)
 
 -- ── Removal at the site ──────────────────────────────────────────────────────
@@ -157,6 +135,30 @@ RegisterNetEvent('mclaw:server:bracelet:remove', function(targetId)
     local name = Mclaw.GetCharName(target.PlayerData.citizenid) or target.PlayerData.citizenid
     notify(src, 'success', Mclaw.T('bracelet_removed_officer', name))
     notify(targetId, 'inform', Mclaw.T('bracelet_removed_suspect'))
+end)
+
+-- ── Self-removal at the MRPD ID desk NPC (county-idnpc) ──────────────────────
+-- State of the wearer's bracelet: nil (none) | 'active' | 'removal_due'.
+exports('GetBraceletState', function(src)
+    local P = Mclaw.GetPlayer(src)
+    if not P then return nil end
+    local b = activeBracelet(P.PlayerData.citizenid)
+    return b and b.status or nil, b and b.file_number or nil
+end)
+
+-- Removes the bracelet only when the investigation has ended ('removal_due').
+-- Returns true on success, or false + reason ('none' | 'active').
+exports('RemoveOwnBracelet', function(src)
+    local P = Mclaw.GetPlayer(src)
+    if not P then return false, 'none' end
+    local b = activeBracelet(P.PlayerData.citizenid)
+    if not b then return false, 'none' end
+    if b.status ~= 'removal_due' then return false, 'active' end
+    MySQL.update.await(
+        "UPDATE mclaw_bracelets SET status = 'removed', removed_at = NOW(), removed_by = ? WHERE id = ?",
+        { 'MRPD ID desk', b.id }
+    )
+    return true
 end)
 
 -- ── Hooks used by other modules ──────────────────────────────────────────────
@@ -185,7 +187,7 @@ lib.callback.register('mclaw:cb:bracelet:list', function(source)
     local P = Mclaw.GetPlayer(source)
     if Mclaw.GetRole(P) ~= Config.Jobs.police then return {} end
     local rows = MySQL.query.await(
-        "SELECT id, citizenid, file_number, attached_by_name, battery_minutes, status, attached_at FROM mclaw_bracelets WHERE status IN ('active','removal_due') ORDER BY id DESC LIMIT 50"
+        "SELECT id, citizenid, file_number, attached_by_name, status, attached_at FROM mclaw_bracelets WHERE status IN ('active','removal_due') ORDER BY id DESC LIMIT 50"
     )
     local list = {}
     for _, r in ipairs(rows or {}) do
@@ -194,7 +196,6 @@ lib.callback.register('mclaw:cb:bracelet:list', function(source)
             name      = Mclaw.GetCharName(r.citizenid) or r.citizenid,
             file      = r.file_number,
             by        = r.attached_by_name or '-',
-            battery   = r.battery_minutes,
             status    = r.status,
             online    = Mclaw.GetPlayer(r.citizenid) ~= nil,
         }
@@ -216,26 +217,21 @@ lib.callback.register('mclaw:cb:bracelet:locate', function(source, braceletId)
     return nil
 end)
 
--- ── Battery countdown: 1 minute per ONLINE minute ────────────────────────────
+-- ── Location tracking: last known position, once per ONLINE minute ──────────
 CreateThread(function()
     while true do
         Wait(60000)
         local rows = MySQL.query.await(
-            "SELECT id, citizenid, file_number, battery_minutes FROM mclaw_bracelets WHERE status IN ('active','removal_due')"
+            "SELECT id, citizenid FROM mclaw_bracelets WHERE status IN ('active','removal_due')"
         )
         for _, b in ipairs(rows or {}) do
             local P = Mclaw.GetPlayer(b.citizenid)
             if P then
                 local c = GetEntityCoords(GetPlayerPed(P.PlayerData.source))
-                local left = math.max(0, (b.battery_minutes or 0) - 1)
                 MySQL.update(
-                    'UPDATE mclaw_bracelets SET battery_minutes = ?, last_x = ?, last_y = ?, last_z = ?, last_seen = NOW() WHERE id = ?',
-                    { left, c.x, c.y, c.z, b.id }
+                    'UPDATE mclaw_bracelets SET last_x = ?, last_y = ?, last_z = ?, last_seen = NOW() WHERE id = ?',
+                    { c.x, c.y, c.z, b.id }
                 )
-                if left == 0 and (b.battery_minutes or 0) > 0 then
-                    local name = Mclaw.GetCharName(b.citizenid) or b.citizenid
-                    notifyDutyPolice('error', Mclaw.T('bracelet_battery_dead', name, b.file_number or '-'))
-                end
             end
         end
     end

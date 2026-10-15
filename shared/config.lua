@@ -80,18 +80,15 @@ Config.Sites = {
 -- ─────────────────────────────────────────────
 -- BRACELET (County RP)
 -- A suspect who contests the charges gets an ankle bracelet at the `site`
--- (police only, /kelepcetak). Battery lasts `batteryMinutes` ONLINE minutes
--- (4320 = 3 days); police replace it with /bataryadegistir within
--- `batteryDistance` m of the wearer. Removal: /kelepcecikar at the same site.
+-- (police only, /kelepcetak). No time limit: it stays on until the investigation
+-- ends. Removal: /kelepcecikar at the same site, or by the wearer at the MRPD ID
+-- desk NPC (county-idnpc) once the case has ended.
 -- ─────────────────────────────────────────────
 Config.Bracelet = {
     site            = { coords = vector4(472.03, -1002.58, 26.27, 269.21), radius = 6.0, viewDistance = 7.0, label = 'Bileklik — /kelepcetak  /kelepcecikar' },
-    batteryMinutes  = 4320,
-    batteryDistance = 3.0,
     attachCommand   = 'kelepcetak',
     removeCommand   = 'kelepcecikar',
     listCommand     = 'kelepceler',
-    batteryCommand  = 'bataryadegistir',
 }
 
 Mclaw = Mclaw or {}
