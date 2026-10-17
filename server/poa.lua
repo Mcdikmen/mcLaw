@@ -53,8 +53,29 @@ end)
 -- mclaw:cb:poa:getLawyerList
 -- Every registered DOJ lawyer (grade 10 Stajyer Avukat / 11 Avukat), online or
 -- not — a citizen picks from this list instead of typing a citizenid.
+-- Online players are read from live PlayerData first: QBCore does not save
+-- the `players` row to the DB on every job change, so a lawyer who just got
+-- the job can be missing/stale in a DB-only query while still online.
 -- ─────────────────────────────────────────────────────────────────────────────
 lib.callback.register('mclaw:cb:poa:getLawyerList', function(source)
+    local seen = {}
+    local list = {}
+
+    for _, pid in ipairs(GetPlayers()) do
+        local P = Mclaw.GetPlayer(tonumber(pid))
+        if P and Mclaw.GetRole(P) == Config.Jobs.lawyer then
+            local cid = P.PlayerData.citizenid
+            local charinfo = P.PlayerData.charinfo or {}
+            local name = ((charinfo.firstname or '') .. ' ' .. (charinfo.lastname or '')):match('^%s*(.-)%s*$')
+            table.insert(list, {
+                citizenid  = cid,
+                name       = name ~= '' and name or cid,
+                gradeLabel = P.PlayerData.job.grade and P.PlayerData.job.grade.name,
+            })
+            seen[cid] = true
+        end
+    end
+
     local rows = MySQL.query.await(
         [[SELECT citizenid,
                  JSON_UNQUOTE(JSON_EXTRACT(charinfo, '$.firstname')) AS firstname,
@@ -66,16 +87,17 @@ lib.callback.register('mclaw:cb:poa:getLawyerList', function(source)
           ORDER BY firstname, lastname]],
         { Config.Doj.job }
     )
-
-    local list = {}
     for _, row in ipairs(rows or {}) do
-        local name = ((row.firstname or '') .. ' ' .. (row.lastname or '')):match('^%s*(.-)%s*$')
-        table.insert(list, {
-            citizenid  = row.citizenid,
-            name       = name ~= '' and name or row.citizenid,
-            gradeLabel = row.grade_name,
-        })
+        if not seen[row.citizenid] then
+            local name = ((row.firstname or '') .. ' ' .. (row.lastname or '')):match('^%s*(.-)%s*$')
+            table.insert(list, {
+                citizenid  = row.citizenid,
+                name       = name ~= '' and name or row.citizenid,
+                gradeLabel = row.grade_name,
+            })
+        end
     end
+
     return list
 end)
 
@@ -131,15 +153,22 @@ RegisterNetEvent('mclaw:server:poa:grant', function(data)
         return
     end
 
-    local lawyerRow = MySQL.single.await(
-        [[SELECT citizenid,
-                 JSON_UNQUOTE(JSON_EXTRACT(job, '$.name'))         AS job_name,
-                 JSON_UNQUOTE(JSON_EXTRACT(job, '$.grade.level'))  AS grade_level
-          FROM players WHERE citizenid = ?]],
-        { data.lawyerCid }
-    )
-    local role = lawyerRow and Mclaw.RoleOf(lawyerRow.job_name, tonumber(lawyerRow.grade_level))
-    if not lawyerRow or role ~= Config.Jobs.lawyer then
+    -- Check live PlayerData first (if the lawyer is online) since QBCore does
+    -- not save the `players` row to the DB on every job change; fall back to
+    -- the DB for an offline lawyer.
+    local lawyerOnline = Mclaw.GetPlayer(data.lawyerCid)
+    local role = lawyerOnline and Mclaw.GetRole(lawyerOnline)
+    if role ~= Config.Jobs.lawyer then
+        local lawyerRow = MySQL.single.await(
+            [[SELECT citizenid,
+                     JSON_UNQUOTE(JSON_EXTRACT(job, '$.name'))         AS job_name,
+                     JSON_UNQUOTE(JSON_EXTRACT(job, '$.grade.level'))  AS grade_level
+              FROM players WHERE citizenid = ?]],
+            { data.lawyerCid }
+        )
+        role = lawyerRow and Mclaw.RoleOf(lawyerRow.job_name, tonumber(lawyerRow.grade_level))
+    end
+    if role ~= Config.Jobs.lawyer then
         Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_invalid_lawyer_cid') })
         return
     end
