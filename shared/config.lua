@@ -112,7 +112,7 @@ Config.PowerOfAttorney = {
     },
     npc = {
         model        = 'a_m_m_business_01',
-        coords       = vector4(-542.52, -197.14, 38.24, 71.93),
+        coords       = vector4(-541.97, -197.36, 37.24, 77.39),
         interactDist = 1.8,
         viewDistance = 8.0,
         label        = 'Vekalet Masası',
