@@ -21,7 +21,10 @@ local function spawnNpc()
     RequestModel(model)
     local t = 0
     while not HasModelLoaded(model) and t < 100 do Wait(50); t = t + 1 end
-    if not HasModelLoaded(model) then return end
+    if not HasModelLoaded(model) then
+        print(('[mcLaw] poa.lua: model "%s" failed to load (bad name or not streamed on this build)'):format(npcCfg.model))
+        return
+    end
 
     npc = CreatePed(4, model, npcCfg.coords.x, npcCfg.coords.y, npcCfg.coords.z, npcCfg.coords.w, false, false)
     PlaceObjectOnGroundProperly(npc)

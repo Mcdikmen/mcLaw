@@ -111,7 +111,7 @@ Config.PowerOfAttorney = {
         { label = 'Süresiz', days = 0 },
     },
     npc = {
-        model        = 's_m_m_lawyer_01',
+        model        = 'a_m_m_business_01',
         coords       = vector4(-542.52, -197.14, 38.24, 71.93),
         interactDist = 1.8,
         viewDistance = 8.0,
