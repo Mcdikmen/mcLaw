@@ -88,8 +88,13 @@ RegisterNetEvent('mclaw:server:prosecutor:openInvestigation', function(data)
 
     local cid  = P.PlayerData.citizenid
     local year = tonumber(os.date('%Y'))
+    -- Counting by file_number prefix, not by type: `type` changes away from
+    -- 'investigation' once the indictment is submitted (see submitIndictment),
+    -- so a type-based count shrinks over time and reissues numbers that were
+    -- already given out, causing a duplicate-key insert failure.
     local invCount = MySQL.scalar.await(
-        "SELECT COUNT(*) FROM mclaw_files WHERE type = 'investigation' AND YEAR(created_at) = ?", { year }
+        "SELECT COUNT(*) FROM mclaw_files WHERE file_number LIKE ?",
+        { Config.InvestigationNumber.prefix .. '-' .. year .. '-%' }
     ) or 0
     local fileNumber = Mclaw.FormatInvestigationNumber(year, invCount + 1)
 

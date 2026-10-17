@@ -29,6 +29,22 @@ local function pickProsecutor()
     return candidates[1].citizenid, candidates[1].source
 end
 
+-- Fallback when no prosecutor is online at the moment of a referral: picks a
+-- random aday savcı or savcı (DOJ grade 12/13) from the whole roster, online or
+-- not. Başsavcı (grade 16) is excluded from this pool — their role here is to
+-- reassign afterwards (mclaw:server:prosecutor:reassign), not to receive random
+-- cases. Returns citizenid (string|nil).
+local function pickRandomProsecutor()
+    local row = MySQL.single.await(
+        [[SELECT citizenid FROM players
+          WHERE JSON_UNQUOTE(JSON_EXTRACT(job, '$.name')) = ?
+            AND JSON_UNQUOTE(JSON_EXTRACT(job, '$.grade.level')) IN ('12', '13')
+          ORDER BY RAND() LIMIT 1]],
+        { Config.Doj.job }
+    )
+    return row and row.citizenid or nil
+end
+
 -- Returns the server source for a citizenid, or nil if offline.
 local function findSource(citizenid)
     for _, playerId in ipairs(GetPlayers()) do
@@ -367,7 +383,12 @@ RegisterNetEvent('mclaw:server:referral:startInvestigation', function(reportId)
         return
     end
 
-    local prosecutorCid, prosecutorSrc = pickProsecutor()
+    local prosecutorCid = pickProsecutor()
+    if not prosecutorCid then
+        -- No one online: assign randomly instead of leaving the file unassigned.
+        -- The Başsavcı can move it with mclaw:server:prosecutor:reassign.
+        prosecutorCid = pickRandomProsecutor()
+    end
     local newStatus = prosecutorCid and Mclaw.FileStatus.PROSECUTOR_REVIEW or Mclaw.FileStatus.AWAITING_PROSECUTOR
     local claimed = MySQL.update.await(
         "UPDATE mclaw_files SET prosecutor_citizenid = ?, status = ?, updated_at = NOW() WHERE id = ? AND status = 'opened'",

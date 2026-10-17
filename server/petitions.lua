@@ -248,10 +248,12 @@ RegisterNetEvent('mclaw:server:prosecutor:acceptPetition', function(data)
         return
     end
 
-    -- Generate investigation number (SRS-YYYY-NNNNN)
+    -- Generate investigation number (SRS-YYYY-NNNNN). Counting by file_number
+    -- prefix, not by type: see the same note in prosecutor.lua's openInvestigation.
     local year = tonumber(os.date('%Y'))
     local invCount = MySQL.scalar.await(
-        "SELECT COUNT(*) FROM mclaw_files WHERE type = 'investigation' AND YEAR(created_at) = ?", { year }
+        "SELECT COUNT(*) FROM mclaw_files WHERE file_number LIKE ?",
+        { Config.InvestigationNumber.prefix .. '-' .. year .. '-%' }
     ) or 0
     local fileNumber = Mclaw.FormatInvestigationNumber(year, invCount + 1)
 

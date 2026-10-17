@@ -1,8 +1,8 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- Manual file opening: prosecutor / judge / lawyer
--- Judge-opened files are immediately active; prosecutor & lawyer submissions
--- enter pending_approval and must be approved or rejected by a judge.
--- All open/approve/reject actions are logged in mclaw_file_open_logs.
+-- Manual file opening — standalone opening is disabled (see openFile below).
+-- What remains here is pending_approval approve/reject, now dead in practice
+-- since nothing can put a file into pending_approval anymore, but still safe to
+-- keep: it only ever acted on files already in that status.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 local function findSource(citizenid)
@@ -15,105 +15,21 @@ local function findSource(citizenid)
     return nil
 end
 
-local function getNextFileSequence(year)
-    local count = MySQL.scalar.await(
-        'SELECT COUNT(*) FROM mclaw_files WHERE YEAR(created_at) = ?', { year }
-    )
-    return (count or 0) + 1
-end
-
 -- ─────────────────────────────────────────────────────────────────────────────
--- mclaw:server:fileopening:openFile
---
--- data.suspectCid  (string)  citizenid of the suspect
--- data.charges     (table)   array of { code = 'charge_code' }
--- data.narrative   (string)  reason/description (min 10 chars)
--- data.notes       (string?) optional internal note
+-- mclaw:server:fileopening:openFile — DISABLED (2026-10-17, user decision).
+-- A judge can no longer open a file standalone, criminal or civil: criminal
+-- files only come from a police referral or a prosecutor's own investigation,
+-- then an indictment; civil files only from a lawyer's petition, accepted via
+-- mclaw:server:judge:acceptCivilPetition (petitions.lua). The NUI nav entry for
+-- this ("+ Dosya Aç") was removed; this guard stays in case anything still
+-- calls the event directly.
 -- ─────────────────────────────────────────────────────────────────────────────
 RegisterNetEvent('mclaw:server:fileopening:openFile', function(data)
     local src = source
     local P   = Mclaw.GetPlayer(src)
     if not P then return end
-
-    local job = Mclaw.GetRole(P)
-    if job ~= Config.Jobs.judge then return end
-
-    local cid = P.PlayerData.citizenid
-
-    -- Validate suspect exists
-    local suspectExists = MySQL.scalar.await(
-        'SELECT COUNT(*) FROM players WHERE citizenid = ?', { data.suspectCid }
-    )
-    if not suspectExists or suspectExists == 0 then
-        Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_invalid_suspect_cid') })
-        return
-    end
-
-    if not data.charges or #data.charges == 0 then
-        Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_no_charges_selected') })
-        return
-    end
-
-    for _, c in ipairs(data.charges) do
-        if not Mclaw.GetChargeByCode(c.code) then
-            Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_invalid_charge_code', tostring(c.code)) })
-            return
-        end
-    end
-
-    if not data.narrative or #data.narrative < 10 then
-        Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_narrative_too_short') })
-        return
-    end
-
-    -- Determine status and pre-assigned roles
-    local fileStatus = 'opened'
-    local judgeCid   = cid
-    local prosecutorCid = nil
-
-    local year = tonumber(os.date('%Y'))
-    local seq  = getNextFileSequence(year)
-    local fileNumber = Mclaw.FormatFileNumber(year, seq)
-
-    local fileId = MySQL.insert.await(
-        'INSERT INTO mclaw_files (file_number, suspect_citizenid, prosecutor_citizenid, judge_citizenid, status, opened_by_citizenid, opened_by_job, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        { fileNumber, data.suspectCid, prosecutorCid, judgeCid, fileStatus, cid, job, (data.notes ~= '' and data.notes or nil) }
-    )
-
-    for _, c in ipairs(data.charges) do
-        MySQL.insert('INSERT INTO mclaw_file_charges (file_id, charge_code) VALUES (?, ?)', { fileId, c.code })
-    end
-
-    MySQL.insert(
-        'INSERT INTO mclaw_file_open_logs (file_id, action, actioned_by_citizenid, actioned_by_job, notes) VALUES (?, ?, ?, ?, ?)',
-        { fileId, 'opened', cid, job, data.narrative }
-    )
-
-    Mclaw.NotifyCitizen(data.suspectCid, 'subpoena', Mclaw.T('start_ok_title'), Mclaw.T('start_ok_suspect', fileNumber))
-
-    local statusNote = fileStatus == 'pending_approval' and (' — ' .. Mclaw.T('notify_file_pending_note')) or (' — ' .. Mclaw.T('notify_file_opened_note'))
-    Mclaw.Notify(src, { position = Config.NotifyPosition,
-        type        = 'success',
-        title       = Mclaw.T('notify_file_created_title'),
-        description = fileNumber .. statusNote,
-    })
-
-    if fileStatus == 'pending_approval' then
-        for _, pid in ipairs(GetPlayers()) do
-            local JP = Mclaw.GetPlayer(tonumber(pid))
-            if JP and Mclaw.GetRole(JP) == Config.Jobs.judge then
-                Mclaw.Notify(tonumber(pid), {
-                    type        = 'inform',
-                    title       = Mclaw.T('notify_file_pending_approval_title'),
-                    description = Mclaw.T('notify_file_pending_approval_desc', fileNumber),
-                })
-                MySQL.insert(
-                    'INSERT INTO mclaw_notifications (citizenid, type, title, message, ref_type, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
-                    { JP.PlayerData.citizenid, 'hearing', Mclaw.T('notify_file_pending_approval_title'), Mclaw.T('notify_file_pending_approval_desc', fileNumber), 'file', fileId }
-                )
-            end
-        end
-    end
+    Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error',
+        description = 'Hakim resmi dosyayı kendi başına açamaz: ceza davaları sevk/soruşturma üzerinden, hukuk davaları avukat dilekçesi üzerinden açılır.' })
 end)
 
 -- ─────────────────────────────────────────────────────────────────────────────
