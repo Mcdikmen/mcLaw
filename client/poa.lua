@@ -27,7 +27,6 @@ local function spawnNpc()
     end
 
     npc = CreatePed(4, model, npcCfg.coords.x, npcCfg.coords.y, npcCfg.coords.z, npcCfg.coords.w, false, false)
-    PlaceObjectOnGroundProperly(npc)
     SetEntityHeading(npc, npcCfg.coords.w)
     FreezeEntityPosition(npc, true)
     SetEntityInvincible(npc, true)
