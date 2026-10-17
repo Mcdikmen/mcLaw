@@ -74,6 +74,22 @@ RegisterNetEvent('mclaw:client:poaMenu', function()
     TriggerEvent('mclaw:client:openPanel', 'poa')
 end)
 
+-- /mclawpoaground : diagnostic — your current coords vs. the real ground Z the
+-- engine finds at that x/y (any player). Use this to get an accurate spawn
+-- coordinate instead of a coord-grab tool that may add a standing/eye offset.
+RegisterCommand('mclawpoaground', function()
+    local coords = GetEntityCoords(PlayerPedId())
+    local heading = GetEntityHeading(PlayerPedId())
+    local found, groundZ = GetGroundZFor_3dCoord(coords.x, coords.y, coords.z + 5.0, false)
+    lib.notify({
+        position = Config.NotifyPosition, duration = 15000, type = 'inform',
+        description = ('Mevcut: %.2f, %.2f, %.2f | Zemin Z: %s | vector4(%.2f, %.2f, %.2f, %.2f)'):format(
+            coords.x, coords.y, coords.z,
+            found and ('%.2f'):format(groundZ) or 'bulunamadı',
+            coords.x, coords.y, found and groundZ or coords.z, heading),
+    })
+end, false)
+
 -- /mclawpoa : diagnostic — distance to the NPC and whether it has spawned (any player)
 RegisterCommand('mclawpoa', function()
     local dist = #(GetEntityCoords(PlayerPedId()) - vector3(npcCfg.coords.x, npcCfg.coords.y, npcCfg.coords.z))
