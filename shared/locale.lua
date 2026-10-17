@@ -207,6 +207,21 @@ Mclaw.Locale = {
     -- ── Log messages (stored in DB) ───────────────────────────────────────────
     log_investigation_from_petition    = 'Avukat dilekçesi üzerine soruşturma açıldı.',
     log_civil_from_petition            = 'Avukat dilekçesi üzerine hukuk davası açıldı: %s',
+
+    -- ── Power of attorney (vekalet) ───────────────────────────────────────────
+    err_invalid_lawyer_cid             = 'Geçersiz avukat vatandaş numarası (DOJ avukatı olmalı).',
+    err_poa_self                       = 'Kendinize vekalet veremezsiniz.',
+    err_poa_already_active             = 'Bu avukata zaten aktif bir vekaletiniz var.',
+    err_poa_not_found                  = 'Vekalet bulunamadı veya zaten iptal edilmiş.',
+    err_no_poa                         = 'Bu vatandaş için vekaletiniz yok. İşlem yapmadan önce vatandaşın sizi Vekalet Masası NPC\'sinden yetkilendirmesi gerekir.',
+    poa_invoice_label                  = 'Vekalet Ücreti',
+    notify_poa_granted_title           = 'Vekalet Verildi',
+    notify_poa_granted_desc            = '%s avukatına vekalet verdiniz.',
+    notify_poa_received_title          = 'Yeni Vekalet',
+    notify_poa_received_desc           = '%s size vekalet verdi.',
+    notify_poa_revoked_desc            = 'Vekalet iptal edildi.',
+    notify_poa_revoked_by_client_title = 'Vekalet İptal Edildi',
+    notify_poa_revoked_by_client_desc  = '%s vekaletini iptal etti.',
 }
 
 -- Mclaw.T(key, ...) — returns the locale string for key, with optional format args.

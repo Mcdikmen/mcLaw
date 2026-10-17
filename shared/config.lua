@@ -91,6 +91,34 @@ Config.Bracelet = {
     listCommand     = 'kelepceler',
 }
 
+-- ─────────────────────────────────────────────
+-- POWER OF ATTORNEY (vekalet, County RP)
+-- Citizens grant/revoke a lawyer's power of attorney only at this NPC
+-- (client/poa.lua). A lawyer may not act on a client's behalf (e.g. send a
+-- petition naming them as plaintiff) without an active grant.
+-- fee:     flat invoice charged to the client on every grant, billed to
+--          `society` via codem-billing (see Config.AllowBillingJobs in
+--          codem-billing/config/config.lua — 'doj' must be listed there).
+-- durations: options offered in the NUI; days = 0 means unlimited (süresiz).
+-- ─────────────────────────────────────────────
+Config.PowerOfAttorney = {
+    fee     = 500,
+    society = 'doj',
+    durations = {
+        { label = '1 Gün',   days = 1 },
+        { label = '1 Hafta', days = 7 },
+        { label = '1 Ay',    days = 30 },
+        { label = 'Süresiz', days = 0 },
+    },
+    npc = {
+        model        = 's_m_m_lawyer_01',
+        coords       = vector4(-542.52, -197.14, 38.24, 71.93),
+        interactDist = 1.8,
+        viewDistance = 8.0,
+        label        = 'Vekalet Masası',
+    },
+}
+
 Mclaw = Mclaw or {}
 
 -- IsNear(pos, site) — true if `pos` (vector3) is within site.radius of site.coords

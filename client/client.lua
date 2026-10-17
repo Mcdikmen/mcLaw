@@ -69,6 +69,11 @@ local function openPanel(activeTab)
         activeTab   = activeTab or 'dashboard',
         dashStats   = stats,
         docTypeList = docTypes,
+        -- Power of attorney: every player, regardless of job, can have grants
+        -- of their own as a client (reachable only via the NPC, see poa.lua).
+        myPoaGrants   = lib.callback.await('mclaw:cb:poa:getMyGrants', false) or {},
+        poaFee        = Config.PowerOfAttorney.fee or 0,
+        poaDurations  = Config.PowerOfAttorney.durations or {},
     }
 
     if job == Config.Jobs.police then
@@ -100,8 +105,9 @@ local function openPanel(activeTab)
         payload.incomingPetitions   = lib.callback.await('mclaw:cb:judge:getIncomingPetitions', false) or {}
         payload.verdictFiles        = lib.callback.await('mclaw:cb:verdict:getEligibleFiles', false) or {}
     elseif job == Config.Jobs.lawyer then
-        payload.hearingList = lib.callback.await('mclaw:cb:hearings:getList', false) or {}
-        payload.myPetitions = lib.callback.await('mclaw:cb:lawyer:getMyPetitions', false) or {}
+        payload.hearingList  = lib.callback.await('mclaw:cb:hearings:getList', false) or {}
+        payload.myPetitions  = lib.callback.await('mclaw:cb:lawyer:getMyPetitions', false) or {}
+        payload.myPoaClients = lib.callback.await('mclaw:cb:poa:getMyClients', false) or {}
     elseif job == Config.Jobs.prosecutor then
         payload.incomingPetitions = lib.callback.await('mclaw:cb:prosecutor:getIncomingPetitions', false) or {}
     end
@@ -318,6 +324,14 @@ RegisterNUICallback('tab:refresh', function(data, cb)
             update.assignableProsecutors = lib.callback.await('mclaw:cb:prosecutor:getAssignable', false) or {}
             update.allOpenFiles          = lib.callback.await('mclaw:cb:prosecutor:getAllOpenFiles', false) or {}
         end
+
+    elseif tab == 'poa' then
+        update.myPoaGrants = lib.callback.await('mclaw:cb:poa:getMyGrants', false) or {}
+
+    elseif tab == 'attorney' then
+        if job == Config.Jobs.lawyer then
+            update.myPoaClients = lib.callback.await('mclaw:cb:poa:getMyClients', false) or {}
+        end
     end
 
     SendNUIMessage(update)
@@ -341,6 +355,21 @@ end)
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Başsavcı: dosyayı başka bir savcı/aday savcıya devret
 -- ─────────────────────────────────────────────────────────────────────────────
+RegisterNUICallback('poa:grant', function(data, cb)
+    if not data.lawyerCid then cb({ ok = false, error = 'Eksik veri.' }); return end
+    TriggerServerEvent('mclaw:server:poa:grant', {
+        lawyerCid = data.lawyerCid,
+        days      = data.days or 0,
+    })
+    cb({ ok = true })
+end)
+
+RegisterNUICallback('poa:revoke', function(data, cb)
+    if not data.id then cb({ ok = false, error = 'Eksik veri.' }); return end
+    TriggerServerEvent('mclaw:server:poa:revoke', { id = data.id })
+    cb({ ok = true })
+end)
+
 RegisterNUICallback('prosecutor:reassign', function(data, cb)
     if not data.fileId or not data.newCitizenid then cb({ ok = false, error = 'Eksik veri.' }); return end
     TriggerServerEvent('mclaw:server:prosecutor:reassign', {

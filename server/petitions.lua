@@ -22,6 +22,7 @@ RegisterNetEvent('mclaw:server:lawyer:sendPetition', function(data)
     local src = source
     local P   = Mclaw.GetPlayer(src)
     if not P or Mclaw.GetRole(P) ~= Config.Jobs.lawyer then return end
+    local cid = P.PlayerData.citizenid
 
     if not data.petitionType or not data.plaintiffCid or not data.defendantCid or not data.subject or not data.description then
         Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_missing_data') })
@@ -49,6 +50,17 @@ RegisterNetEvent('mclaw:server:lawyer:sendPetition', function(data)
     local defendantExists = MySQL.scalar.await('SELECT COUNT(*) FROM players WHERE citizenid = ?', { data.defendantCid })
     if not defendantExists or defendantExists == 0 then
         Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_invalid_defendant_cid') })
+        return
+    end
+
+    -- A lawyer may only petition on behalf of a client who has actively
+    -- granted them power of attorney (see server/poa.lua).
+    local poaActive = MySQL.scalar.await(
+        "SELECT COUNT(*) FROM mclaw_attorneys WHERE attorney_citizenid = ? AND client_citizenid = ? AND is_active = 1 AND (expires_at IS NULL OR expires_at > NOW())",
+        { cid, data.plaintiffCid }
+    )
+    if not poaActive or poaActive == 0 then
+        Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_no_poa') })
         return
     end
 
@@ -83,7 +95,6 @@ RegisterNetEvent('mclaw:server:lawyer:sendPetition', function(data)
         if #cleaned > 0 then attachmentsJson = json.encode(cleaned) end
     end
 
-    local cid = P.PlayerData.citizenid
     MySQL.insert(
         'INSERT INTO mclaw_petitions (type, attorney_citizenid, plaintiff_citizenid, defendant_citizenid, recipient_job, charges, subject, description, attachments) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
         { data.petitionType, cid, data.plaintiffCid, data.defendantCid, recipientJob, chargesJson, data.subject, data.description, attachmentsJson }

@@ -10,6 +10,7 @@ dependencies {
     'qb-core',
     'ox_lib',
     'oxmysql',
+    'qb-target',
 }
 
 shared_scripts {

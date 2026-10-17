@@ -136,7 +136,7 @@ CREATE TABLE IF NOT EXISTS `mclaw_attorneys` (
     `client_citizenid`      VARCHAR(64) NOT NULL,
     `file_id`               INT,
     `scope`                 ENUM('general','file_based') DEFAULT 'file_based',
-    `expires_at`            DATETIME NOT NULL,
+    `expires_at`            DATETIME NULL DEFAULT NULL COMMENT 'NULL = süresiz (unlimited)',
     `granted_at`            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     `revoked_at`            TIMESTAMP NULL DEFAULT NULL,
     `is_active`             TINYINT DEFAULT 1,
