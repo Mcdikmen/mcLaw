@@ -11,6 +11,7 @@ dependencies {
     'ox_lib',
     'oxmysql',
     'qb-target',
+    'qb-menu',
 }
 
 shared_scripts {

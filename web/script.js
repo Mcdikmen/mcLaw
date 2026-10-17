@@ -20,11 +20,7 @@ var investigationList   = [];
 var verdictFiles        = [];
 var isChief              = false;
 var assignableProsecutors = [];
-var myPoaGrants   = [];
 var myPoaClients  = [];
-var poaFee        = 0;
-var poaDurations  = [];
-var poaDurationSelected = null;
 
 // -- Tab navigation
 
@@ -40,7 +36,7 @@ function activateTab(pageName) {
     if (page) { page.classList.add('active'); }
 }
 
-var REFRESHABLE_TABS = { dashboard: 1, files: 1, investigations: 1, approvals: 1, hearings: 1, referral: 1, myreports: 1, mypetitions: 1, inpetitions: 1, verdict: 1, assign: 1, poa: 1, attorney: 1 };
+var REFRESHABLE_TABS = { dashboard: 1, files: 1, investigations: 1, approvals: 1, hearings: 1, referral: 1, myreports: 1, mypetitions: 1, inpetitions: 1, verdict: 1, assign: 1, attorney: 1 };
 
 navButtons.forEach(function(btn) {
     btn.addEventListener('click', function() {
@@ -1981,10 +1977,7 @@ window.addEventListener('message', function(event) {
         isChief              = !!data.isChief;
         assignableProsecutors = data.assignableProsecutors || [];
         allOpenFiles           = data.allOpenFiles           || [];
-        myPoaGrants   = data.myPoaGrants   || [];
         myPoaClients  = data.myPoaClients  || [];
-        poaFee        = data.poaFee        || 0;
-        poaDurations  = data.poaDurations  || [];
         filterTabsForJob(currentJob);
         document.getElementById('user-job').textContent = currentJob;
         if (data.dashStats) {
@@ -2006,8 +1999,6 @@ window.addEventListener('message', function(event) {
         if (currentJob === 'judge') { renderVerdictList(); }
         if (currentJob === 'prosecutor' && isChief) { renderAssignList(); }
         if (currentJob === 'lawyer') { renderPoaClientsList(); }
-        populatePoaDurations();
-        renderPoaGrantsList();
         var navAssign = document.getElementById('nav-assign');
         if (navAssign && !isChief) { navAssign.classList.add('nav-hidden'); }
         activateTab(data.activeTab || 'dashboard');
@@ -2061,10 +2052,6 @@ window.addEventListener('message', function(event) {
         if (data.verdictFiles !== undefined) {
             verdictFiles = data.verdictFiles;
             renderVerdictList();
-        }
-        if (data.myPoaGrants !== undefined) {
-            myPoaGrants = data.myPoaGrants;
-            renderPoaGrantsList();
         }
         if (data.myPoaClients !== undefined) {
             myPoaClients = data.myPoaClients;
@@ -2161,82 +2148,9 @@ document.getElementById('btn-exit-app').addEventListener('click', function() {
     fetch('https://mclaw/close', { method: 'POST', body: JSON.stringify({}) });
 });
 
-// -- Power of attorney (vekalet)
-
-function refreshPoaTab() {
-    fetch('https://mclaw/tab:refresh', { method: 'POST', body: JSON.stringify({ tab: 'poa' }) });
-}
-function refreshAttorneyTab() {
-    fetch('https://mclaw/tab:refresh', { method: 'POST', body: JSON.stringify({ tab: 'attorney' }) });
-}
-
-function populatePoaDurations() {
-    var group = document.getElementById('poa-duration-group');
-    if (!group) return;
-    group.innerHTML = '';
-    poaDurationSelected = null;
-    (poaDurations || []).forEach(function(d, i) {
-        var label = document.createElement('label');
-        label.className = 'radio-item';
-        var input = document.createElement('input');
-        input.type = 'radio';
-        input.name = 'poa-duration';
-        input.value = String(d.days || 0);
-        if (i === 0) { input.checked = true; poaDurationSelected = d.days || 0; }
-        input.addEventListener('change', function() { poaDurationSelected = Number(input.value); });
-        var span = document.createElement('span');
-        span.className = 'radio-label';
-        span.innerHTML = '<strong>' + escHtml(d.label || '') + '</strong>';
-        label.appendChild(input);
-        label.appendChild(span);
-        group.appendChild(label);
-    });
-    var feeEl = document.getElementById('poa-fee');
-    if (feeEl) feeEl.textContent = poaFee;
-}
-
-function renderPoaGrantsList() {
-    var listEl  = document.getElementById('poa-grants-list');
-    var emptyEl = document.getElementById('poa-grants-empty');
-    if (!listEl) return;
-    listEl.innerHTML = '';
-    if (!myPoaGrants || myPoaGrants.length === 0) { if (emptyEl) emptyEl.style.display = ''; return; }
-    if (emptyEl) emptyEl.style.display = 'none';
-
-    myPoaGrants.forEach(function(g) {
-        var card = document.createElement('div');
-        card.className = 'file-card';
-        var statusLabel = g.currentlyActive ? 'Aktif' : (g.canRevoke ? 'Süresi Doldu' : 'İptal Edildi');
-        var statusClass = g.currentlyActive ? 'status-green' : 'status-gray';
-        card.innerHTML =
-            '<div class="file-card-header">' +
-                '<span class="file-number">' + displayName(g.attorneyName, g.attorneyCid) + '</span>' +
-                '<span class="file-status ' + statusClass + '">' + statusLabel + '</span>' +
-            '</div>' +
-            '<div class="file-card-body">' +
-                '<div class="file-meta"><span class="file-meta-key">Verildi</span><span>' + (g.grantedAt || '—') + '</span></div>' +
-                '<div class="file-meta"><span class="file-meta-key">Süre</span><span>' + (g.expiresAt || 'Süresiz') + '</span></div>' +
-            '</div>';
-        if (g.canRevoke) {
-            var row = document.createElement('div');
-            row.style.cssText = 'margin-top:10px;';
-            var btn = document.createElement('button');
-            btn.className = 'btn-danger';
-            btn.style.cssText = 'font-size:12px;padding:6px 14px;';
-            btn.textContent = 'Vekaleti İptal Et';
-            btn.addEventListener('click', function() {
-                btn.disabled = true; btn.textContent = 'İptal Ediliyor…';
-                fetch('https://mclaw/poa:revoke', {
-                    method: 'POST',
-                    body: JSON.stringify({ id: g.id }),
-                }).then(function() { setTimeout(refreshPoaTab, 300); });
-            });
-            row.appendChild(btn);
-            card.appendChild(row);
-        }
-        listEl.appendChild(card);
-    });
-}
+// -- Power of attorney (vekalet) — citizen grant/revoke lives entirely in the
+// NPC's qb-menu now (client/poa.lua); this page only shows the lawyer's own
+// read-only list of who granted them power of attorney.
 
 function renderPoaClientsList() {
     var listEl  = document.getElementById('poa-clients-list');
@@ -2261,33 +2175,5 @@ function renderPoaClientsList() {
                 '<div class="file-meta"><span class="file-meta-key">Süre</span><span>' + (c.expiresAt || 'Süresiz') + '</span></div>' +
             '</div>';
         listEl.appendChild(card);
-    });
-}
-
-var poaGrantForm = document.getElementById('poa-grant-form');
-if (poaGrantForm) {
-    poaGrantForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        var errEl = document.getElementById('poa-grant-error');
-        errEl.classList.add('hidden');
-
-        var lawyerCid = document.getElementById('poa-lawyer-cid').value.trim();
-        if (!lawyerCid) { errEl.textContent = 'Avukat vatandaş numarası gereklidir.'; errEl.classList.remove('hidden'); return; }
-
-        var submitBtn = document.getElementById('poa-grant-submit');
-        submitBtn.disabled = true; submitBtn.textContent = 'Gönderiliyor…';
-        fetch('https://mclaw/poa:grant', {
-            method: 'POST',
-            body: JSON.stringify({ lawyerCid: lawyerCid, days: poaDurationSelected || 0 }),
-        }).then(function(r) { return r.json(); }).then(function(result) {
-            submitBtn.disabled = false; submitBtn.textContent = 'Vekalet Ver';
-            if (result && result.ok) {
-                poaGrantForm.reset();
-                setTimeout(refreshPoaTab, 300);
-            } else {
-                errEl.textContent = result && result.error ? result.error : 'Gönderim başarısız.';
-                errEl.classList.remove('hidden');
-            }
-        }).catch(function() { submitBtn.disabled = false; submitBtn.textContent = 'Vekalet Ver'; });
     });
 }

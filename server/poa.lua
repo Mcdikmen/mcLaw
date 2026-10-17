@@ -50,6 +50,36 @@ lib.callback.register('mclaw:cb:poa:getMyGrants', function(source)
 end)
 
 -- ─────────────────────────────────────────────────────────────────────────────
+-- mclaw:cb:poa:getLawyerList
+-- Every registered DOJ lawyer (grade 10 Stajyer Avukat / 11 Avukat), online or
+-- not — a citizen picks from this list instead of typing a citizenid.
+-- ─────────────────────────────────────────────────────────────────────────────
+lib.callback.register('mclaw:cb:poa:getLawyerList', function(source)
+    local rows = MySQL.query.await(
+        [[SELECT citizenid,
+                 JSON_UNQUOTE(JSON_EXTRACT(charinfo, '$.firstname')) AS firstname,
+                 JSON_UNQUOTE(JSON_EXTRACT(charinfo, '$.lastname'))  AS lastname,
+                 JSON_UNQUOTE(JSON_EXTRACT(job, '$.grade.name'))     AS grade_name
+          FROM players
+          WHERE JSON_UNQUOTE(JSON_EXTRACT(job, '$.name')) = ?
+            AND JSON_UNQUOTE(JSON_EXTRACT(job, '$.grade.level')) IN ('10', '11')
+          ORDER BY firstname, lastname]],
+        { Config.Doj.job }
+    )
+
+    local list = {}
+    for _, row in ipairs(rows or {}) do
+        local name = ((row.firstname or '') .. ' ' .. (row.lastname or '')):match('^%s*(.-)%s*$')
+        table.insert(list, {
+            citizenid  = row.citizenid,
+            name       = name ~= '' and name or row.citizenid,
+            gradeLabel = row.grade_name,
+        })
+    end
+    return list
+end)
+
+-- ─────────────────────────────────────────────────────────────────────────────
 -- mclaw:cb:poa:getMyClients
 -- The requesting lawyer's own power-of-attorney grants (as the attorney).
 -- Read-only on this side — only the client can revoke (mclaw:server:poa:revoke).
