@@ -367,12 +367,13 @@ RegisterNUICallback('prosecutor:openInvestigation', function(data, cb)
 end)
 
 RegisterNUICallback('lawyer:sendPetition', function(data, cb)
-    if not data.petitionType or not data.plaintiffCid or not data.subject or not data.description then
+    if not data.petitionType or not data.plaintiffCid or not data.defendantCid or not data.subject or not data.description then
         cb({ ok = false, error = 'Eksik veri.' }); return
     end
     TriggerServerEvent('mclaw:server:lawyer:sendPetition', {
         petitionType  = data.petitionType,
         plaintiffCid  = data.plaintiffCid,
+        defendantCid  = data.defendantCid,
         charges       = data.charges or {},
         subject       = data.subject,
         description   = data.description,
