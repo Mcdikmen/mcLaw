@@ -18,6 +18,8 @@ var myPetitions         = [];
 var incomingPetitions   = [];
 var investigationList   = [];
 var verdictFiles        = [];
+var isChief              = false;
+var assignableProsecutors = [];
 
 // -- Tab navigation
 
@@ -33,7 +35,7 @@ function activateTab(pageName) {
     if (page) { page.classList.add('active'); }
 }
 
-var REFRESHABLE_TABS = { dashboard: 1, files: 1, investigations: 1, approvals: 1, hearings: 1, referral: 1, myreports: 1, mypetitions: 1, inpetitions: 1, verdict: 1 };
+var REFRESHABLE_TABS = { dashboard: 1, files: 1, investigations: 1, approvals: 1, hearings: 1, referral: 1, myreports: 1, mypetitions: 1, inpetitions: 1, verdict: 1, assign: 1 };
 
 navButtons.forEach(function(btn) {
     btn.addEventListener('click', function() {
@@ -433,6 +435,76 @@ function renderFilesList() {
                 }
             }).catch(function() { btn.disabled = false; btn.textContent = 'Duruşmayı Kaydet'; });
         });
+    });
+}
+
+// -- Assignment (Başsavcı)
+
+var allOpenFiles = [];
+
+function renderAssignList() {
+    var listEl  = document.getElementById('assign-list');
+    var emptyEl = document.getElementById('assign-empty');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+    if (allOpenFiles.length === 0) { emptyEl.style.display = ''; return; }
+    emptyEl.style.display = 'none';
+    allOpenFiles.forEach(function(file) {
+        var card = document.createElement('div');
+        card.className = 'file-card';
+        var statusClass = STATUS_COLORS[file.status] || 'status-gray';
+        var statusLabel = STATUS_LABELS[file.status] || file.status;
+        card.innerHTML =
+            '<div class="file-card-header">' +
+                '<span class="file-number">' + file.fileNumber + '</span>' +
+                '<span class="file-status ' + statusClass + '">' + statusLabel + '</span>' +
+            '</div>' +
+            '<div class="file-card-body">' +
+                '<div class="file-meta"><span class="file-meta-key">Şüpheli</span><span>' + displayName(file.suspectName, file.suspectCid) + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">Savcı</span><span class="assign-current-prosecutor">' + (file.prosecutorName || file.prosecutorCid || '—') + '</span></div>' +
+            '</div>';
+
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex;gap:8px;margin-top:10px;';
+        var sel = document.createElement('select');
+        sel.className = 'reject-reason-input';
+        sel.style.cssText = 'flex:1;padding:8px 10px;';
+        var placeholder = document.createElement('option');
+        placeholder.value = ''; placeholder.textContent = '— Savcı / aday savcı seçin —';
+        sel.appendChild(placeholder);
+        assignableProsecutors.forEach(function(p) {
+            if (p.citizenid === file.prosecutorCid) return;
+            var opt = document.createElement('option');
+            opt.value = p.citizenid;
+            opt.textContent = p.name + ' (' + p.gradeLabel + ', ' + p.active + ' açık dosya)';
+            sel.appendChild(opt);
+        });
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn-primary';
+        btn.textContent = 'Devret';
+        (function(fid, card) {
+            btn.addEventListener('click', function() {
+                var newCid = sel.value;
+                if (!newCid) { alert('Lütfen bir savcı seçin.'); return; }
+                btn.disabled = true; btn.textContent = 'Devrediliyor…';
+                fetch('https://mclaw/prosecutor:reassign', {
+                    method: 'POST',
+                    body: JSON.stringify({ fileId: fid, newCitizenid: newCid }),
+                }).then(function(res) { return res.json(); }).then(function(result) {
+                    if (result && result.ok) {
+                        card.style.opacity = '0.5';
+                        row.innerHTML = '<span style="color:#34a853;">Devredildi.</span>';
+                    } else {
+                        btn.disabled = false; btn.textContent = 'Devret';
+                    }
+                }).catch(function() { btn.disabled = false; btn.textContent = 'Devret'; });
+            });
+        }(file.id, card));
+        row.appendChild(sel);
+        row.appendChild(btn);
+        card.appendChild(row);
+        listEl.appendChild(card);
     });
 }
 
@@ -1887,6 +1959,9 @@ window.addEventListener('message', function(event) {
         investigationList   = data.investigationList   || [];
         verdictFiles        = data.verdictFiles        || [];
         myReports           = data.myReports           || [];
+        isChief              = !!data.isChief;
+        assignableProsecutors = data.assignableProsecutors || [];
+        allOpenFiles           = data.allOpenFiles           || [];
         filterTabsForJob(currentJob);
         document.getElementById('user-job').textContent = currentJob;
         if (data.dashStats) {
@@ -1906,6 +1981,9 @@ window.addEventListener('message', function(event) {
         if (currentJob === 'prosecutor' || currentJob === 'judge') { renderIncomingPetitions(); }
         if (currentJob === 'prosecutor') { renderInvestigationList(); }
         if (currentJob === 'judge') { renderVerdictList(); }
+        if (currentJob === 'prosecutor' && isChief) { renderAssignList(); }
+        var navAssign = document.getElementById('nav-assign');
+        if (navAssign && !isChief) { navAssign.classList.add('nav-hidden'); }
         activateTab(data.activeTab || 'dashboard');
         document.getElementById('app').classList.remove('hidden');
     }
@@ -1932,6 +2010,11 @@ window.addEventListener('message', function(event) {
         if (data.investigationList !== undefined) {
             investigationList = data.investigationList;
             renderInvestigationList();
+        }
+        if (data.allOpenFiles !== undefined) {
+            allOpenFiles = data.allOpenFiles;
+            if (data.assignableProsecutors !== undefined) { assignableProsecutors = data.assignableProsecutors; }
+            renderAssignList();
         }
         if (data.myPetitions !== undefined) {
             myPetitions = data.myPetitions;

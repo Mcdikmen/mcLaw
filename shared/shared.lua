@@ -341,13 +341,16 @@ if IsDuplicityVersion() then
         if not ok2 then dbg('SendNotification failed: ' .. tostring(err2)) end
     end
 
-    -- Notify(src, data): on-screen ox_lib notification + SMS copy (not for errors).
-    -- data = { type, title, description, duration, position }
+    -- Notify(src, data): on-screen ox_lib notification + SMS copy (not for errors,
+    -- and not when data.noSms is set — use that for case-update toasts the player
+    -- is already a participant in, so their phone only gets the messages that matter:
+    -- file assignment/reassignment.
+    -- data = { type, title, description, duration, position, noSms }
     function Mclaw.Notify(src, data)
         data = data or {}
         data.position = data.position or Config.NotifyPosition
         TriggerClientEvent('ox_lib:notify', src, data)
-        if data.type ~= 'error' and data.description then
+        if data.type ~= 'error' and data.description and not data.noSms then
             local text = data.description
             if data.title and data.title ~= '' then text = data.title .. ': ' .. text end
             Mclaw.Sms(src, (text:gsub('%*%*', '')))
@@ -359,5 +362,13 @@ if IsDuplicityVersion() then
         local job = P and P.PlayerData and P.PlayerData.job
         if not job then return nil end
         return Mclaw.RoleOf(job.name, job.grade and job.grade.level)
+    end
+
+    -- IsChief(player) -> true if P is grade 16 (Başsavcı) in the DOJ job.
+    -- Başsavcı is the only grade allowed to reassign a file to a different
+    -- prosecutor/aday savcı (see mclaw:server:prosecutor:reassign in referral.lua).
+    function Mclaw.IsChief(P)
+        local job = P and P.PlayerData and P.PlayerData.job
+        return job ~= nil and job.name == Config.Doj.job and job.grade ~= nil and job.grade.level == 16
     end
 end

@@ -299,16 +299,14 @@ RegisterNetEvent('mclaw:server:judge:closeFile', function(data)
 
     Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'success', description = msg })
 
+    -- Case-update toast only (screen, no SMS, no offline queue) — see the note in
+    -- prosecutor.lua's judge:acceptCase handler.
     if file.prosecutor_citizenid then
-        MySQL.insert(
-            'INSERT INTO mclaw_notifications (citizenid, type, title, message, ref_type, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
-            { file.prosecutor_citizenid, 'verdict', Mclaw.T('notify_file_closed_title'), msg, 'file', data.fileId }
-        )
         for _, pid in ipairs(GetPlayers()) do
             local PP = Mclaw.GetPlayer(tonumber(pid))
             if PP and PP.PlayerData.citizenid == file.prosecutor_citizenid then
                 Mclaw.Notify(tonumber(pid), {
-                    type = 'inform', title = Mclaw.T('notify_file_closed_title'), description = msg,
+                    type = 'inform', title = Mclaw.T('notify_file_closed_title'), description = msg, noSms = true,
                 })
                 break
             end

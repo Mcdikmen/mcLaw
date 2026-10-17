@@ -35,6 +35,9 @@
                 <button class="nav-btn" data-page="indictment" data-jobs="prosecutor">
                     &#9998; İddianame
                 </button>
+                <button class="nav-btn" id="nav-assign" data-page="assign" data-jobs="prosecutor">
+                    &#9878; Dosya Devri (Başsavcı)
+                </button>
                 <button class="nav-btn" data-page="fileopening" data-jobs="judge">
                     &#43; Dosya Aç
                 </button>
@@ -188,6 +191,14 @@
                 <p class="subtitle">Size atanan dosyalar aşağıda listelenmiştir.</p>
                 <div id="files-empty" class="placeholder-box" style="display:none;">Atanmış dosya yok.</div>
                 <div id="files-list" class="file-list"></div>
+            </div>
+
+            <!-- ASSIGN (Başsavcı only) -->
+            <div id="page-assign" class="page">
+                <h2>Dosya Devri</h2>
+                <p class="subtitle">Açık dosyaları başka bir savcı veya aday savcıya devredin. Devredilen kişiye yalnızca "dosya size atandı" bildirimi gider.</p>
+                <div id="assign-empty" class="placeholder-box" style="display:none;">Açık dosya yok.</div>
+                <div id="assign-list" class="file-list"></div>
             </div>
 
             <!-- INDICTMENT (prosecutor) -->

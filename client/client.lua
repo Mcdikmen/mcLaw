@@ -7,6 +7,13 @@ local function getJob()
     return Player and Player.job and Mclaw.RoleOf(Player.job.name, Player.job.grade and Player.job.grade.level) or 'civilian'
 end
 
+-- Başsavcı (DOJ grade 16): the only grade that can reassign a file's prosecutor.
+local function getIsChief()
+    local Player = exports['qb-core']:GetCoreObject().Functions.GetPlayerData()
+    local job = Player and Player.job
+    return job ~= nil and job.name == Config.Doj.job and job.grade ~= nil and job.grade.level == 16
+end
+
 -- Tablet prop ve animasyon
 local tabletObj = nil
 local TABLET_MODEL = 'prop_cs_tablet'
@@ -71,6 +78,11 @@ local function openPanel(activeTab)
         payload.prosecutorFiles = lib.callback.await('mclaw:cb:prosecutor:getFiles', false) or {}
         if job == Config.Jobs.prosecutor then
             payload.investigationList = lib.callback.await('mclaw:cb:prosecutor:getInvestigations', false) or {}
+            payload.isChief = getIsChief()
+            if payload.isChief then
+                payload.assignableProsecutors = lib.callback.await('mclaw:cb:prosecutor:getAssignable', false) or {}
+                payload.allOpenFiles = lib.callback.await('mclaw:cb:prosecutor:getAllOpenFiles', false) or {}
+            end
         end
     end
 
@@ -300,6 +312,12 @@ RegisterNUICallback('tab:refresh', function(data, cb)
         if job == Config.Jobs.judge then
             update.verdictFiles = lib.callback.await('mclaw:cb:verdict:getEligibleFiles', false) or {}
         end
+
+    elseif tab == 'assign' then
+        if job == Config.Jobs.prosecutor and getIsChief() then
+            update.assignableProsecutors = lib.callback.await('mclaw:cb:prosecutor:getAssignable', false) or {}
+            update.allOpenFiles          = lib.callback.await('mclaw:cb:prosecutor:getAllOpenFiles', false) or {}
+        end
     end
 
     SendNUIMessage(update)
@@ -316,6 +334,18 @@ RegisterNUICallback('judge:acceptCase', function(data, cb)
         scheduledAt = data.scheduledAt,
         hearingType = data.hearingType or 'physical',
         notes       = data.notes or '',
+    })
+    cb({ ok = true })
+end)
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Başsavcı: dosyayı başka bir savcı/aday savcıya devret
+-- ─────────────────────────────────────────────────────────────────────────────
+RegisterNUICallback('prosecutor:reassign', function(data, cb)
+    if not data.fileId or not data.newCitizenid then cb({ ok = false, error = 'Eksik veri.' }); return end
+    TriggerServerEvent('mclaw:server:prosecutor:reassign', {
+        fileId       = data.fileId,
+        newCitizenid = data.newCitizenid,
     })
     cb({ ok = true })
 end)

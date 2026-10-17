@@ -298,22 +298,23 @@ RegisterNetEvent('mclaw:server:judge:acceptCase', function(data)
     Mclaw.Notify(src, { position = Config.NotifyPosition,
         type        = 'success',
         title       = Mclaw.T('notify_hearing_scheduled_title'),
-        description = Mclaw.T('notify_hearing_scheduled_desc', file.file_number, typeLabel, scheduledAt),
+        description = Mclaw.T('notify_hearing_scheduled_desc', file.file_number, typeLabel, when),
+        noSms       = true, -- the judge set this themselves; they don't need an SMS confirmation
     })
 
+    -- Case-update toast only (screen, no SMS, no offline queue): the assigned prosecutor
+    -- is a participant in this file already and can see the hearing in their own
+    -- dashboard. The only SMS a prosecutor/aday savcı should receive from mcLaw is the
+    -- file-assignment one (see Mclaw.AssignProsecutor in referral.lua).
     if file.prosecutor_citizenid then
-        local msg = Mclaw.T('notify_hearing_scheduled_msg', file.file_number, typeLabel, scheduledAt)
-        MySQL.insert(
-            'INSERT INTO mclaw_notifications (citizenid, type, title, message, ref_type, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
-            { file.prosecutor_citizenid, 'hearing', Mclaw.T('notify_hearing_scheduled_title'), msg, 'file', data.fileId }
-        )
         for _, pid in ipairs(GetPlayers()) do
             local PP = Mclaw.GetPlayer(tonumber(pid))
             if PP and PP.PlayerData.citizenid == file.prosecutor_citizenid then
                 Mclaw.Notify(tonumber(pid), {
                     type        = 'success',
                     title       = Mclaw.T('notify_hearing_scheduled_title'),
-                    description = Mclaw.T('notify_hearing_scheduled_desc', file.file_number, typeLabel, scheduledAt),
+                    description = Mclaw.T('notify_hearing_scheduled_desc', file.file_number, typeLabel, when),
+                    noSms       = true,
                 })
                 break
             end

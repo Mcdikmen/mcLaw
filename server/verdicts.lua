@@ -153,19 +153,16 @@ RegisterNetEvent('mclaw:server:judge:issueVerdict', function(data)
         description = Mclaw.T('notify_verdict_issued_desc', file.file_number, resultLabel, tostring(totalJail), tostring(totalFine)),
     })
 
-    local notifPayload = {
-        type        = 'inform',
-        title       = Mclaw.T('notify_verdict_prosecutor_title'),
-        description = Mclaw.T('notify_verdict_prosecutor_desc', file.file_number, resultLabel, tostring(totalJail), tostring(totalFine)),
-    }
-
-    -- Notify prosecutor
+    -- Case-update toast only (screen, no SMS, no offline queue) — see the note in
+    -- prosecutor.lua's judge:acceptCase handler: the assigned prosecutor already
+    -- participates in this file, only the assignment SMS should reach their phone.
     if file.prosecutor_citizenid then
-        MySQL.insert(
-            'INSERT INTO mclaw_notifications (citizenid, type, title, message, ref_type, ref_id) VALUES (?, ?, ?, ?, ?, ?)',
-            { file.prosecutor_citizenid, 'verdict', notifPayload.title, notifPayload.description, 'file', data.fileId }
-        )
-        notifyByCid(file.prosecutor_citizenid, notifPayload)
+        notifyByCid(file.prosecutor_citizenid, {
+            type        = 'inform',
+            title       = Mclaw.T('notify_verdict_prosecutor_title'),
+            description = Mclaw.T('notify_verdict_prosecutor_desc', file.file_number, resultLabel, tostring(totalJail), tostring(totalFine)),
+            noSms       = true,
+        })
     end
 
     -- Notify suspect (online: now; offline: stored and delivered at login)
