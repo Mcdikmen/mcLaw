@@ -112,8 +112,9 @@ RegisterNetEvent('mclaw:client:poaPickDuration', function(data)
     for _, d in ipairs(Config.PowerOfAttorney.durations or {}) do
         table.insert(menu, {
             header = d.label,
+            txt    = ('Ücret: $%s'):format(money(d.fee or 0)),
             params = { event = 'mclaw:client:poaConfirmGrant', args = {
-                lawyerCid = data.lawyerCid, lawyerName = data.lawyerName, days = d.days or 0, label = d.label,
+                lawyerCid = data.lawyerCid, lawyerName = data.lawyerName, days = d.days or 0, label = d.label, fee = d.fee or 0,
             } },
         })
     end
@@ -125,7 +126,7 @@ RegisterNetEvent('mclaw:client:poaConfirmGrant', function(data)
     exports['qb-menu']:openMenu({
         { header = 'Vekaleti Onayla', isMenuHeader = true },
         { header = data.lawyerName or data.lawyerCid, txt = data.label or '' },
-        { header = ('Ücret: $%s'):format(money(Config.PowerOfAttorney.fee or 0)), disabled = true },
+        { header = ('Ücret: $%s'):format(money(data.fee or 0)), disabled = true },
         { header = 'Vekalet Ver', params = { event = 'mclaw:client:poaDoGrant', args = { lawyerCid = data.lawyerCid, days = data.days } } },
         { header = 'Vazgeç', params = { event = 'mclaw:client:poaMenu' } },
     })

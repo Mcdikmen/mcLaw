@@ -183,6 +183,16 @@ RegisterNetEvent('mclaw:server:poa:grant', function(data)
     end
 
     local days = tonumber(data.days) or 0
+
+    -- The fee is looked up server-side by days, never trusted from the client.
+    local fee = 0
+    for _, d in ipairs(Config.PowerOfAttorney.durations or {}) do
+        if (d.days or 0) == days then
+            fee = d.fee or 0
+            break
+        end
+    end
+
     if days > 0 then
         MySQL.insert.await(
             "INSERT INTO mclaw_attorneys (attorney_citizenid, client_citizenid, scope, expires_at, is_active) VALUES (?, ?, 'general', DATE_ADD(NOW(), INTERVAL ? DAY), 1)",
@@ -195,7 +205,6 @@ RegisterNetEvent('mclaw:server:poa:grant', function(data)
         )
     end
 
-    local fee = Config.PowerOfAttorney.fee or 0
     if fee > 0 then
         exports['codem-billing']:createBilling(src, src, fee, Mclaw.T('poa_invoice_label'), Config.PowerOfAttorney.society)
     end

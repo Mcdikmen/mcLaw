@@ -96,19 +96,19 @@ Config.Bracelet = {
 -- Citizens grant/revoke a lawyer's power of attorney only at this NPC
 -- (client/poa.lua). A lawyer may not act on a client's behalf (e.g. send a
 -- petition naming them as plaintiff) without an active grant.
--- fee:     flat invoice charged to the client on every grant, billed to
---          `society` via codem-billing (see Config.AllowBillingJobs in
---          codem-billing/config/config.lua — 'doj' must be listed there).
--- durations: options offered in the NUI; days = 0 means unlimited (süresiz).
+-- society: which society gets the invoice via codem-billing (see
+--          Config.AllowBillingJobs in codem-billing/config/config.lua —
+--          'doj' must be listed there).
+-- durations: options offered in the menu; days = 0 means unlimited (süresiz).
+--          Each has its own `fee` — unlimited costs much more than a dated grant.
 -- ─────────────────────────────────────────────
 Config.PowerOfAttorney = {
-    fee     = 500,
     society = 'doj',
     durations = {
-        { label = '1 Gün',   days = 1 },
-        { label = '1 Hafta', days = 7 },
-        { label = '1 Ay',    days = 30 },
-        { label = 'Süresiz', days = 0 },
+        { label = '1 Gün',   days = 1,  fee = 200 },
+        { label = '1 Hafta', days = 7,  fee = 600 },
+        { label = '1 Ay',    days = 30, fee = 1500 },
+        { label = 'Süresiz', days = 0,  fee = 5000 },
     },
     npc = {
         model        = 'a_m_m_business_01',
