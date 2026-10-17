@@ -23,7 +23,8 @@ local function spawnNpc()
     while not HasModelLoaded(model) and t < 100 do Wait(50); t = t + 1 end
     if not HasModelLoaded(model) then return end
 
-    npc = CreatePed(4, model, npcCfg.coords.x, npcCfg.coords.y, npcCfg.coords.z - 1.0, npcCfg.coords.w, false, false)
+    npc = CreatePed(4, model, npcCfg.coords.x, npcCfg.coords.y, npcCfg.coords.z, npcCfg.coords.w, false, false)
+    PlaceObjectOnGroundProperly(npc)
     SetEntityHeading(npc, npcCfg.coords.w)
     FreezeEntityPosition(npc, true)
     SetEntityInvincible(npc, true)
@@ -70,3 +71,13 @@ end)
 RegisterNetEvent('mclaw:client:poaMenu', function()
     TriggerEvent('mclaw:client:openPanel', 'poa')
 end)
+
+-- /mclawpoa : diagnostic — distance to the NPC and whether it has spawned (any player)
+RegisterCommand('mclawpoa', function()
+    local dist = #(GetEntityCoords(PlayerPedId()) - vector3(npcCfg.coords.x, npcCfg.coords.y, npcCfg.coords.z))
+    lib.notify({
+        position = Config.NotifyPosition, duration = 10000, type = 'inform',
+        description = ('Vekalet NPC mesafe: %.1f m | Spawn oldu mu: %s | viewDistance: %s m'):format(
+            dist, tostring(npc ~= nil and DoesEntityExist(npc)), tostring(npcCfg.viewDistance or 10.0)),
+    })
+end, false)
