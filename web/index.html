@@ -354,9 +354,14 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label for="petition-plaintiff">Müvekkil Vatandaş No</label>
+                        <label for="petition-plaintiff">Şikayet Eden (Müvekkil) Vatandaş No</label>
                         <input type="text" id="petition-plaintiff" maxlength="64" placeholder="örn. ABC12345" required>
                         <p class="form-hint">Davacı / müvekkilin vatandaş numarasını girin. Bulmak için Vatandaşlar sekmesini kullanın.</p>
+                    </div>
+                    <div class="form-group">
+                        <label for="petition-defendant" id="petition-defendant-label">Şikayet Edilen Vatandaş No</label>
+                        <input type="text" id="petition-defendant" maxlength="64" placeholder="örn. XYZ98765" required>
+                        <p class="form-hint" id="petition-defendant-hint">Hakkında şikayette bulunulan / sanık vatandaş numarasını girin.</p>
                     </div>
                     <div class="form-group" id="petition-charges-group">
                         <label>Suç(lar) <span class="label-hint">(ceza davaları için)</span></label>

@@ -1423,11 +1423,20 @@ function populatePetitionCharges() {
     });
 }
 
-// Criminal/civil radio → show/hide charge list
+// Criminal/civil radio → show/hide charge list, swap defendant label (sanık / davalı)
 document.querySelectorAll('input[name="petition-type"]').forEach(function(radio) {
     radio.addEventListener('change', function() {
         var grp = document.getElementById('petition-charges-group');
         if (grp) grp.style.display = radio.value === 'criminal' ? '' : 'none';
+        var defLabel = document.getElementById('petition-defendant-label');
+        var defHint  = document.getElementById('petition-defendant-hint');
+        if (radio.value === 'civil') {
+            if (defLabel) defLabel.textContent = 'Davalı Vatandaş No';
+            if (defHint)  defHint.textContent  = 'Hukuk davasında davalı tarafın vatandaş numarasını girin.';
+        } else {
+            if (defLabel) defLabel.textContent = 'Şikayet Edilen Vatandaş No';
+            if (defHint)  defHint.textContent  = 'Hakkında şikayette bulunulan / sanık vatandaş numarasını girin.';
+        }
     });
 });
 
@@ -1466,10 +1475,13 @@ document.getElementById('petition-form').addEventListener('submit', function(e) 
 
     var petType    = document.querySelector('input[name="petition-type"]:checked').value;
     var plaintiff  = document.getElementById('petition-plaintiff').value.trim();
+    var defendant  = document.getElementById('petition-defendant').value.trim();
     var subject    = document.getElementById('petition-subject').value.trim();
     var desc       = document.getElementById('petition-description').value.trim();
 
-    if (!plaintiff) { errEl.textContent = 'Müvekkil vatandaş numarası gereklidir.'; errEl.classList.remove('hidden'); return; }
+    if (!plaintiff) { errEl.textContent = 'Şikayet eden (müvekkil) vatandaş numarası gereklidir.'; errEl.classList.remove('hidden'); return; }
+    if (!defendant) { errEl.textContent = (petType === 'civil' ? 'Davalı' : 'Şikayet edilen') + ' vatandaş numarası gereklidir.'; errEl.classList.remove('hidden'); return; }
+    if (plaintiff === defendant) { errEl.textContent = 'Şikayet eden ile şikayet edilen aynı kişi olamaz.'; errEl.classList.remove('hidden'); return; }
     if (!subject)   { errEl.textContent = 'Konu boş olamaz.'; errEl.classList.remove('hidden'); return; }
     if (desc.length < 10) { errEl.textContent = 'Dilekçe içeriği en az 10 karakter olmalıdır.'; errEl.classList.remove('hidden'); return; }
 
@@ -1492,7 +1504,7 @@ document.getElementById('petition-form').addEventListener('submit', function(e) 
     submitBtn.disabled = true; submitBtn.textContent = 'Gönderiliyor…';
     fetch('https://mclaw/lawyer:sendPetition', {
         method: 'POST',
-        body: JSON.stringify({ petitionType: petType, plaintiffCid: plaintiff, charges: charges, subject: subject, description: desc, attachments: attachments }),
+        body: JSON.stringify({ petitionType: petType, plaintiffCid: plaintiff, defendantCid: defendant, charges: charges, subject: subject, description: desc, attachments: attachments }),
     }).then(function(r) { return r.json(); }).then(function(result) {
         submitBtn.disabled = false; submitBtn.textContent = 'Dilekçeyi Gönder';
         if (result && result.ok) {
@@ -1533,6 +1545,7 @@ function renderMyPetitions() {
             '</div>' +
             '<div class="file-card-body">' +
                 '<div class="file-meta"><span class="file-meta-key">Müvekkil</span><span>' + displayName(p.plaintiffName, p.plaintiffCid) + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">' + (p.petitionType === 'civil' ? 'Davalı' : 'Şikayet Edilen') + '</span><span>' + displayName(p.defendantName, p.defendantCid) + '</span></div>' +
                 '<div class="file-meta"><span class="file-meta-key">Konu</span><span>' + escHtml(p.subject) + '</span></div>' +
                 '<div class="file-meta"><span class="file-meta-key">Gönderim</span><span>' + (p.createdAt || '—') + '</span></div>' +
                 rejectRow +
@@ -1574,6 +1587,7 @@ function renderIncomingPetitions() {
             '<div class="file-card-body">' +
                 '<div class="file-meta"><span class="file-meta-key">Avukat</span><span>' + displayName(p.attorneyName, p.attorneyCid) + '</span></div>' +
                 '<div class="file-meta"><span class="file-meta-key">Müvekkil</span><span>' + displayName(p.plaintiffName, p.plaintiffCid) + '</span></div>' +
+                '<div class="file-meta"><span class="file-meta-key">' + (p.petitionType === 'civil' ? 'Davalı' : 'Şikayet Edilen') + '</span><span>' + displayName(p.defendantName, p.defendantCid) + '</span></div>' +
                 '<div class="file-meta"><span class="file-meta-key">Konu</span><span>' + escHtml(p.subject) + '</span></div>' +
                 '<div class="file-meta" style="flex-direction:column;gap:4px;margin-top:4px;">' +
                     '<span class="file-meta-key">Dilekçe</span>' +

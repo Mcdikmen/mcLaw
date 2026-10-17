@@ -23,8 +23,12 @@ RegisterNetEvent('mclaw:server:lawyer:sendPetition', function(data)
     local P   = Mclaw.GetPlayer(src)
     if not P or Mclaw.GetRole(P) ~= Config.Jobs.lawyer then return end
 
-    if not data.petitionType or not data.plaintiffCid or not data.subject or not data.description then
+    if not data.petitionType or not data.plaintiffCid or not data.defendantCid or not data.subject or not data.description then
         Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_missing_data') })
+        return
+    end
+    if data.plaintiffCid == data.defendantCid then
+        Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_plaintiff_defendant_same') })
         return
     end
     if #data.subject < 3 then
@@ -39,6 +43,12 @@ RegisterNetEvent('mclaw:server:lawyer:sendPetition', function(data)
     local plaintiffExists = MySQL.scalar.await('SELECT COUNT(*) FROM players WHERE citizenid = ?', { data.plaintiffCid })
     if not plaintiffExists or plaintiffExists == 0 then
         Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_invalid_client_cid') })
+        return
+    end
+
+    local defendantExists = MySQL.scalar.await('SELECT COUNT(*) FROM players WHERE citizenid = ?', { data.defendantCid })
+    if not defendantExists or defendantExists == 0 then
+        Mclaw.Notify(src, { position = Config.NotifyPosition, type = 'error', description = Mclaw.T('err_invalid_defendant_cid') })
         return
     end
 
@@ -75,8 +85,8 @@ RegisterNetEvent('mclaw:server:lawyer:sendPetition', function(data)
 
     local cid = P.PlayerData.citizenid
     MySQL.insert(
-        'INSERT INTO mclaw_petitions (type, attorney_citizenid, plaintiff_citizenid, recipient_job, charges, subject, description, attachments) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        { data.petitionType, cid, data.plaintiffCid, recipientJob, chargesJson, data.subject, data.description, attachmentsJson }
+        'INSERT INTO mclaw_petitions (type, attorney_citizenid, plaintiff_citizenid, defendant_citizenid, recipient_job, charges, subject, description, attachments) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        { data.petitionType, cid, data.plaintiffCid, data.defendantCid, recipientJob, chargesJson, data.subject, data.description, attachmentsJson }
     )
 
     local submittedDesc = data.petitionType == 'criminal' and Mclaw.T('notify_petition_submitted_criminal') or Mclaw.T('notify_petition_submitted_civil')
@@ -109,7 +119,7 @@ lib.callback.register('mclaw:cb:lawyer:getMyPetitions', function(source)
 
     local cid  = P.PlayerData.citizenid
     local rows = MySQL.query.await(
-        'SELECT id, type, plaintiff_citizenid, recipient_job, subject, description, status, file_id, reject_reason, attachments, created_at FROM mclaw_petitions WHERE attorney_citizenid = ? ORDER BY created_at DESC LIMIT 50',
+        'SELECT id, type, plaintiff_citizenid, defendant_citizenid, recipient_job, subject, description, status, file_id, reject_reason, attachments, created_at FROM mclaw_petitions WHERE attorney_citizenid = ? ORDER BY created_at DESC LIMIT 50',
         { cid }
     )
 
@@ -125,6 +135,8 @@ lib.callback.register('mclaw:cb:lawyer:getMyPetitions', function(source)
             petitionType   = row.type,
             plaintiffCid   = row.plaintiff_citizenid,
             plaintiffName  = Mclaw.GetCharName(row.plaintiff_citizenid),
+            defendantCid   = row.defendant_citizenid,
+            defendantName  = Mclaw.GetCharName(row.defendant_citizenid),
             recipientJob   = row.recipient_job,
             subject        = row.subject,
             description    = row.description,
@@ -147,7 +159,7 @@ lib.callback.register('mclaw:cb:prosecutor:getIncomingPetitions', function(sourc
     if not P or Mclaw.GetRole(P) ~= Config.Jobs.prosecutor then return {} end
 
     local rows = MySQL.query.await(
-        "SELECT id, type, attorney_citizenid, plaintiff_citizenid, charges, subject, description, status, reject_reason, attachments, created_at FROM mclaw_petitions WHERE recipient_job = 'prosecutor' AND status = 'pending' ORDER BY created_at ASC LIMIT 50",
+        "SELECT id, type, attorney_citizenid, plaintiff_citizenid, defendant_citizenid, charges, subject, description, status, reject_reason, attachments, created_at FROM mclaw_petitions WHERE recipient_job = 'prosecutor' AND status = 'pending' ORDER BY created_at ASC LIMIT 50",
         {}
     )
 
@@ -181,6 +193,8 @@ lib.callback.register('mclaw:cb:prosecutor:getIncomingPetitions', function(sourc
             attorneyName  = Mclaw.GetCharName(row.attorney_citizenid),
             plaintiffCid  = row.plaintiff_citizenid,
             plaintiffName = Mclaw.GetCharName(row.plaintiff_citizenid),
+            defendantCid  = row.defendant_citizenid,
+            defendantName = Mclaw.GetCharName(row.defendant_citizenid),
             charges       = charges,
             subject       = row.subject,
             description   = row.description,
@@ -201,7 +215,7 @@ lib.callback.register('mclaw:cb:judge:getIncomingPetitions', function(source)
     if not P or Mclaw.GetRole(P) ~= Config.Jobs.judge then return {} end
 
     local rows = MySQL.query.await(
-        "SELECT id, type, attorney_citizenid, plaintiff_citizenid, subject, description, status, reject_reason, attachments, created_at FROM mclaw_petitions WHERE recipient_job = 'judge' AND status = 'pending' ORDER BY created_at ASC LIMIT 50",
+        "SELECT id, type, attorney_citizenid, plaintiff_citizenid, defendant_citizenid, subject, description, status, reject_reason, attachments, created_at FROM mclaw_petitions WHERE recipient_job = 'judge' AND status = 'pending' ORDER BY created_at ASC LIMIT 50",
         {}
     )
 
@@ -219,6 +233,8 @@ lib.callback.register('mclaw:cb:judge:getIncomingPetitions', function(source)
             attorneyName  = Mclaw.GetCharName(row.attorney_citizenid),
             plaintiffCid  = row.plaintiff_citizenid,
             plaintiffName = Mclaw.GetCharName(row.plaintiff_citizenid),
+            defendantCid  = row.defendant_citizenid,
+            defendantName = Mclaw.GetCharName(row.defendant_citizenid),
             subject       = row.subject,
             description   = row.description,
             attachments   = atts,
@@ -240,7 +256,7 @@ RegisterNetEvent('mclaw:server:prosecutor:acceptPetition', function(data)
 
     local cid = P.PlayerData.citizenid
     local petition = MySQL.single.await(
-        "SELECT id, attorney_citizenid, plaintiff_citizenid, charges FROM mclaw_petitions WHERE id = ? AND status = 'pending' AND recipient_job = 'prosecutor'",
+        "SELECT id, attorney_citizenid, plaintiff_citizenid, defendant_citizenid, charges FROM mclaw_petitions WHERE id = ? AND status = 'pending' AND recipient_job = 'prosecutor'",
         { data.petitionId }
     )
     if not petition then
@@ -260,7 +276,7 @@ RegisterNetEvent('mclaw:server:prosecutor:acceptPetition', function(data)
     -- Dosyayı oluştur
     local fileId = MySQL.insert.await(
         "INSERT INTO mclaw_files (file_number, suspect_citizenid, prosecutor_citizenid, opened_by_citizenid, opened_by_job, status, type, petition_id) VALUES (?, ?, ?, ?, ?, 'opened', 'investigation', ?)",
-        { fileNumber, petition.plaintiff_citizenid, cid, cid, Config.Jobs.prosecutor, petition.id }
+        { fileNumber, petition.defendant_citizenid, cid, cid, Config.Jobs.prosecutor, petition.id }
     )
 
     -- Suçları ekle
@@ -289,7 +305,7 @@ RegisterNetEvent('mclaw:server:prosecutor:acceptPetition', function(data)
         title       = Mclaw.T('notify_investigation_opened_title'),
         description = Mclaw.T('notify_investigation_opened_desc', fileNumber),
     })
-    Mclaw.NotifyCitizen(petition.plaintiff_citizenid, 'subpoena', Mclaw.T('start_ok_title'), Mclaw.T('start_ok_suspect', fileNumber))
+    Mclaw.NotifyCitizen(petition.defendant_citizenid, 'subpoena', Mclaw.T('start_ok_title'), Mclaw.T('start_ok_suspect', fileNumber))
 
     local attorneySrc = findSource(petition.attorney_citizenid)
     if attorneySrc then
@@ -347,7 +363,7 @@ RegisterNetEvent('mclaw:server:judge:acceptCivilPetition', function(data)
 
     local cid = P.PlayerData.citizenid
     local petition = MySQL.single.await(
-        "SELECT id, attorney_citizenid, plaintiff_citizenid, subject FROM mclaw_petitions WHERE id = ? AND status = 'pending' AND recipient_job = 'judge'",
+        "SELECT id, attorney_citizenid, plaintiff_citizenid, defendant_citizenid, subject FROM mclaw_petitions WHERE id = ? AND status = 'pending' AND recipient_job = 'judge'",
         { data.petitionId }
     )
     if not petition then
@@ -361,7 +377,7 @@ RegisterNetEvent('mclaw:server:judge:acceptCivilPetition', function(data)
 
     local fileId = MySQL.insert.await(
         "INSERT INTO mclaw_files (file_number, suspect_citizenid, judge_citizenid, opened_by_citizenid, opened_by_job, status, type) VALUES (?, ?, ?, ?, ?, 'opened', 'civil')",
-        { fileNumber, petition.plaintiff_citizenid, cid, cid, Config.Jobs.judge }
+        { fileNumber, petition.defendant_citizenid, cid, cid, Config.Jobs.judge }
     )
 
     MySQL.insert(
