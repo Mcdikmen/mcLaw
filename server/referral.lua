@@ -31,14 +31,26 @@ end
 
 -- Fallback when no prosecutor is online at the moment of a referral: picks a
 -- random aday savcı or savcı (DOJ grade 12/13) from the whole roster, online or
--- not. Başsavcı (grade 16) is excluded from this pool — their role here is to
--- reassign afterwards (mclaw:server:prosecutor:reassign), not to receive random
--- cases. Returns citizenid (string|nil).
+-- not. Returns citizenid (string|nil).
 local function pickRandomProsecutor()
     local row = MySQL.single.await(
         [[SELECT citizenid FROM players
           WHERE JSON_UNQUOTE(JSON_EXTRACT(job, '$.name')) = ?
             AND JSON_UNQUOTE(JSON_EXTRACT(job, '$.grade.level')) IN ('12', '13')
+          ORDER BY RAND() LIMIT 1]],
+        { Config.Doj.job }
+    )
+    return row and row.citizenid or nil
+end
+
+-- Last resort: no aday savcı/savcı at all (none exist, or none registered yet).
+-- Falls all the way up to a Başsavcı (grade 16) — any one, online or not —
+-- rather than leaving the file unassigned. Returns citizenid (string|nil).
+local function pickRandomChief()
+    local row = MySQL.single.await(
+        [[SELECT citizenid FROM players
+          WHERE JSON_UNQUOTE(JSON_EXTRACT(job, '$.name')) = ?
+            AND JSON_UNQUOTE(JSON_EXTRACT(job, '$.grade.level')) = '16'
           ORDER BY RAND() LIMIT 1]],
         { Config.Doj.job }
     )
@@ -386,8 +398,12 @@ RegisterNetEvent('mclaw:server:referral:startInvestigation', function(reportId)
     local prosecutorCid = pickProsecutor()
     if not prosecutorCid then
         -- No one online: assign randomly instead of leaving the file unassigned.
-        -- The Başsavcı can move it with mclaw:server:prosecutor:reassign.
+        -- The Başsavcı can move it later with mclaw:server:prosecutor:reassign.
         prosecutorCid = pickRandomProsecutor()
+    end
+    if not prosecutorCid then
+        -- No aday savcı/savcı exists at all: last resort, a Başsavcı.
+        prosecutorCid = pickRandomChief()
     end
     local newStatus = prosecutorCid and Mclaw.FileStatus.PROSECUTOR_REVIEW or Mclaw.FileStatus.AWAITING_PROSECUTOR
     local claimed = MySQL.update.await(
